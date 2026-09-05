@@ -1,4 +1,4 @@
-```js
+
 const bcrypt = require("bcryptjs");
 const prisma = require("../utils/prismaClient");
 const { signToken } = require("../utils/jwt");
