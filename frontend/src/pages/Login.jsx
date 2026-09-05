@@ -1,8 +1,30 @@
+
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { LogoMark } from "../components/Navbar";
 import EventPassStack from "../components/EventPassStack";
+
+const ROLE_CONFIG = {
+  student: {
+    role: "STUDENT",
+    title: "Student Login",
+    subtitle: "Sign in to discover and participate in university events.",
+    signup: true,
+  },
+  organizer: {
+    role: "ORGANIZER",
+    title: "Organizer Login",
+    subtitle: "Sign in to manage and organize university events.",
+    signup: false,
+  },
+  admin: {
+    role: "ADMIN",
+    title: "Administrator Login",
+    subtitle: "Sign in to manage UniEvents administration.",
+    signup: false,
+  },
+};
 
 const DASHBOARD_BY_ROLE = {
   STUDENT: "/student/dashboard",
@@ -11,6 +33,9 @@ const DASHBOARD_BY_ROLE = {
 };
 
 export default function Login() {
+  const { type } = useParams();
+  const config = ROLE_CONFIG[type] || ROLE_CONFIG.student;
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,9 +57,22 @@ export default function Login() {
     }
 
     setSubmitting(true);
+
     try {
       const user = await login(email.trim(), password);
-      const redirectTo = location.state?.from?.pathname || DASHBOARD_BY_ROLE[user.role] || "/";
+
+      if (user.role !== config.role) {
+        setError(
+          `This account is not registered as a ${config.role.toLowerCase()} account.`
+        );
+        return;
+      }
+
+      const redirectTo =
+        location.state?.from?.pathname ||
+        DASHBOARD_BY_ROLE[user.role] ||
+        "/";
+
       navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err.message || "Invalid email or password.");
@@ -49,14 +87,21 @@ export default function Login() {
       <div className="hidden flex-col justify-between bg-ink p-12 text-paper md:flex">
         <Link to="/" className="flex items-center gap-2">
           <LogoMark light />
-          <span className="font-display text-xl font-semibold">UniEvents</span>
+          <span className="font-display text-xl font-semibold">
+            UniEvents
+          </span>
         </Link>
 
         <div>
-          <p className="font-display text-2xl font-medium leading-snug">Discover. Register. Participate.</p>
-          <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-paper/60">
-            Your centralized platform for discovering, managing and participating in university events.
+          <p className="font-display text-2xl font-medium leading-snug">
+            Discover. Register. Participate.
           </p>
+
+          <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-paper/60">
+            Your centralized platform for discovering, managing and
+            participating in university events.
+          </p>
+
           <div className="mt-10">
             <EventPassStack />
           </div>
@@ -68,13 +113,33 @@ export default function Login() {
       {/* RIGHT PANEL */}
       <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-20">
         <div className="mx-auto w-full max-w-sm">
-          <Link to="/" className="mb-10 flex items-center gap-2 md:hidden">
+
+          <Link
+            to="/"
+            className="mb-10 flex items-center gap-2 md:hidden"
+          >
             <LogoMark />
-            <span className="font-display text-xl font-semibold text-ink">UniEvents</span>
+            <span className="font-display text-xl font-semibold text-ink">
+              UniEvents
+            </span>
           </Link>
 
-          <h1 className="font-display text-3xl font-semibold text-ink">Welcome Back</h1>
-          <p className="mt-2 text-[15px] text-ink-soft">Sign in to your UniEvents account</p>
+          <div className="mb-6">
+            <Link
+              to="/login"
+              className="text-[13px] text-brass-dark hover:text-brass"
+            >
+              ← Choose another login
+            </Link>
+          </div>
+
+          <h1 className="font-display text-3xl font-semibold text-ink">
+            {config.title}
+          </h1>
+
+          <p className="mt-2 text-[15px] text-ink-soft">
+            {config.subtitle}
+          </p>
 
           {error && (
             <div className="mt-6 rounded-sharp border border-maroon/30 bg-maroon/5 px-4 py-3 text-[14px] text-maroon">
@@ -83,10 +148,15 @@ export default function Login() {
           )}
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+
             <div>
-              <label htmlFor="email" className="block text-[14px] font-medium text-ink">
+              <label
+                htmlFor="email"
+                className="block text-[14px] font-medium text-ink"
+              >
                 University Email
               </label>
+
               <input
                 id="email"
                 type="email"
@@ -100,13 +170,21 @@ export default function Login() {
 
             <div>
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-[14px] font-medium text-ink">
+                <label
+                  htmlFor="password"
+                  className="block text-[14px] font-medium text-ink"
+                >
                   Password
                 </label>
-                <Link to="/login" className="text-[13px] text-brass-dark hover:text-brass">
+
+                <Link
+                  to="/login"
+                  className="text-[13px] text-brass-dark hover:text-brass"
+                >
                   Forgot Password?
                 </Link>
               </div>
+
               <div className="relative mt-2">
                 <input
                   id="password"
@@ -117,6 +195,7 @@ export default function Login() {
                   placeholder="••••••••"
                   className="w-full rounded-sharp border border-line bg-white px-4 py-3 pr-12 text-[15px] text-ink outline-none transition-colors focus:border-ink"
                 />
+
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
@@ -146,14 +225,21 @@ export default function Login() {
             </button>
           </form>
 
-          <p className="mt-8 text-center text-[14px] text-ink-soft">
-            Don't have an account?{" "}
-            <Link to="/register" className="font-medium text-brass-dark hover:text-brass">
-              Sign Up
-            </Link>
-          </p>
+          {config.signup && (
+            <p className="mt-8 text-center text-[14px] text-ink-soft">
+              Don't have an account?{" "}
+              <Link
+                to="/register"
+                className="font-medium text-brass-dark hover:text-brass"
+              >
+                Sign Up
+              </Link>
+            </p>
+          )}
+
         </div>
       </div>
     </div>
   );
 }
+```
