@@ -111,12 +111,12 @@ export default function Register() {
         phone: form.phone.trim() || undefined,
         password: form.password,
         confirmPassword: form.confirmPassword,
-
-        // Send the selected role to the backend.
         role: config.role,
       });
 
-      navigate(`/login/${type}`, {
+      // After successful registration, send the user
+      // to the correct role-specific login page.
+      navigate(`/login/${type || "student"}`, {
         state: {
           registered: true,
         },
@@ -133,7 +133,6 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-paper px-6 py-12">
       <div className="mx-auto max-w-md">
-
         {/* Logo */}
         <Link
           to="/"
@@ -146,8 +145,8 @@ export default function Register() {
           </span>
         </Link>
 
+        {/* Registration Card */}
         <div className="rounded-sharp border border-line bg-white p-8 sm:p-10">
-
           {/* Heading */}
           <h1 className="text-center font-display text-2xl font-semibold text-ink">
             {config.title}
@@ -166,7 +165,7 @@ export default function Register() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
-
+            {/* Full Name */}
             <Field
               label="Full Name"
               id="name"
@@ -175,6 +174,7 @@ export default function Register() {
               autoComplete="name"
             />
 
+            {/* Email */}
             <Field
               label="University Email"
               id="email"
@@ -194,6 +194,7 @@ export default function Register() {
               />
             )}
 
+            {/* Department */}
             <Field
               label="Department"
               id="department"
@@ -201,6 +202,7 @@ export default function Register() {
               onChange={updateField("department")}
             />
 
+            {/* Phone */}
             <Field
               label="Phone"
               id="phone"
@@ -210,6 +212,7 @@ export default function Register() {
               autoComplete="tel"
             />
 
+            {/* Password */}
             <Field
               label="Password"
               id="password"
@@ -219,6 +222,7 @@ export default function Register() {
               autoComplete="new-password"
             />
 
+            {/* Confirm Password */}
             <Field
               label="Confirm Password"
               id="confirmPassword"
@@ -248,9 +252,7 @@ export default function Register() {
               disabled={submitting}
               className="w-full rounded-sharp bg-ink py-3.5 text-[15px] font-medium text-paper transition-colors hover:bg-brass-dark disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting
-                ? "Creating Account…"
-                : "Create Account"}
+              {submitting ? "Creating Account…" : "Create Account"}
             </button>
           </form>
 
@@ -258,7 +260,7 @@ export default function Register() {
           <p className="mt-6 text-center text-[14px] text-ink-soft">
             Already have an account?{" "}
             <Link
-              to={`/login/${type}`}
+              to={`/login/${type || "student"}`}
               className="font-medium text-brass-dark hover:text-brass"
             >
               Sign In
@@ -308,3 +310,4 @@ function Field({
     </div>
   );
 }
+
