@@ -1,4 +1,4 @@
-# UniEvents — Phase 1: Foundation (Auth + Role-Based Dashboards)
+# UniEvents —  (Auth + Role-Based Dashboards)
 
 UniEvents is a centralized university event management platform. This phase
 builds the **foundation only**: a public landing page, student registration,
