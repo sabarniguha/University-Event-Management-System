@@ -1,7 +1,6 @@
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require('@prisma/client');
 
-// Reuse a single PrismaClient instance across the app (and across
-// hot reloads in dev) to avoid exhausting database connections.
-const prisma = new PrismaClient();
+const prisma = global.__uemsPrisma || new PrismaClient();
+if (process.env.NODE_ENV !== 'production') global.__uemsPrisma = prisma;
 
 module.exports = prisma;

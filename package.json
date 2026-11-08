@@ -1,0 +1,17 @@
+{
+  "name": "university-event-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "University Event Management System - Express/Prisma API + React UI in one repo",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "migrate:dev": "npm --prefix backend run migrate:dev",
+    "migrate:deploy": "npm --prefix backend run migrate:deploy",
+    "seed": "npm --prefix backend run seed",
+    "build": "npm run install:all && npm --prefix frontend run build && npm --prefix backend run prisma:generate",
+    "start": "npm --prefix backend run migrate:deploy && npm --prefix backend start"
+  }
+}

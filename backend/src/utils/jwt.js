@@ -1,19 +1,10 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+const signToken = (user) =>
+  jwt.sign({ sub: user.id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  });
 
-if (!JWT_SECRET) {
-  // Fail loudly at startup rather than silently signing tokens with "undefined".
-  throw new Error("JWT_SECRET is not set. Add it to your .env file.");
-}
-
-function signToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-}
-
-function verifyToken(token) {
-  return jwt.verify(token, JWT_SECRET);
-}
+const verifyToken = (token) => jwt.verify(token, process.env.JWT_SECRET);
 
 module.exports = { signToken, verifyToken };

@@ -1,7 +1,3 @@
-// UniEvents - Prisma schema
-// Phase 1: Authentication foundation only (User model + Role enum).
-// Event, Registration, Venue etc. models will be added in the next phase.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,17 +13,125 @@ enum Role {
   ADMIN
 }
 
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+enum Audience {
+  ALL
+  STUDENTS
+  ORGANIZERS
+}
+
+enum Priority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model User {
-  id           String   @id @default(uuid())
+  id           Int      @id @default(autoincrement())
   name         String
   email        String   @unique
   passwordHash String
   role         Role     @default(STUDENT)
-  studentId    String?  @unique
   department   String?
   phone        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@map("users")
+  events           Event[]        @relation("OrganizerEvents")
+  registrations    Registration[]
+  announcements    Announcement[]
+  attendanceMarked Attendance[]   @relation("MarkedBy")
+
+  @@index([role])
+}
+
+model Event {
+  id          Int         @id @default(autoincrement())
+  title       String
+  description String
+  venue       String
+  category    String      @default("General")
+  bannerUrl   String?
+  startsAt    DateTime
+  endsAt      DateTime
+  capacity    Int         @default(100)
+  status      EventStatus @default(DRAFT)
+  organizerId Int
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  organizer     User           @relation("OrganizerEvents", fields: [organizerId], references: [id], onDelete: Restrict)
+  registrations Registration[]
+  announcements Announcement[]
+
+  @@index([status, startsAt])
+  @@index([organizerId])
+}
+
+model Registration {
+  id        Int                @id @default(autoincrement())
+  eventId   Int
+  userId    Int
+  status    RegistrationStatus @default(REGISTERED)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendance Attendance?
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+model Attendance {
+  id             Int              @id @default(autoincrement())
+  registrationId Int              @unique
+  status         AttendanceStatus @default(PRESENT)
+  markedById     Int?
+  checkedInAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  markedBy     User?        @relation("MarkedBy", fields: [markedById], references: [id], onDelete: SetNull)
+}
+
+model Announcement {
+  id          Int           @id @default(autoincrement())
+  title       String
+  content     String
+  audience    Audience      @default(ALL)
+  priority    Priority      @default(NORMAL)
+  status      PublishStatus @default(PUBLISHED)
+  authorId    Int
+  eventId     Int?
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  event  Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([status, audience, createdAt])
 }

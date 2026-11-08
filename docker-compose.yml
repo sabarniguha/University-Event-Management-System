@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: uems
+      POSTGRES_PASSWORD: uems_password
+      POSTGRES_DB: uems
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://uems:uems_password@db:5432/uems?schema=public
+      JWT_SECRET: change-me-to-a-long-random-string
+      CLIENT_ORIGIN: http://localhost:5000
+
+volumes:
+  pgdata:

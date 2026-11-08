@@ -1,123 +1,79 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
+import { dashboardPath } from '../utils/format.js';
 
-const NAV_LINKS = [
-  { label: "Home", href: "#home" },
-  { label: "About", href: "#about" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Features", href: "#features" },
-];
+const linkClass = ({ isActive }) =>
+  `rounded-md px-3 py-2 text-sm font-medium ${isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:text-slate-900'}`;
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    setOpen(false);
+    navigate('/');
+  };
+
+  const close = () => setOpen(false);
+
+  const links = (
+    <>
+      <NavLink to="/events" className={linkClass} onClick={close}>Events</NavLink>
+      {user && <NavLink to="/announcements" className={linkClass} onClick={close}>Announcements</NavLink>}
+      {user && <NavLink to={dashboardPath(user.role)} className={linkClass} onClick={close}>Dashboard</NavLink>}
+      {user && <NavLink to="/profile" className={linkClass} onClick={close}>Profile</NavLink>}
+    </>
+  );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-paper/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link to="/" className="flex items-center gap-2">
-          <LogoMark />
-          <span className="font-display text-xl font-semibold tracking-tight text-ink">
-            UniEvents
-          </span>
-        </Link>
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <Link to="/" className="text-lg font-bold text-brand-700">UEMS</Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
-          {NAV_LINKS.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              className="text-[15px] text-ink-soft transition-colors hover:text-ink"
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
+        <nav className="hidden items-center gap-1 md:flex">{links}</nav>
 
-        <div className="hidden items-center gap-3 md:flex">
-          <button
-            onClick={() => navigate("/login")}
-            className="px-3 py-2 text-[15px] font-medium text-ink-soft transition-colors hover:text-ink"
-          >
-            Login
-          </button>
-          <button
-            onClick={() => navigate("/login")}
-            className="rounded-sharp bg-ink px-5 py-2.5 text-[15px] font-medium text-paper transition-colors hover:bg-brass-dark"
-          >
-            Get Started
-          </button>
+        <div className="hidden items-center gap-2 md:flex">
+          {user ? (
+            <>
+              <span className="text-sm text-slate-500">{user.name}</span>
+              <button onClick={handleLogout} className="btn-outline btn-sm">Logout</button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="btn-outline btn-sm">Login</Link>
+              <Link to="/register" className="btn-primary btn-sm">Sign up</Link>
+            </>
+          )}
         </div>
 
         <button
-          className="flex h-10 w-10 items-center justify-center md:hidden"
-          onClick={() => setMenuOpen((open) => !open)}
+          className="rounded-md p-2 text-slate-600 md:hidden"
+          onClick={() => setOpen((o) => !o)}
           aria-label="Toggle menu"
-          aria-expanded={menuOpen}
+          aria-expanded={open}
         >
-          <HamburgerIcon open={menuOpen} />
+          <span className="block text-xl leading-none">{open ? '✕' : '☰'}</span>
         </button>
       </div>
 
-      {menuOpen && (
-        <div className="border-t border-line bg-paper px-6 py-4 md:hidden">
-          <nav className="flex flex-col gap-4">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className="text-[15px] text-ink-soft"
-              >
-                {link.label}
-              </a>
-            ))}
-            <div className="mt-2 flex flex-col gap-3 border-t border-line pt-4">
-              <button
-                onClick={() => navigate("/login")}
-                className="rounded-sharp border border-line px-4 py-2.5 text-[15px] font-medium text-ink"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => navigate("/login")}
-                className="rounded-sharp bg-ink px-4 py-2.5 text-[15px] font-medium text-paper"
-              >
-                Get Started
-              </button>
-            </div>
-          </nav>
+      {open && (
+        <div className="space-y-1 border-t border-slate-200 bg-white px-4 py-3 md:hidden">
+          <div className="flex flex-col">{links}</div>
+          <div className="flex gap-2 pt-2">
+            {user ? (
+              <button onClick={handleLogout} className="btn-outline btn-sm">Logout</button>
+            ) : (
+              <>
+                <Link to="/login" className="btn-outline btn-sm" onClick={close}>Login</Link>
+                <Link to="/register" className="btn-primary btn-sm" onClick={close}>Sign up</Link>
+              </>
+            )}
+          </div>
         </div>
       )}
     </header>
-  );
-}
-
-export function LogoMark({ light = false }) {
-  return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M14 3L25 8.5V13C25 19.5 20.5 24.5 14 26C7.5 24.5 3 19.5 3 13V8.5L14 3Z"
-        stroke={light ? "#EFF1EC" : "#141F38"}
-        strokeWidth="1.6"
-      />
-      <path d="M9 13.5L12.5 17L19.5 10" stroke="#B3872E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function HamburgerIcon({ open }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-      {open ? (
-        <path d="M5 5L17 17M17 5L5 17" stroke="#141F38" strokeWidth="1.8" strokeLinecap="round" />
-      ) : (
-        <>
-          <path d="M3 6H19" stroke="#141F38" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M3 11H19" stroke="#141F38" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M3 16H19" stroke="#141F38" strokeWidth="1.8" strokeLinecap="round" />
-        </>
-      )}
-    </svg>
   );
 }

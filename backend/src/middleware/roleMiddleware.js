@@ -1,19 +1,12 @@
-/**
- * requireRole("ADMIN") or requireRole("ADMIN", "ORGANIZER")
- * Must run after authMiddleware, which sets req.user.
- */
-function requireRole(...allowedRoles) {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ message: "Authentication token is missing." });
-    }
+const HttpError = require('../utils/httpError');
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ message: "You do not have permission to access this resource." });
-    }
-
-    next();
+// Usage: router.post('/', authenticate, requireRole('ORGANIZER', 'ADMIN'), handler)
+const requireRole =
+  (...roles) =>
+  (req, res, next) => {
+    if (!req.user) return next(new HttpError(401, 'Authentication required'));
+    if (!roles.includes(req.user.role)) return next(new HttpError(403, 'You do not have permission to do that'));
+    return next();
   };
-}
 
-module.exports = requireRole;
+module.exports = { requireRole };
