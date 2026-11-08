@@ -21,6 +21,8 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email('Enter a valid email'),
   password: z.string().min(1, 'Password is required'),
+  // Which login page was used. When given, the account must have this role.
+  role: z.enum(['STUDENT', 'ORGANIZER', 'ADMIN']).optional(),
 });
 
 const profileSchema = z.object({

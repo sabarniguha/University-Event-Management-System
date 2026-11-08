@@ -7,7 +7,7 @@ In production the Express server also serves the built React app, so you deploy 
 
 | Area | What it does |
 |---|---|
-| Auth & roles | Email/password sign-up (students), JWT login, roles: `STUDENT`, `ORGANIZER`, `ADMIN` |
+| Auth & roles | Email/password sign-up (students), JWT login, roles: `STUDENT`, `ORGANIZER`, `ADMIN`. Three separate login pages (`/login/student`, `/login/organizer`, `/login/admin`) behind a chooser at `/login`; the API rejects a login whose account role does not match the page used |
 | Events | Browse/search/filter published events; organisers create, edit, publish, cancel, delete |
 | Registrations | One-click registration, capacity enforcement (transaction-safe), cancel before start, CSV export of participants |
 | Attendance | Organisers/admins mark Present/Absent per participant; students see their own history |

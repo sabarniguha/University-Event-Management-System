@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       loading,
-      login: (email, password) => authenticate('/auth/login', { email, password }),
+      login: (email, password, role) => authenticate('/auth/login', { email, password, role }),
       register: (payload) => authenticate('/auth/register', payload),
       logout,
       setUser,

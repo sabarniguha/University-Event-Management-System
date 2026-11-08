@@ -6,6 +6,7 @@ import RoleProtectedRoute from './components/RoleProtectedRoute.jsx';
 
 import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
+import LoginSelection from './pages/LoginSelection.jsx';
 import Register from './pages/Register.jsx';
 import Events from './pages/Events.jsx';
 import EventDetail from './pages/EventDetail.jsx';
@@ -36,7 +37,8 @@ export default function App() {
       <Route element={<Layout />}>
         {/* Public */}
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<LoginSelection />} />
+        <Route path="/login/:type" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/events" element={<Events />} />
         <Route path="/events/:id" element={<EventDetail />} />
