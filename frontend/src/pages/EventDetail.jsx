@@ -61,7 +61,7 @@ export default function EventDetail() {
 
   let action;
   if (!user) {
-    action = <Link to="/login" state={{ from: `/events/${event.id}` }} className="btn-primary">Log in to register</Link>;
+    action = <Link to="/login/student" state={{ from: `/events/${event.id}` }} className="btn-primary">Log in to register</Link>;
   } else if (user.role !== 'STUDENT') {
     action = <p className="text-sm text-slate-500">Only student accounts can register for events.</p>;
   } else if (event.status === 'CANCELLED') {

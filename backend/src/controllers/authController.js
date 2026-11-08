@@ -30,12 +30,19 @@ const register = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-  const { email, password } = loginSchema.parse(req.body);
+  const { email, password, role } = loginSchema.parse(req.body);
 
   const user = await prisma.user.findUnique({ where: { email } });
   // Same message for unknown email and wrong password to avoid account enumeration.
   const ok = user && (await bcrypt.compare(password, user.passwordHash));
   if (!ok) throw new HttpError(401, 'Invalid email or password');
+
+  // Separate login pages: a student cannot sign in through the admin page, and so on.
+  // Checked only after the password is correct, so it reveals nothing to outsiders.
+  if (role && user.role !== role) {
+    const label = { STUDENT: 'a student', ORGANIZER: 'an organiser', ADMIN: 'an admin' }[role];
+    throw new HttpError(403, `This account is not ${label} account. Please use the correct login page.`);
+  }
 
   const { passwordHash, ...safeUser } = user;
   res.json({ token: signToken(user), user: { id: safeUser.id, name: safeUser.name, email: safeUser.email, role: safeUser.role, department: safeUser.department, phone: safeUser.phone } });

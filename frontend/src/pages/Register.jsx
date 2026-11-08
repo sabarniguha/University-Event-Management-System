@@ -59,7 +59,7 @@ export default function Register() {
         </div>
         <button className="btn-primary w-full" disabled={busy}>{busy ? 'Creating...' : 'Sign up'}</button>
         <p className="text-center text-sm text-slate-500">
-          Already registered? <Link to="/login" className="font-medium text-brand-600 hover:underline">Sign in</Link>
+          Already registered? <Link to="/login/student" className="font-medium text-brand-600 hover:underline">Sign in</Link>
         </p>
       </form>
     </div>
