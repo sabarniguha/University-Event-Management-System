@@ -1,195 +1,54 @@
+const bcrypt = require('bcryptjs');
+const prisma = require('../utils/prismaClient');
+const HttpError = require('../utils/httpError');
+const asyncHandler = require('../utils/asyncHandler');
+const { signToken } = require('../utils/jwt');
+const { userSelect } = require('../middleware/authMiddleware');
+const { registerSchema, loginSchema, profileSchema } = require('../utils/validators');
 
-const bcrypt = require("bcryptjs");
-const prisma = require("../utils/prismaClient");
-const { signToken } = require("../utils/jwt");
-const {
-  isValidEmail,
-  isValidPassword,
-  isNonEmptyString,
-} = require("../utils/validators");
+// Public sign-up always creates a STUDENT. Admins promote users to ORGANIZER/ADMIN.
+const register = asyncHandler(async (req, res) => {
+  const data = registerSchema.parse(req.body);
 
-const SALT_ROUNDS = 10;
+  const exists = await prisma.user.findUnique({ where: { email: data.email } });
+  if (exists) throw new HttpError(409, 'An account with this email already exists');
 
-/**
- * Strips passwordHash before sending a user object to the client.
- */
-function toPublicUser(user) {
-  const { passwordHash, ...publicUser } = user;
-  return publicUser;
-}
+  const passwordHash = await bcrypt.hash(data.password, 12);
+  const user = await prisma.user.create({
+    data: {
+      name: data.name,
+      email: data.email,
+      passwordHash,
+      department: data.department,
+      phone: data.phone,
+      role: 'STUDENT',
+    },
+    select: userSelect,
+  });
 
-// POST /api/auth/register
-// Public registration can create STUDENT, ORGANIZER, or ADMIN accounts.
-// The frontend will provide the intended role.
-async function register(req, res, next) {
-  try {
-    const {
-      name,
-      email,
-      studentId,
-      department,
-      phone,
-      password,
-      confirmPassword,
-      role,
-    } = req.body;
+  res.status(201).json({ token: signToken(user), user });
+});
 
-    if (!isNonEmptyString(name)) {
-      return res.status(400).json({
-        message: "Please enter your full name.",
-      });
-    }
+const login = asyncHandler(async (req, res) => {
+  const { email, password } = loginSchema.parse(req.body);
 
-    if (!isValidEmail(email)) {
-      return res.status(400).json({
-        message: "Please enter a valid email.",
-      });
-    }
+  const user = await prisma.user.findUnique({ where: { email } });
+  // Same message for unknown email and wrong password to avoid account enumeration.
+  const ok = user && (await bcrypt.compare(password, user.passwordHash));
+  if (!ok) throw new HttpError(401, 'Invalid email or password');
 
-    if (!isValidPassword(password)) {
-      return res.status(400).json({
-        message: "Password must be at least 6 characters.",
-      });
-    }
+  const { passwordHash, ...safeUser } = user;
+  res.json({ token: signToken(user), user: { id: safeUser.id, name: safeUser.name, email: safeUser.email, role: safeUser.role, department: safeUser.department, phone: safeUser.phone } });
+});
 
-    if (confirmPassword !== undefined && password !== confirmPassword) {
-      return res.status(400).json({
-        message: "Passwords do not match.",
-      });
-    }
+const me = asyncHandler(async (req, res) => {
+  res.json({ user: req.user });
+});
 
-    // Only these roles are allowed to be created.
-    const allowedRoles = ["STUDENT", "ORGANIZER", "ADMIN"];
+const updateMe = asyncHandler(async (req, res) => {
+  const data = profileSchema.parse(req.body);
+  const user = await prisma.user.update({ where: { id: req.user.id }, data, select: userSelect });
+  res.json({ user });
+});
 
-    // Default to STUDENT if no role is provided.
-    const normalizedRole = isNonEmptyString(role)
-      ? role.trim().toUpperCase()
-      : "STUDENT";
-
-    if (!allowedRoles.includes(normalizedRole)) {
-      return res.status(400).json({
-        message: "Invalid account role.",
-      });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (existingUser) {
-      return res.status(409).json({
-        message: "An account with this email already exists.",
-      });
-    }
-
-    if (studentId) {
-      const existingStudentId = await prisma.user.findUnique({
-        where: { studentId },
-      });
-
-      if (existingStudentId) {
-        return res.status(409).json({
-          message: "An account with this Student ID already exists.",
-        });
-      }
-    }
-
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-
-    const user = await prisma.user.create({
-      data: {
-        name: name.trim(),
-        email: normalizedEmail,
-        passwordHash,
-        role: normalizedRole,
-        studentId: studentId || null,
-        department: department || null,
-        phone: phone || null,
-      },
-    });
-
-    return res.status(201).json({
-      user: toPublicUser(user),
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-// POST /api/auth/login
-async function login(req, res, next) {
-  try {
-    const { email, password } = req.body;
-
-    if (!isValidEmail(email) || !isNonEmptyString(password)) {
-      return res.status(400).json({
-        message: "Invalid email or password.",
-      });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (!user) {
-      return res.status(401).json({
-        message: "Invalid email or password.",
-      });
-    }
-
-    const passwordMatches = await bcrypt.compare(
-      password,
-      user.passwordHash
-    );
-
-    if (!passwordMatches) {
-      return res.status(401).json({
-        message: "Invalid email or password.",
-      });
-    }
-
-    const token = signToken({
-      id: user.id,
-      role: user.role,
-    });
-
-    return res.status(200).json({
-      token,
-      user: toPublicUser(user),
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-// GET /api/auth/me
-async function me(req, res, next) {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-    });
-
-    if (!user) {
-      return res.status(401).json({
-        message: "Your session has expired. Please log in again.",
-      });
-    }
-
-    return res.status(200).json({
-      user: toPublicUser(user),
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-module.exports = {
-  register,
-  login,
-  me,
-};
-
+module.exports = { register, login, me, updateMe };

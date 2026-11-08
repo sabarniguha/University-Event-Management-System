@@ -1,28 +1,13 @@
-import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
+import { Loader } from './Ui.jsx';
 
-export default function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+// Any logged-in user may pass.
+export default function ProtectedRoute() {
+  const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) {
-    return <FullScreenLoader />;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  return children;
-}
-
-export function FullScreenLoader() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-paper">
-      <div className="flex items-center gap-3 text-ink-soft">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-brass" />
-        <span className="font-body text-sm">Loading UniEvents…</span>
-      </div>
-    </div>
-  );
+  if (loading) return <Loader />;
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  return <Outlet />;
 }

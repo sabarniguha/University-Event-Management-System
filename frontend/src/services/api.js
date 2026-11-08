@@ -1,26 +1,28 @@
-import axios from "axios";
+import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+export const TOKEN_KEY = 'uems_token';
 
-const api = axios.create({ baseURL });
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '/api',
+});
 
-// Attach the JWT (if present) to every outgoing request.
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("unievents_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Normalize error responses so callers can read err.message directly.
+// If the token is rejected, drop it and tell the app to log the user out.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message =
-      error.response?.data?.message ||
-      "Something went wrong. Please try again.";
-    return Promise.reject(new Error(message));
+    const url = error.config?.url || '';
+    const isAuthAttempt = url.includes('/auth/login') || url.includes('/auth/register');
+    if (error.response?.status === 401 && !isAuthAttempt && localStorage.getItem(TOKEN_KEY)) {
+      localStorage.removeItem(TOKEN_KEY);
+      window.dispatchEvent(new Event('uems:logout'));
+    }
+    return Promise.reject(error);
   }
 );
 

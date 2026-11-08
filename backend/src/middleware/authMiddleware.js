@@ -1,25 +1,47 @@
-const { verifyToken } = require("../utils/jwt");
+const prisma = require('../utils/prismaClient');
+const { verifyToken } = require('../utils/jwt');
+const HttpError = require('../utils/httpError');
+const asyncHandler = require('../utils/asyncHandler');
 
-/**
- * Reads the Authorization header, verifies the JWT, and attaches the
- * decoded { id, role } payload to req.user. Rejects missing, malformed,
- * or expired/invalid tokens with a 401.
- */
-function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization || "";
-  const [scheme, token] = authHeader.split(" ");
+const userSelect = { id: true, name: true, email: true, role: true, department: true, phone: true };
 
-  if (scheme !== "Bearer" || !token) {
-    return res.status(401).json({ message: "Authentication token is missing." });
-  }
+const extractToken = (req) => {
+  const header = req.headers.authorization || '';
+  return header.startsWith('Bearer ') ? header.slice(7) : null;
+};
 
+// Requires a valid token. The user is re-read from the DB so role changes / deletions apply immediately.
+const authenticate = asyncHandler(async (req, res, next) => {
+  const token = extractToken(req);
+  if (!token) throw new HttpError(401, 'Authentication required');
+
+  let payload;
   try {
-    const decoded = verifyToken(token);
-    req.user = { id: decoded.id, role: decoded.role };
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: "Your session has expired. Please log in again." });
+    payload = verifyToken(token);
+  } catch {
+    throw new HttpError(401, 'Invalid or expired token');
   }
-}
 
-module.exports = authMiddleware;
+  const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: userSelect });
+  if (!user) throw new HttpError(401, 'Account no longer exists');
+
+  req.user = user;
+  next();
+});
+
+// Attaches req.user when a valid token is present, but never blocks the request.
+const optionalAuth = asyncHandler(async (req, res, next) => {
+  const token = extractToken(req);
+  if (token) {
+    try {
+      const payload = verifyToken(token);
+      const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: userSelect });
+      if (user) req.user = user;
+    } catch {
+      // ignore invalid tokens on public routes
+    }
+  }
+  next();
+});
+
+module.exports = { authenticate, optionalAuth, userSelect };
