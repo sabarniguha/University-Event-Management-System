@@ -8,11 +8,17 @@ In production the Express server also serves the built React app, so you deploy 
 | Area | What it does |
 |---|---|
 | Auth & roles | Email/password sign-up (students), JWT login, roles: `STUDENT`, `ORGANIZER`, `ADMIN`. Three separate login pages (`/login/student`, `/login/organizer`, `/login/admin`) behind a chooser at `/login`; the API rejects a login whose account role does not match the page used |
-| Events | Browse/search/filter published events; organisers create, edit, publish, cancel, delete |
-| Registrations | One-click registration, capacity enforcement (transaction-safe), cancel before start, CSV export of participants |
-| Attendance | Organisers/admins mark Present/Absent per participant; students see their own history |
+| Events | Browse/search/filter published events; organisers create, edit, publish, cancel, delete and **duplicate** events; optional registration deadline; average rating shown on the event page |
+| Registrations | One-click registration, transaction-safe capacity enforcement, **waitlist with automatic promotion** when a seat frees up or capacity grows, cancel before start, CSV export |
+| QR tickets | Every confirmed registration has a unique QR pass (student: *My tickets*) |
+| Attendance (student) | *My attendance*: attendance rate, attended / missed / upcoming, check-in time and method, rate events, **printable certificates** |
+| Attendance (organiser) | Per-event live console: **QR check-in** (camera scan, USB scanner or paste a code), manual Present/Absent, "mark remaining present/absent", search and filters, CSV report, auto-refresh |
+| Attendance (admin) | Attendance rate for every event, drill into any event, analytics page |
+| Feedback | Students who attended rate the event (1-5 stars + comment); organisers see averages, distribution and comments |
+| Certificates | Attendance certificate with a QR code that opens a **public verification page** (`/verify/:id`) |
+| Notifications | In-app bell: waitlist promotions, event cancelled/rescheduled, check-in confirmations, role changes |
 | Announcements | Admin/organiser notices with audience (all/students/organisers), priority and draft/publish |
-| Admin | Platform stats, user search, role changes, user deletion |
+| Admin | Stats, **analytics charts**, user search, **create organiser/admin accounts**, role changes, user deletion |
 
 ## Folder structure
 
@@ -27,15 +33,19 @@ University-Event-Management-System/
 │   ├── package.json
 │   ├── .env.example
 │   ├── prisma/
-│   │   ├── schema.prisma        # User, Event, Registration, Attendance, Announcement
-│   │   └── seed.js              # demo admin / organiser / student + sample data
+│   │   ├── schema.prisma        # User, Event, Registration, Attendance, Announcement, Feedback, Notification
+│   │   ├── migrations/          # 20261101..._init (baseline), 20261109..._advanced_features (additive)
+│   │   └── seed.js              # demo users + events, waitlist, attendance and feedback
 │   └── src/
 │       ├── server.js            # starts the HTTP server
 │       ├── app.js               # middleware, routes, serves frontend in production
-│       ├── controllers/         # auth, event, registration, attendance, announcement, admin
-│       ├── routes/              # authRoutes, eventRoutes, registrationRoutes, ...
+│       ├── controllers/         # auth, event, registration, attendance, feedback,
+│       │                        # notification, announcement, admin
+│       ├── routes/              # authRoutes, eventRoutes, registrationRoutes, attendanceRoutes,
+│       │                        # feedbackRoutes, notificationRoutes, announcementRoutes, adminRoutes
 │       ├── middleware/          # authMiddleware, roleMiddleware, errorHandler
-│       └── utils/               # jwt, prismaClient, validators (zod), access, httpError, asyncHandler
+│       └── utils/               # jwt, prismaClient, validators (zod), access, httpError, asyncHandler,
+│                                # ticket (QR codes / certificate IDs), waitlist, notify, csv
 └── frontend/
     ├── package.json, vite.config.js, tailwind.config.js, postcss.config.js, index.html
     ├── .env.example
@@ -44,13 +54,15 @@ University-Event-Management-System/
         ├── services/api.js      # axios instance + token handling
         ├── context/AuthContext.jsx
         ├── utils/format.js
-        ├── components/          # Navbar, Footer, ProtectedRoute, RoleProtectedRoute,
-        │                        # DashboardShell, EventCard, Ui (Loader, Badge, ...)
+        ├── components/          # Navbar, Footer, ProtectedRoute, RoleProtectedRoute, DashboardShell,
+        │                        # EventCard, Ui, QrCode, BarChart, StarRating, NotificationBell
         └── pages/
-            ├── Home, Login, Register, Events, EventDetail, Announcements, Profile, NotFound
-            ├── student/StudentDashboard.jsx
-            ├── organizer/OrganizerDashboard.jsx, EventForm.jsx, EventAttendees.jsx
-            └── admin/AdminDashboard.jsx
+            ├── Home, Login, LoginSelection, Register, Events, EventDetail, Announcements,
+            │   Notifications, VerifyCertificate, Profile, NotFound
+            ├── student/    StudentDashboard, MyTickets, StudentAttendance, Certificate
+            ├── organizer/  OrganizerDashboard, EventForm, EventAttendees,
+            │               EventAttendance, AttendanceOverview, EventFeedback
+            └── admin/      AdminDashboard, Analytics   (admins also use AttendanceOverview)
 ```
 
 ## Run locally
@@ -64,9 +76,9 @@ npm run install:all
 # 2. Configure the backend
 cp backend/.env.example backend/.env      # then edit DATABASE_URL and JWT_SECRET
 
-# 3. Create the database tables (run once; creates backend/prisma/migrations)
+# 3. Create the database tables (applies the migrations already in backend/prisma/migrations)
 cd backend
-npx prisma migrate dev --name init
+npx prisma migrate dev
 npm run seed                               # optional demo data
 cd ..
 
@@ -82,12 +94,19 @@ Demo logins created by the seed:
 | Admin | admin@uni.edu | Admin@12345 |
 | Organiser | organizer@uni.edu | Organizer@123 |
 | Student | student@uni.edu | Student@123 |
+| Students (extra) | priya@uni.edu, arjun@uni.edu, meera@uni.edu | Student@123 |
+
+The seed also creates a finished event with QR/manual attendance and feedback (*Orientation Workshop*), and a full event with a waitlist (*Robotics Demo Day*), so every screen has data to show.
 
 > Change these passwords (or skip seeding) on any real deployment.
 
+**Already created tables from an earlier version of this project?** The migrations are now committed. On a development database run `npx prisma migrate reset` (this erases the data), or on a database you want to keep, run `npx prisma migrate resolve --applied 20261101000000_init` and then `npx prisma migrate deploy`.
+
+**Trying QR check-in:** log in as a student, open *My tickets*, then as the organiser open an event's *Attendance* page and paste the ticket code (shown under the QR) or scan the QR with the camera. Camera scanning needs Chrome/Edge (or Chrome on Android) and HTTPS or `localhost`.
+
 ## Deploy (single service)
 
-**Important:** commit the `backend/prisma/migrations/` folder created by `prisma migrate dev` in step 3. Production uses `prisma migrate deploy`, which applies those migration files.
+Production uses `prisma migrate deploy`, which applies the migrations committed in `backend/prisma/migrations/`. When you change `schema.prisma` later, run `npx prisma migrate dev --name <change>` locally and commit the new migration folder.
 
 ### Option A: Render / Railway / any Node host
 
@@ -120,20 +139,29 @@ All routes are under `/api`. `Auth` = Bearer JWT in the `Authorization` header.
 
 | Method & path | Access | Purpose |
 |---|---|---|
-| `POST /auth/register`, `POST /auth/login` | public | Sign up (student) / log in |
+| `POST /auth/register`, `POST /auth/login` | public | Sign up (student) / log in (optional `role` must match the account) |
 | `GET/PATCH /auth/me` | any user | Current user / update profile |
 | `GET /events` | public | Published events (`q`, `category`, `scope=upcoming\|past\|all`) |
-| `GET /events/:id` | public* | Event details (*drafts only for owner/admin) |
+| `GET /events/:id` | public* | Event details, rating, waitlist size, my registration (*drafts only for owner/admin) |
 | `GET /events/mine` | organiser, admin | Own events (admin: all) |
-| `POST /events`, `PATCH /events/:id`, `DELETE /events/:id` | organiser (owner), admin | Manage events |
-| `POST/DELETE /registrations/:eventId` | student | Register / cancel |
-| `GET /registrations/me` | student | My registrations |
+| `POST /events`, `PATCH /events/:id`, `DELETE /events/:id` | organiser (owner), admin | Manage events (changes notify registered students; more capacity promotes the waitlist) |
+| `POST /events/:id/duplicate` | organiser (owner), admin | Copy an event as a draft one week later |
+| `POST/DELETE /registrations/:eventId` | student | Register or join the waitlist / cancel (frees a seat for the next in line) |
+| `GET /registrations/me` | student | My registrations with QR ticket codes and waitlist positions |
 | `GET /registrations/event/:eventId` (+ `/export`) | organiser (owner), admin | Participants / CSV |
-| `POST /attendance` | organiser (owner), admin | Mark Present/Absent |
-| `GET /attendance/me` | student | My attendance history |
+| `GET /attendance/me` | student | Attendance rate, history, feedback status |
+| `GET /attendance/certificate/:registrationId` | student | Data for my attendance certificate |
+| `GET /attendance/verify/:code` | public | Verify a certificate ID (rate limited) |
+| `GET /attendance/overview` | organiser (own events), admin (all) | Attendance rate per event |
+| `GET /attendance/event/:eventId` (+ `/export`) | organiser (owner), admin | Live roster + summary / CSV report |
+| `POST /attendance`, `/attendance/checkin`, `/attendance/bulk` | organiser (owner), admin | Manual mark / QR or ticket-code check-in / mark all unmarked |
+| `POST /feedback/:eventId` | student (attended) | Rate an event |
+| `GET /feedback/event/:eventId` | organiser (owner), admin | Ratings and comments |
+| `GET /notifications`, `POST /notifications/read-all`, `PATCH /notifications/:id/read` | any user | In-app notifications |
 | `GET /announcements/public` | public | Latest university-wide notices |
 | `GET /announcements`, `POST`, `PATCH /:id`, `DELETE /:id` | role-filtered | Announcements |
-| `GET /admin/stats`, `GET /admin/users`, `PATCH /admin/users/:id/role`, `DELETE /admin/users/:id` | admin | Administration |
+| `GET /admin/stats`, `GET /admin/analytics` | admin | Totals / chart data |
+| `GET /admin/users`, `POST /admin/users`, `PATCH /admin/users/:id/role`, `DELETE /admin/users/:id` | admin | User management (create accounts of any role) |
 
 ## Notes
 

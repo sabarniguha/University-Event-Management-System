@@ -12,7 +12,9 @@ const blank = {
   bannerUrl: '',
   startsAt: '',
   endsAt: '',
+  registrationDeadline: '',
   capacity: 100,
+  waitlistEnabled: true,
   status: 'DRAFT',
 };
 
@@ -39,7 +41,9 @@ export default function EventForm() {
           bannerUrl: e.bannerUrl || '',
           startsAt: toLocalInput(e.startsAt),
           endsAt: toLocalInput(e.endsAt),
+          registrationDeadline: e.registrationDeadline ? toLocalInput(e.registrationDeadline) : '',
           capacity: e.capacity,
+          waitlistEnabled: e.waitlistEnabled,
           status: e.status,
         });
       })
@@ -47,7 +51,10 @@ export default function EventForm() {
       .finally(() => setLoading(false));
   }, [id, isEdit]);
 
-  const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const onChange = (e) => {
+    const { name, type, checked, value } = e.target;
+    setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -59,6 +66,8 @@ export default function EventForm() {
         capacity: Number(form.capacity),
         startsAt: new Date(form.startsAt).toISOString(),
         endsAt: new Date(form.endsAt).toISOString(),
+        // null clears the deadline
+        registrationDeadline: form.registrationDeadline ? new Date(form.registrationDeadline).toISOString() : null,
       };
       if (isEdit) await api.patch(`/events/${id}`, payload);
       else await api.post('/events', payload);
@@ -111,6 +120,10 @@ export default function EventForm() {
             <input id="capacity" name="capacity" type="number" min={1} required className="input" value={form.capacity} onChange={onChange} />
           </div>
           <div>
+            <label className="label" htmlFor="registrationDeadline">Registration deadline (optional)</label>
+            <input id="registrationDeadline" name="registrationDeadline" type="datetime-local" className="input" value={form.registrationDeadline} onChange={onChange} />
+          </div>
+          <div>
             <label className="label" htmlFor="status">Status</label>
             <select id="status" name="status" className="input" value={form.status} onChange={onChange}>
               <option value="DRAFT">Draft (hidden)</option>
@@ -118,6 +131,10 @@ export default function EventForm() {
               <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
+          <label className="flex items-center gap-2 self-end pb-2 text-sm text-slate-700">
+            <input type="checkbox" name="waitlistEnabled" checked={form.waitlistEnabled} onChange={onChange} />
+            Allow a waitlist when the event is full
+          </label>
         </div>
         <div>
           <label className="label" htmlFor="bannerUrl">Banner image URL (optional)</label>

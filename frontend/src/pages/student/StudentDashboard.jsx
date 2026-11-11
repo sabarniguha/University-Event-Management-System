@@ -39,7 +39,13 @@ export default function StudentDashboard() {
     <DashboardShell
       title="Student dashboard"
       subtitle="Your registrations and attendance history"
-      actions={<Link to="/events" className="btn-primary">Find events</Link>}
+      actions={
+        <>
+          <Link to="/student/tickets" className="btn-outline">My tickets</Link>
+          <Link to="/student/attendance" className="btn-outline">My attendance</Link>
+          <Link to="/events" className="btn-primary">Find events</Link>
+        </>
+      }
     >
       <ErrorBox message={error} />
 
@@ -75,13 +81,18 @@ export default function StudentDashboard() {
                     <div className="text-xs text-slate-400">{r.event.venue}</div>
                   </td>
                   <td className="td">{fmtDate(r.event.startsAt)}</td>
-                  <td className="td"><Badge>{r.status}</Badge></td>
+                  <td className="td">
+                    <Badge>{r.status}</Badge>
+                    {r.status === 'WAITLISTED' && <span className="ml-2 text-xs text-slate-500">#{r.waitlistPosition}</span>}
+                  </td>
                   <td className="td">
                     {r.status !== 'REGISTERED' ? '-' : r.attendance ? <Badge>{r.attendance.status}</Badge> : <span className="text-xs text-slate-400">Not marked</span>}
                   </td>
                   <td className="td text-right">
-                    {r.status === 'REGISTERED' && new Date(r.event.startsAt) > new Date() && (
-                      <button className="btn-outline btn-sm" onClick={() => cancel(r)}>Cancel</button>
+                    {r.status !== 'CANCELLED' && new Date(r.event.startsAt) > new Date() && (
+                      <button className="btn-outline btn-sm" onClick={() => cancel(r)}>
+                        {r.status === 'WAITLISTED' ? 'Leave waitlist' : 'Cancel'}
+                      </button>
                     )}
                   </td>
                 </tr>

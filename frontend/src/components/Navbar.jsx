@@ -2,9 +2,23 @@ import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { dashboardPath } from '../utils/format.js';
+import NotificationBell from './NotificationBell.jsx';
 
 const linkClass = ({ isActive }) =>
   `rounded-md px-3 py-2 text-sm font-medium ${isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:text-slate-900'}`;
+
+// Role-specific shortcuts shown between "Events" and "Dashboard".
+const ROLE_LINKS = {
+  STUDENT: [
+    { to: '/student/tickets', label: 'My tickets' },
+    { to: '/student/attendance', label: 'My attendance' },
+  ],
+  ORGANIZER: [{ to: '/organizer/attendance', label: 'Attendance' }],
+  ADMIN: [
+    { to: '/admin/analytics', label: 'Analytics' },
+    { to: '/admin/attendance', label: 'Attendance' },
+  ],
+};
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -23,13 +37,16 @@ export default function Navbar() {
     <>
       <NavLink to="/events" className={linkClass} onClick={close}>Events</NavLink>
       {user && <NavLink to="/announcements" className={linkClass} onClick={close}>Announcements</NavLink>}
+      {user && (ROLE_LINKS[user.role] || []).map((l) => (
+        <NavLink key={l.to} to={l.to} className={linkClass} onClick={close}>{l.label}</NavLink>
+      ))}
       {user && <NavLink to={dashboardPath(user.role)} className={linkClass} onClick={close}>Dashboard</NavLink>}
       {user && <NavLink to="/profile" className={linkClass} onClick={close}>Profile</NavLink>}
     </>
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur print:hidden">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link to="/" className="text-lg font-bold text-brand-700">UEMS</Link>
 
@@ -38,6 +55,7 @@ export default function Navbar() {
         <div className="hidden items-center gap-2 md:flex">
           {user ? (
             <>
+              <NotificationBell />
               <span className="text-sm text-slate-500">{user.name}</span>
               <button onClick={handleLogout} className="btn-outline btn-sm">Logout</button>
             </>
@@ -49,14 +67,17 @@ export default function Navbar() {
           )}
         </div>
 
-        <button
-          className="rounded-md p-2 text-slate-600 md:hidden"
-          onClick={() => setOpen((o) => !o)}
-          aria-label="Toggle menu"
-          aria-expanded={open}
-        >
-          <span className="block text-xl leading-none">{open ? '✕' : '☰'}</span>
-        </button>
+        <div className="flex items-center gap-1 md:hidden">
+          {user && <NotificationBell />}
+          <button
+            className="rounded-md p-2 text-slate-600"
+            onClick={() => setOpen((o) => !o)}
+            aria-label="Toggle menu"
+            aria-expanded={open}
+          >
+            <span className="block text-xl leading-none">{open ? '✕' : '☰'}</span>
+          </button>
+        </div>
       </div>
 
       {open && (

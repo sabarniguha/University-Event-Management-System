@@ -9,7 +9,10 @@ export const toLocalInput = (d) => {
   return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
 
-export const errMsg = (e) => e?.response?.data?.message || e?.message || 'Something went wrong';
+// 82.5 -> "82.5%", null -> "–"
+export const pctLabel = (v) => (v === null || v === undefined ? '–' : `${v}%`);
+
+export const errMsg =(e) => e?.response?.data?.message || e?.message || 'Something went wrong';
 
 // Used by the login selection page and the role-specific login pages (/login/:type).
 export const ROLE_LOGINS = {

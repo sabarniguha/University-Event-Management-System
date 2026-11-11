@@ -41,12 +41,23 @@ const eventBase = z.object({
   endsAt: z.coerce.date(),
   capacity: z.coerce.number().int().min(1).max(100000).default(100),
   status: z.enum(['DRAFT', 'PUBLISHED', 'CANCELLED']).default('DRAFT'),
+  // null / empty string clears the deadline; omitted means "no change" on update.
+  registrationDeadline: z.preprocess(
+    (v) => (v === '' ? null : v),
+    z.coerce.date().nullable().optional()
+  ),
+  waitlistEnabled: z.boolean().default(true),
 });
 
-const eventCreateSchema = eventBase.refine((d) => d.endsAt > d.startsAt, {
-  message: 'End time must be after start time',
-  path: ['endsAt'],
-});
+const eventCreateSchema = eventBase
+  .refine((d) => d.endsAt > d.startsAt, {
+    message: 'End time must be after start time',
+    path: ['endsAt'],
+  })
+  .refine((d) => !d.registrationDeadline || d.registrationDeadline <= d.endsAt, {
+    message: 'Registration deadline cannot be after the event ends',
+    path: ['registrationDeadline'],
+  });
 
 const eventUpdateSchema = eventBase.partial();
 
@@ -68,7 +79,38 @@ const announcementUpdateSchema = announcementSchema.partial();
 
 const roleSchema = z.object({ role: z.enum(['STUDENT', 'ORGANIZER', 'ADMIN']) });
 
+// QR / ticket check-in by an organiser at the door.
+const checkInSchema = z.object({
+  eventId: z.coerce.number().int().positive(),
+  ticketCode: z.string().trim().min(8, 'Enter a valid ticket code').max(100),
+});
+
+// Mark every still-unmarked registered student for an event.
+const bulkAttendanceSchema = z.object({
+  eventId: z.coerce.number().int().positive(),
+  status: z.enum(['PRESENT', 'ABSENT']),
+});
+
+const feedbackSchema = z.object({
+  rating: z.coerce.number().int().min(1, 'Choose a rating from 1 to 5').max(5, 'Choose a rating from 1 to 5'),
+  comment: z.preprocess(emptyToUndefined, z.string().trim().max(1000).optional()),
+});
+
+// Admin creates an account of any role directly.
+const adminCreateUserSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().trim().toLowerCase().email('Enter a valid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(72),
+  role: z.enum(['STUDENT', 'ORGANIZER', 'ADMIN']),
+  department: optionalText(100),
+  phone: optionalText(20),
+});
+
 module.exports = {
+  checkInSchema,
+  bulkAttendanceSchema,
+  feedbackSchema,
+  adminCreateUserSchema,
   parseId,
   registerSchema,
   loginSchema,
@@ -76,6 +118,10 @@ module.exports = {
   eventCreateSchema,
   eventUpdateSchema,
   attendanceSchema,
+  checkInSchema,
+  bulkAttendanceSchema,
+  feedbackSchema,
+  adminCreateUserSchema,
   announcementSchema,
   announcementUpdateSchema,
   roleSchema,

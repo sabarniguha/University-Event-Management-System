@@ -9,6 +9,7 @@ router.get('/mine', authenticate, requireRole('ORGANIZER', 'ADMIN'), c.myEvents)
 router.get('/:id', optionalAuth, c.getEvent);
 
 router.post('/', authenticate, requireRole('ORGANIZER', 'ADMIN'), c.createEvent);
+router.post('/:id/duplicate', authenticate, requireRole('ORGANIZER', 'ADMIN'), c.duplicateEvent);
 router.patch('/:id', authenticate, requireRole('ORGANIZER', 'ADMIN'), c.updateEvent);
 router.delete('/:id', authenticate, requireRole('ORGANIZER', 'ADMIN'), c.deleteEvent);
 

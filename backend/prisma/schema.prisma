@@ -21,12 +21,18 @@ enum EventStatus {
 
 enum RegistrationStatus {
   REGISTERED
+  WAITLISTED
   CANCELLED
 }
 
 enum AttendanceStatus {
   PRESENT
   ABSENT
+}
+
+enum AttendanceMethod {
+  MANUAL
+  QR
 }
 
 enum Audience {
@@ -61,40 +67,49 @@ model User {
   registrations    Registration[]
   announcements    Announcement[]
   attendanceMarked Attendance[]   @relation("MarkedBy")
+  feedback         Feedback[]
+  notifications    Notification[]
 
   @@index([role])
 }
 
 model Event {
-  id          Int         @id @default(autoincrement())
-  title       String
-  description String
-  venue       String
-  category    String      @default("General")
-  bannerUrl   String?
-  startsAt    DateTime
-  endsAt      DateTime
-  capacity    Int         @default(100)
-  status      EventStatus @default(DRAFT)
-  organizerId Int
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id                   Int         @id @default(autoincrement())
+  title                String
+  description          String
+  venue                String
+  category             String      @default("General")
+  bannerUrl            String?
+  startsAt             DateTime
+  endsAt               DateTime
+  capacity             Int         @default(100)
+  status               EventStatus @default(DRAFT)
+  registrationDeadline DateTime?
+  waitlistEnabled      Boolean     @default(true)
+  organizerId          Int
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
   organizer     User           @relation("OrganizerEvents", fields: [organizerId], references: [id], onDelete: Restrict)
   registrations Registration[]
   announcements Announcement[]
+  feedback      Feedback[]
 
   @@index([status, startsAt])
   @@index([organizerId])
 }
 
 model Registration {
-  id        Int                @id @default(autoincrement())
-  eventId   Int
-  userId    Int
-  status    RegistrationStatus @default(REGISTERED)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  id         Int                @id @default(autoincrement())
+  eventId    Int
+  userId     Int
+  status     RegistrationStatus @default(REGISTERED)
+  // Unique, unguessable code shown to the student as a QR pass and scanned at check-in.
+  ticketCode String             @unique
+  // When the student (re)joined the event or its waitlist. Waitlist order is by this value.
+  joinedAt   DateTime           @default(now())
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
 
   event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -102,12 +117,14 @@ model Registration {
 
   @@unique([eventId, userId])
   @@index([userId])
+  @@index([eventId, status])
 }
 
 model Attendance {
   id             Int              @id @default(autoincrement())
   registrationId Int              @unique
   status         AttendanceStatus @default(PRESENT)
+  method         AttendanceMethod @default(MANUAL)
   markedById     Int?
   checkedInAt    DateTime?
   createdAt      DateTime         @default(now())
@@ -134,4 +151,36 @@ model Announcement {
   event  Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([status, audience, createdAt])
+}
+
+// Post-event rating from a student who was marked present.
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  userId    Int
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+}
+
+// In-app notifications (waitlist promotions, event changes, attendance, role changes).
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
 }

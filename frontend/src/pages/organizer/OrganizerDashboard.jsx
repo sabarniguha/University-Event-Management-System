@@ -32,6 +32,16 @@ export default function OrganizerDashboard() {
     }
   };
 
+  const duplicate = async (event) => {
+    setError('');
+    try {
+      await api.post(`/events/${event.id}/duplicate`);
+      await load();
+    } catch (e) {
+      setError(errMsg(e));
+    }
+  };
+
   const remove = async (event) => {
     if (!window.confirm(`Delete "${event.title}" and all of its registrations? This cannot be undone.`)) return;
     setError('');
@@ -52,6 +62,7 @@ export default function OrganizerDashboard() {
       subtitle={user.role === 'ADMIN' ? 'Showing all events (admin view)' : 'Create and manage your events'}
       actions={
         <>
+          <Link to="/organizer/attendance" className="btn-outline">Attendance overview</Link>
           <Link to="/announcements" className="btn-outline">Announcements</Link>
           <Link to="/organizer/events/new" className="btn-primary">New event</Link>
         </>
@@ -93,7 +104,10 @@ export default function OrganizerDashboard() {
                   <td className="td">{e.registeredCount} / {e.capacity}</td>
                   <td className="td">
                     <div className="flex flex-wrap gap-2">
+                      <Link to={`/organizer/events/${e.id}/attendance`} className="btn-primary btn-sm">Attendance</Link>
                       <Link to={`/organizer/events/${e.id}/attendees`} className="btn-outline btn-sm">Participants</Link>
+                      <Link to={`/organizer/events/${e.id}/feedback`} className="btn-outline btn-sm">Feedback</Link>
+                      <button className="btn-outline btn-sm" onClick={() => duplicate(e)}>Duplicate</button>
                       <Link to={`/organizer/events/${e.id}/edit`} className="btn-outline btn-sm">Edit</Link>
                       {e.status === 'DRAFT' && <button className="btn-outline btn-sm" onClick={() => setStatus(e, 'PUBLISHED')}>Publish</button>}
                       {e.status === 'PUBLISHED' && <button className="btn-outline btn-sm" onClick={() => setStatus(e, 'DRAFT')}>Unpublish</button>}

@@ -62,12 +62,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const [showCreate, setShowCreate] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'ORGANIZER', department: '' });
+  const onNewUser = (e) => setNewUser({ ...newUser, [e.target.name]: e.target.value });
+
+  const createUser = async (e) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    try {
+      const { data } = await api.post('/admin/users', newUser);
+      setMessage(`Created ${data.user.role.toLowerCase()} account for ${data.user.name}.`);
+      setNewUser({ name: '', email: '', password: '', role: 'ORGANIZER', department: '' });
+      setShowCreate(false);
+      await Promise.all([loadUsers(), loadStats()]);
+    } catch (err) {
+      setError(errMsg(err));
+    }
+  };
+
   return (
     <DashboardShell
       title="Admin dashboard"
       subtitle="Oversee users, events and announcements"
       actions={
         <>
+          <Link to="/admin/analytics" className="btn-outline">Analytics</Link>
+          <Link to="/admin/attendance" className="btn-outline">Attendance</Link>
           <Link to="/organizer" className="btn-outline">All events</Link>
           <Link to="/announcements" className="btn-outline">Announcements</Link>
         </>
@@ -90,7 +111,44 @@ export default function AdminDashboard() {
       )}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">User management</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">User management</h2>
+          <button className="btn-primary btn-sm" onClick={() => setShowCreate((s) => !s)}>
+            {showCreate ? 'Close' : 'Create account'}
+          </button>
+        </div>
+
+        {showCreate && (
+          <form onSubmit={createUser} className="card grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="nu-name">Full name</label>
+              <input id="nu-name" name="name" required minLength={2} className="input" value={newUser.name} onChange={onNewUser} />
+            </div>
+            <div>
+              <label className="label" htmlFor="nu-email">Email</label>
+              <input id="nu-email" name="email" type="email" required className="input" value={newUser.email} onChange={onNewUser} />
+            </div>
+            <div>
+              <label className="label" htmlFor="nu-password">Temporary password (min 8)</label>
+              <input id="nu-password" name="password" type="password" required minLength={8} autoComplete="new-password" className="input" value={newUser.password} onChange={onNewUser} />
+            </div>
+            <div>
+              <label className="label" htmlFor="nu-role">Role</label>
+              <select id="nu-role" name="role" className="input" value={newUser.role} onChange={onNewUser}>
+                <option value="ORGANIZER">Organiser</option>
+                <option value="ADMIN">Admin</option>
+                <option value="STUDENT">Student</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="nu-dept">Department (optional)</label>
+              <input id="nu-dept" name="department" className="input" value={newUser.department} onChange={onNewUser} />
+            </div>
+            <div className="sm:col-span-2">
+              <button className="btn-primary">Create account</button>
+            </div>
+          </form>
+        )}
         <div className="grid gap-3 sm:grid-cols-3">
           <input className="input sm:col-span-2" placeholder="Search by name or email..." value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="input" value={role} onChange={(e) => setRole(e.target.value)}>
