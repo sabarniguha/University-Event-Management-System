@@ -112,7 +112,7 @@ Production uses `prisma migrate deploy`, which applies the migrations committed 
 
 1. Create a managed PostgreSQL database and copy its connection string.
 2. Create a Web Service from this repo with:
-   - **Build command:** `npm run build`
+   - **Build command:** `npm run build` (installs dev dependencies on purpose, even when `NODE_ENV=production`, because Vite, Tailwind and the Prisma CLI are needed to build and migrate)
    - **Start command:** `npm start` (runs `prisma migrate deploy`, then starts the server)
 3. Set environment variables:
 

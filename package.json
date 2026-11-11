@@ -11,7 +11,8 @@
     "migrate:dev": "npm --prefix backend run migrate:dev",
     "migrate:deploy": "npm --prefix backend run migrate:deploy",
     "seed": "npm --prefix backend run seed",
-    "build": "npm run install:all && npm --prefix frontend run build && npm --prefix backend run prisma:generate",
+    "install:build": "npm --prefix backend install --include=dev && npm --prefix frontend install --include=dev",
+    "build": "npm run install:build && npm --prefix frontend run build && npm --prefix backend run prisma:generate",
     "start": "npm --prefix backend run migrate:deploy && npm --prefix backend start"
   }
 }
