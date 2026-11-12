@@ -168,3 +168,5 @@ All routes are under `/api`. `Auth` = Bearer JWT in the `Authorization` header.
 - Public sign-up always creates **students**. Promote people to organiser/admin from the Admin dashboard.
 - Passwords are hashed with bcrypt; login and sign-up are rate-limited; all input is validated with zod.
 - Prisma is pinned to v5 (`^5.22`) so the `schema.prisma` datasource syntax above works as written.
+
+https://university-event-management-system-1-0nzj.onrender.com/
