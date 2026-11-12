@@ -13,6 +13,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
+const { parseAllowedOrigins, isAllowedOrigin } = require('./utils/cors');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -31,19 +32,17 @@ app.use(
   })
 );
 
-const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
+// CLIENT_ORIGIN is only needed when the frontend is hosted on a different address (e.g. Vercel).
+// Requests from this server's own address are always allowed.
+const allowedOrigins = parseAllowedOrigins(process.env.CLIENT_ORIGIN || 'http://localhost:5173');
 
-app.use(
+app.use((req, res, next) =>
   cors({
-    origin: (origin, cb) => {
-      // Same-origin requests and tools like curl have no Origin header.
-      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error('Not allowed by CORS'));
-    },
-  })
+    origin: (origin, cb) =>
+      isAllowedOrigin(origin, req.headers.host, allowedOrigins)
+        ? cb(null, true)
+        : cb(new Error('Not allowed by CORS')),
+  })(req, res, next)
 );
 
 app.use(express.json({ limit: '1mb' }));

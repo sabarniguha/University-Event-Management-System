@@ -121,7 +121,7 @@ Production uses `prisma migrate deploy`, which applies the migrations committed 
    | `NODE_ENV` | `production` |
    | `DATABASE_URL` | your PostgreSQL connection string |
    | `JWT_SECRET` | long random string (`node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`) |
-   | `CLIENT_ORIGIN` | your public site URL, e.g. `https://uems.onrender.com` |
+   | `CLIENT_ORIGIN` | *optional*: only needed if the frontend is hosted on a different address (e.g. Vercel). Not needed on Render when one service serves both. |
 
 4. (Optional, first deploy only) open a shell on the service and run `npm run seed` to create the admin account, or create a user via the sign-up page and promote it in the database.
 
