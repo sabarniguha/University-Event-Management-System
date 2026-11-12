@@ -96,7 +96,7 @@ Demo logins created by the seed:
 | Student | student@uni.edu | Student@123 |
 | Students (extra) | priya@uni.edu, arjun@uni.edu, meera@uni.edu | Student@123 |
 
-The seed also creates a finished event with QR/manual attendance and feedback (*Orientation Workshop*), and a full event with a waitlist (*Robotics Demo Day*), so every screen has data to show.
+The seed also creates a finished event with QR/manual attendance and feedback (*UEM Freshers Orientation*), and a full event with a waitlist (*Robotics Demo Day*), so every screen has data to show.
 
 > Change these passwords (or skip seeding) on any real deployment.
 

@@ -51,9 +51,9 @@ async function main() {
     const techFest = await prisma.event.create({
       data: {
         ...base,
-        title: 'Annual Tech Fest 2026',
-        description: 'Two days of hackathons, talks and project demos by students and industry guests.',
-        venue: 'Main Auditorium', category: 'Technical',
+        title: 'UEM Tech Fest 2026',
+        description: 'Two days of coding contests, robotics demos and talks by industry guests, organised by UEM student chapters.',
+        venue: 'UEM Main Auditorium', category: 'Technical',
         startsAt: at(10), endsAt: at(11, 18), capacity: 300,
         registrationDeadline: at(9),
       },
@@ -61,20 +61,49 @@ async function main() {
     await prisma.event.create({
       data: {
         ...base,
-        title: 'Inter-Department Football Cup',
-        description: 'Knock-out football tournament between all departments.',
-        venue: 'University Ground', category: 'Sports',
+        title: 'UEM Inter-Department Football Cup',
+        description: 'Knock-out football tournament between all UEM departments. Form a team of 7 and register before the deadline.',
+        venue: 'UEM Sports Ground', category: 'Sports',
         startsAt: at(5, 15), endsAt: at(5, 18), capacity: 150,
       },
     });
     await prisma.event.create({
       data: {
         ...base,
-        status: 'DRAFT',
-        title: 'Cultural Night',
-        description: 'Music, dance and drama performances by student clubs.',
-        venue: 'Open Air Theatre', category: 'Cultural',
+        title: 'UEM Cultural Night',
+        description: 'An evening of music, dance and drama performances by UEM student clubs.',
+        venue: 'UEM Open Air Theatre', category: 'Cultural',
         startsAt: at(20, 18), endsAt: at(20, 22), capacity: 500,
+      },
+    });
+    await prisma.event.create({
+      data: {
+        ...base,
+        title: 'Campus Placement Preparation Workshop',
+        description: 'Resume building, aptitude practice and mock interviews to get final-year students ready for campus placements.',
+        venue: 'UEM Seminar Hall 1', category: 'Academic',
+        startsAt: at(7, 11), endsAt: at(7, 13), capacity: 120,
+      },
+    });
+    await prisma.event.create({
+      data: {
+        ...base,
+        title: 'UEM Smart Campus Hackathon',
+        description: '24-hour hackathon: build a solution that makes campus life easier. Teams of up to 4, prizes for the top three.',
+        venue: 'UEM Computer Centre', category: 'Technical',
+        startsAt: at(14, 9), endsAt: at(15, 9), capacity: 200,
+        registrationDeadline: at(12),
+      },
+    });
+    // A draft: visible only to organisers and admins until it is published.
+    await prisma.event.create({
+      data: {
+        ...base,
+        status: 'DRAFT',
+        title: 'UEM Alumni Meet',
+        description: 'Reconnect with UEM alumni, hear career stories and network with graduates from every department.',
+        venue: 'UEM Main Auditorium', category: 'Social',
+        startsAt: at(30, 17), endsAt: at(30, 20), capacity: 250,
       },
     });
 
@@ -83,8 +112,8 @@ async function main() {
       data: {
         ...base,
         title: 'Robotics Demo Day',
-        description: 'Live demos of student robotics projects. Seats are limited, so join the waitlist if it is full.',
-        venue: 'Innovation Lab', category: 'Technical',
+        description: 'Live demos of UEM student robotics projects. Seats are limited, so join the waitlist if it is full.',
+        venue: 'UEM Innovation Lab', category: 'Technical',
         startsAt: at(3, 14), endsAt: at(3, 17), capacity: 2,
       },
     });
@@ -93,9 +122,9 @@ async function main() {
     const workshop = await prisma.event.create({
       data: {
         ...base,
-        title: 'Orientation Workshop',
-        description: 'Welcome session for new students covering campus resources, clubs and academic support.',
-        venue: 'Seminar Hall 2', category: 'Workshop',
+        title: 'UEM Freshers Orientation',
+        description: 'Welcome session for new UEM students covering campus resources, clubs and academic support.',
+        venue: 'UEM Seminar Hall 2', category: 'Workshop',
         startsAt: at(-3, 10), endsAt: at(-3, 12), capacity: 50,
       },
     });
