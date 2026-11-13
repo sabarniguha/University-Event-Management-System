@@ -8,7 +8,7 @@ const {
   checkInSchema,
   bulkAttendanceSchema,
 } = require('../utils/validators');
-const { certificateId, parseCertificateId, normaliseTicketInput } = require('../utils/ticket');
+const { normaliseTicketInput } = require('../utils/ticket');
 const { notify } = require('../utils/notify');
 const { toCsv, safeFilename } = require('../utils/csv');
 
@@ -212,6 +212,7 @@ const myAttendance = asyncHandler(async (req, res) => {
     include: {
       event: { select: { id: true, title: true, startsAt: true, endsAt: true, venue: true, category: true } },
       attendance: { select: { status: true, method: true, checkedInAt: true } },
+      certificate: { select: { certificateId: true, revokedAt: true } },
     },
   });
 
@@ -227,7 +228,7 @@ const myAttendance = asyncHandler(async (req, res) => {
     event: r.event,
     attendance: r.attendance,
     feedback: feedbackByEvent.get(r.eventId) || null,
-    certificateId: r.attendance?.status === 'PRESENT' ? certificateId(r.ticketCode) : null,
+    certificateId: r.certificate && !r.certificate.revokedAt ? r.certificate.certificateId : null,
     hasEnded: r.event.endsAt <= now,
   }));
 
@@ -247,61 +248,6 @@ const myAttendance = asyncHandler(async (req, res) => {
   });
 });
 
-// GET /api/attendance/certificate/:registrationId - data for a printable certificate
-const certificate = asyncHandler(async (req, res) => {
-  const id = parseId(req.params.registrationId, 'registration id');
-  const reg = await prisma.registration.findUnique({
-    where: { id },
-    include: {
-      user: { select: { name: true, department: true } },
-      event: { select: { title: true, venue: true, startsAt: true, endsAt: true, organizer: { select: { name: true } } } },
-      attendance: { select: { status: true, checkedInAt: true } },
-    },
-  });
-  // Another student's registration looks the same as a missing one.
-  if (!reg || reg.userId !== req.user.id) throw new HttpError(404, 'Certificate not found');
-  if (reg.status !== 'REGISTERED' || reg.attendance?.status !== 'PRESENT') {
-    throw new HttpError(403, 'A certificate is only available for events you attended');
-  }
-
-  res.json({
-    certificate: {
-      certificateId: certificateId(reg.ticketCode),
-      studentName: reg.user.name,
-      department: reg.user.department,
-      eventTitle: reg.event.title,
-      venue: reg.event.venue,
-      startsAt: reg.event.startsAt,
-      endsAt: reg.event.endsAt,
-      organizerName: reg.event.organizer.name,
-      issuedAt: reg.attendance.checkedInAt || reg.event.endsAt,
-    },
-  });
-});
-
-// GET /api/attendance/verify/:code  (public) - confirm a certificate id is genuine
-const verifyCertificate = asyncHandler(async (req, res) => {
-  const prefix = parseCertificateId(req.params.code);
-  if (!prefix) throw new HttpError(400, 'That is not a valid certificate id');
-
-  const reg = await prisma.registration.findFirst({
-    where: { ticketCode: { startsWith: prefix }, status: 'REGISTERED', attendance: { is: { status: 'PRESENT' } } },
-    include: {
-      user: { select: { name: true } },
-      event: { select: { title: true, startsAt: true, venue: true } },
-    },
-  });
-  if (!reg) throw new HttpError(404, 'No attendance record matches this certificate id');
-
-  res.json({
-    certificateId: certificateId(reg.ticketCode),
-    studentName: reg.user.name,
-    eventTitle: reg.event.title,
-    startsAt: reg.event.startsAt,
-    venue: reg.event.venue,
-  });
-});
-
 module.exports = {
   markAttendance,
   checkIn,
@@ -310,6 +256,4 @@ module.exports = {
   exportAttendanceCsv,
   overview,
   myAttendance,
-  certificate,
-  verifyCertificate,
 };

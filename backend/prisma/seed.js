@@ -3,6 +3,12 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 
+// Demo data has public passwords, so it must never be loaded into a live site by accident.
+if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
+  console.error('Refusing to load demo data (public demo passwords) when NODE_ENV=production. Set ALLOW_DEMO_SEED=true to override.');
+  process.exit(1);
+}
+
 const prisma = new PrismaClient();
 
 const at = (days, hour = 10) => {
@@ -53,7 +59,15 @@ async function main() {
         ...base,
         title: 'UEM Tech Fest 2026',
         description: 'Two days of coding contests, robotics demos and talks by industry guests, organised by UEM student chapters.',
-        venue: 'UEM Main Auditorium', category: 'Technical',
+        venue: 'UEM Main Auditorium', category: 'Technical', featured: true, eventType: 'Festival',
+        agenda: [
+          { time: '10:00', title: 'Opening ceremony', description: 'Welcome note and keynote.' },
+          { time: '11:30', title: 'Coding contest', description: 'Individual rounds, top 10 advance.' },
+          { time: '15:00', title: 'Robotics showcase' },
+        ],
+        speakers: [{ name: 'Demo Speaker', title: 'Guest from industry' }],
+        faqs: [{ question: 'Is there a fee?', answer: 'No, entry is free for UEM students.' }],
+        contactEmail: 'events@uni.edu',
         startsAt: at(10), endsAt: at(11, 18), capacity: 300,
         registrationDeadline: at(9),
       },
@@ -102,7 +116,7 @@ async function main() {
         status: 'DRAFT',
         title: 'UEM Alumni Meet',
         description: 'Reconnect with UEM alumni, hear career stories and network with graduates from every department.',
-        venue: 'UEM Main Auditorium', category: 'Social',
+        venue: 'UEM Main Auditorium', category: 'Social and Community',
         startsAt: at(30, 17), endsAt: at(30, 20), capacity: 250,
       },
     });
@@ -124,7 +138,7 @@ async function main() {
         ...base,
         title: 'UEM Freshers Orientation',
         description: 'Welcome session for new UEM students covering campus resources, clubs and academic support.',
-        venue: 'UEM Seminar Hall 2', category: 'Workshop',
+        venue: 'UEM Seminar Hall 2', category: 'Workshops',
         startsAt: at(-3, 10), endsAt: at(-3, 12), capacity: 50,
       },
     });
@@ -157,6 +171,12 @@ async function main() {
         { registrationId: wsArjun.id, status: 'ABSENT', method: 'MANUAL', markedById: organizer.id },
       ],
     });
+    const issued = (reg, user) => ({
+      certificateId: `UNI-${crypto.randomBytes(6).toString('hex').toUpperCase()}`,
+      eventId: workshop.id, userId: user.id, registrationId: reg.id, issuedById: organizer.id,
+      signatoryName: 'Olivia Organizer', signatoryTitle: 'Student Affairs',
+    });
+    await prisma.certificate.createMany({ data: [issued(wsSam, sam), issued(wsPriya, priya)] });
     await prisma.feedback.createMany({
       data: [
         { eventId: workshop.id, userId: sam.id, rating: 5, comment: 'Very helpful introduction to campus life.' },
@@ -183,7 +203,12 @@ async function main() {
     });
   }
 
-  console.log('Seed complete.');
+  await prisma.eventCategory.createMany({
+    data: require('../src/utils/categories').DEFAULT_CATEGORIES.map((c, i) => ({ ...c, slug: require('../src/utils/categories').slugify(c.name), sortOrder: i })),
+    skipDuplicates: true,
+  });
+
+  console.log('Seed complete. (DEMO DATA: change or remove these accounts before real use.)');
   console.log(`  Admin     : ${adminEmail} / ${adminPassword}`);
   console.log('  Organizer : organizer@uni.edu / Organizer@123');
   console.log('  Students  : student@uni.edu, priya@uni.edu, arjun@uni.edu, meera@uni.edu / Student@123');

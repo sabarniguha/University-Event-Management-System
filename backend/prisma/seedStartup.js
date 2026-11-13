@@ -81,7 +81,7 @@ const sampleEvents = (organizerId) => {
       status: 'DRAFT', // visible only to organisers and admins until published
       title: 'UEM Alumni Meet',
       description: 'Reconnect with UEM alumni, hear career stories and network with graduates from every department.',
-      venue: 'UEM Main Auditorium', category: 'Social',
+      venue: 'UEM Main Auditorium', category: 'Social and Community',
       startsAt: at(30, 17), endsAt: at(30, 20), capacity: 250,
     },
   ];
