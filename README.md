@@ -123,7 +123,14 @@ Production uses `prisma migrate deploy`, which applies the migrations committed 
    | `JWT_SECRET` | long random string (`node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`) |
    | `CLIENT_ORIGIN` | *optional*: only needed if the frontend is hosted on a different address (e.g. Vercel). Not needed on Render when one service serves both. |
 
-4. (Optional, first deploy only) open a shell on the service and run `npm run seed` to create the admin account, or create a user via the sign-up page and promote it in the database.
+4. **First deploy only - create the admin account and sample UEM events without any shell access.** Add two more environment variables, then redeploy:
+
+   | Variable | Value |
+   |---|---|
+   | `SEED_ON_START` | `true` |
+   | `SEED_ADMIN_PASSWORD` | a strong password (at least 8 characters) for `admin@uni.edu` (change the email with `SEED_ADMIN_EMAIL`) |
+
+   On start the server creates that admin account if it does not exist and adds the UEM sample events if the database has no events yet. It creates **no** demo students or organisers. Once you can sign in at `/login/admin`, **delete `SEED_ON_START` and `SEED_ADMIN_PASSWORD`** from the host so it does not run again. (Alternatively, run `npm run seed` from your own computer against the database for the full demo data set, including demo accounts.)
 
 ### Option B: Docker
 

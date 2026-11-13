@@ -13,6 +13,6 @@
     "seed": "npm --prefix backend run seed",
     "install:build": "npm --prefix backend install --include=dev && npm --prefix frontend install --include=dev",
     "build": "npm run install:build && npm --prefix frontend run build && npm --prefix backend run prisma:generate",
-    "start": "npm --prefix backend run migrate:deploy && npm --prefix backend start"
+    "start": "npm --prefix backend run migrate:deploy && npm --prefix backend run seed:startup && npm --prefix backend start"
   }
 }
