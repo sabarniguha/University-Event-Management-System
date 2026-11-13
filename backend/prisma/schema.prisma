@@ -13,16 +13,21 @@ enum Role {
   ADMIN
 }
 
+// New values are appended last so they match the order produced by the migrations.
 enum EventStatus {
   DRAFT
   PUBLISHED
   CANCELLED
+  PENDING_APPROVAL
+  REJECTED
 }
 
 enum RegistrationStatus {
   REGISTERED
   WAITLISTED
   CANCELLED
+  PENDING
+  REJECTED
 }
 
 enum AttendanceStatus {
@@ -52,68 +57,129 @@ enum PublishStatus {
   PUBLISHED
 }
 
-model User {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(STUDENT)
-  department   String?
-  phone        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+enum EventMode {
+  OFFLINE
+  ONLINE
+  HYBRID
+}
 
-  events           Event[]        @relation("OrganizerEvents")
-  registrations    Registration[]
-  announcements    Announcement[]
-  attendanceMarked Attendance[]   @relation("MarkedBy")
-  feedback         Feedback[]
-  notifications    Notification[]
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AuthTokenType {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+model User {
+  id                Int       @id @default(autoincrement())
+  name              String
+  email             String    @unique
+  passwordHash      String
+  role              Role      @default(STUDENT)
+  department        String?
+  phone             String?
+  studentId         String?
+  year              Int?
+  college           String?
+  avatarUrl         String?
+  bio               String?
+  skills            String[]  @default([])
+  isActive          Boolean   @default(true)
+  emailVerifiedAt   DateTime?
+  lastLoginAt       DateTime?
+  notificationPrefs Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  events                Event[]            @relation("OrganizerEvents")
+  eventsReviewed        Event[]            @relation("EventReviewer")
+  registrations         Registration[]
+  announcements         Announcement[]
+  attendanceMarked      Attendance[]       @relation("MarkedBy")
+  feedback              Feedback[]
+  notifications         Notification[]
+  organizerProfile      OrganizerProfile?  @relation("OrganizerApplicant")
+  organizerReviews      OrganizerProfile[] @relation("OrganizerReviewer")
+  auditLogs             AuditLog[]         @relation("AuditActor")
+  authTokens            AuthToken[]
+  certificates          Certificate[]      @relation("CertificateRecipient")
+  certificatesIssued    Certificate[]      @relation("CertificateIssuer")
+  mediaFiles            MediaFile[]
 
   @@index([role])
+  @@index([isActive])
 }
 
 model Event {
-  id                   Int         @id @default(autoincrement())
-  title                String
-  description          String
-  venue                String
-  category             String      @default("General")
-  bannerUrl            String?
-  startsAt             DateTime
-  endsAt               DateTime
-  capacity             Int         @default(100)
-  status               EventStatus @default(DRAFT)
-  registrationDeadline DateTime?
-  waitlistEnabled      Boolean     @default(true)
-  organizerId          Int
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
+  id                           Int         @id @default(autoincrement())
+  title                        String
+  description                  String
+  venue                        String
+  category                     String      @default("General")
+  bannerUrl                    String?
+  startsAt                     DateTime
+  endsAt                       DateTime
+  capacity                     Int         @default(100)
+  status                       EventStatus @default(DRAFT)
+  registrationDeadline         DateTime?
+  waitlistEnabled              Boolean     @default(true)
+  mode                         EventMode   @default(OFFLINE)
+  onlineUrl                    String?
+  fee                          Int         @default(0)
+  eventType                    String?
+  department                   String?
+  eligibility                  String?
+  requirements                 String?
+  agenda                       Json?
+  speakers                     Json?
+  team                         Json?
+  faqs                         Json?
+  contactEmail                 String?
+  contactPhone                 String?
+  terms                        String?
+  requiresRegistrationApproval Boolean     @default(false)
+  featured                     Boolean     @default(false)
+  rejectionReason              String?
+  submittedAt                  DateTime?
+  reviewedById                 Int?
+  reviewedAt                   DateTime?
+  organizerId                  Int
+  createdAt                    DateTime    @default(now())
+  updatedAt                    DateTime    @updatedAt
 
   organizer     User           @relation("OrganizerEvents", fields: [organizerId], references: [id], onDelete: Restrict)
+  reviewedBy    User?          @relation("EventReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   registrations Registration[]
   announcements Announcement[]
   feedback      Feedback[]
+  certificates  Certificate[]
 
   @@index([status, startsAt])
   @@index([organizerId])
+  @@index([category])
 }
 
 model Registration {
-  id         Int                @id @default(autoincrement())
-  eventId    Int
-  userId     Int
-  status     RegistrationStatus @default(REGISTERED)
+  id           Int                @id @default(autoincrement())
+  eventId      Int
+  userId       Int
+  status       RegistrationStatus @default(REGISTERED)
   // Unique, unguessable code shown to the student as a QR pass and scanned at check-in.
-  ticketCode String             @unique
+  ticketCode   String             @unique
   // When the student (re)joined the event or its waitlist. Waitlist order is by this value.
-  joinedAt   DateTime           @default(now())
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
+  joinedAt     DateTime           @default(now())
+  decisionNote String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
-  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  attendance Attendance?
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendance  Attendance?
+  certificate Certificate?
 
   @@unique([eventId, userId])
   @@index([userId])
@@ -170,17 +236,145 @@ model Feedback {
   @@index([eventId])
 }
 
-// In-app notifications (waitlist promotions, event changes, attendance, role changes).
+// In-app notifications. `refKey` makes system-generated ones (e.g. reminders) idempotent per user.
 model Notification {
   id        Int       @id @default(autoincrement())
   userId    Int
   title     String
   message   String
   link      String?
+  type      String    @default("GENERAL")
+  refKey    String?
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, refKey])
   @@index([userId, readAt])
+}
+
+// Admin-managed list of event categories. Events store the category name.
+model EventCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// A student's request to become an organiser, reviewed by an admin.
+model OrganizerProfile {
+  id           Int           @id @default(autoincrement())
+  userId       Int           @unique
+  organization String
+  designation  String?
+  reason       String?
+  status       RequestStatus @default(PENDING)
+  reviewNote   String?
+  reviewedById Int?
+  reviewedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user       User  @relation("OrganizerApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("OrganizerReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+}
+
+// Certificates issued by organisers/admins to students who attended an event.
+model Certificate {
+  id             Int       @id @default(autoincrement())
+  certificateId  String    @unique
+  eventId        Int
+  userId         Int
+  registrationId Int       @unique
+  issuedById     Int?
+  templateKey    String    @default("classic")
+  title          String    @default("Certificate of Participation")
+  signatoryName  String?
+  signatoryTitle String?
+  issuedAt       DateTime  @default(now())
+  revokedAt      DateTime?
+
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user         User         @relation("CertificateRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  issuedBy     User?        @relation("CertificateIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  actorId    Int?
+  action     String
+  entityType String?
+  entityId   String?
+  details    Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([actorId])
+}
+
+// Key/value platform configuration (e.g. key "platform").
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model NewsletterSubscriber {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model ContactMessage {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String
+  subject   String
+  message   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([createdAt])
+}
+
+// One-time tokens for email verification and password reset. Only a SHA-256 hash is stored.
+model AuthToken {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  type      AuthTokenType
+  tokenHash String        @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+// Small uploaded images (cover images, avatars) stored in the database so no external storage is needed.
+model MediaFile {
+  id        Int      @id @default(autoincrement())
+  ownerId   Int?
+  mimeType  String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  owner User? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 }

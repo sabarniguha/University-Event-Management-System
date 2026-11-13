@@ -12,6 +12,12 @@ const announcementRoutes = require('./routes/announcementRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const certificateRoutes = require('./routes/certificateRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
+const publicRoutes = require('./routes/publicRoutes');
+const mediaRoutes = require('./routes/mediaRoutes');
+const rateLimit = require('express-rate-limit');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { parseAllowedOrigins, isAllowedOrigin } = require('./utils/cors');
 
@@ -45,8 +51,14 @@ app.use((req, res, next) =>
   })(req, res, next)
 );
 
+// Image uploads are raw binary, so they are mounted before the JSON body parser.
+app.use('/api/media', mediaRoutes);
+
 app.use(express.json({ limit: '1mb' }));
 if (!isProd) app.use(morgan('dev'));
+
+// General safety net against scripted abuse; stricter limits sit on login, forms and uploads.
+app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 1500, standardHeaders: true, legacyHeaders: false, message: { message: 'Too many requests, please slow down' } }));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
@@ -58,6 +70,12 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/public', publicRoutes);
+// Spec-friendly aliases
+app.get('/api/settings/public', (req, res, next) => { req.url = '/settings'; publicRoutes(req, res, next); });
 
 // In production the Express server also serves the built React app (single deployable service).
 if (isProd) {

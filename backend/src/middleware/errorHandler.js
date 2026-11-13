@@ -19,6 +19,7 @@ const errorHandler = (err, req, res, next) => {
   if (err.code === 'P2003') return res.status(409).json({ message: 'This record is still referenced by other data' });
   if (err.code === 'P2034') return res.status(409).json({ message: 'The server was busy, please try again' });
 
+  if (err.type === 'entity.too.large') return res.status(413).json({ message: 'That file or request is too large' });
   if (err.type === 'entity.parse.failed') return res.status(400).json({ message: 'Malformed JSON body' });
 
   console.error(err);

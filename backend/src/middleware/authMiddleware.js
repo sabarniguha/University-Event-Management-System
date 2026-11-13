@@ -3,7 +3,26 @@ const { verifyToken } = require('../utils/jwt');
 const HttpError = require('../utils/httpError');
 const asyncHandler = require('../utils/asyncHandler');
 
-const userSelect = { id: true, name: true, email: true, role: true, department: true, phone: true };
+// Everything the client may know about the signed-in user. Never includes the password hash.
+const userSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  department: true,
+  phone: true,
+  studentId: true,
+  year: true,
+  college: true,
+  avatarUrl: true,
+  bio: true,
+  skills: true,
+  isActive: true,
+  emailVerifiedAt: true,
+  notificationPrefs: true,
+  createdAt: true,
+  organizerProfile: { select: { status: true, organization: true } },
+};
 
 const extractToken = (req) => {
   const header = req.headers.authorization || '';
@@ -24,6 +43,7 @@ const authenticate = asyncHandler(async (req, res, next) => {
 
   const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: userSelect });
   if (!user) throw new HttpError(401, 'Account no longer exists');
+  if (!user.isActive) throw new HttpError(403, 'This account has been deactivated. Contact an administrator.');
 
   req.user = user;
   next();
@@ -36,7 +56,7 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
     try {
       const payload = verifyToken(token);
       const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: userSelect });
-      if (user) req.user = user;
+      if (user && user.isActive) req.user = user;
     } catch {
       // ignore invalid tokens on public routes
     }
