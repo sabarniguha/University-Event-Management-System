@@ -6,6 +6,7 @@ const { notify, notifyAdmins } = require('../utils/notify');
 const { promoteWaitlist } = require('../utils/waitlist');
 const { getSettings } = require('../utils/settings');
 const { audit } = require('../utils/audit');
+const { emailUsers } = require('../utils/emailUsers');
 const { readPage, pageInfo } = require('../utils/pagination');
 const { parseId, eventCreateSchema, eventUpdateSchema, rejectEventSchema } = require('../utils/validators');
 
@@ -322,6 +323,7 @@ const approveEvent = asyncHandler(async (req, res) => {
     link: `/events/${id}`,
     type: 'APPROVAL',
   });
+  emailUsers(event.organizerId, { subject: 'Your event was approved', text: `"${event.title}" was approved and is now live.`, link: `/events/${id}` });
   await audit(req, 'event.approve', 'Event', id, { title: event.title });
   res.json({ event: shape(event) });
 });
@@ -345,6 +347,7 @@ const rejectEvent = asyncHandler(async (req, res) => {
     link: `/organizer/events/${id}/edit`,
     type: 'APPROVAL',
   });
+  emailUsers(event.organizerId, { subject: 'Your event needs changes', text: `"${event.title}" was not approved: ${reason}`, link: `/organizer/events/${id}/edit` });
   await audit(req, 'event.reject', 'Event', id, { title: event.title, reason });
   res.json({ event: shape(event) });
 });

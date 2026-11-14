@@ -17,6 +17,9 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const publicRoutes = require('./routes/publicRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const paymentController = require('./controllers/paymentController');
+const razorpayUtil = require('./utils/razorpay');
 const rateLimit = require('express-rate-limit');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { parseAllowedOrigins, isAllowedOrigin } = require('./utils/cors');
@@ -33,6 +36,14 @@ app.use(
       useDefaults: true,
       directives: {
         'img-src': ["'self'", 'data:', 'https:'],
+        // Razorpay checkout (only allowed when online payments are configured).
+        ...(razorpayUtil.enabled()
+          ? {
+              'script-src': ["'self'", 'https://checkout.razorpay.com'],
+              'frame-src': ["'self'", 'https://api.razorpay.com', 'https://checkout.razorpay.com'],
+              'connect-src': ["'self'", 'https://lumberjack.razorpay.com', 'https://api.razorpay.com'],
+            }
+          : {}),
       },
     },
   })
@@ -54,6 +65,8 @@ app.use((req, res, next) =>
 // Image uploads are raw binary, so they are mounted before the JSON body parser.
 app.use('/api/media', mediaRoutes);
 
+app.post('/api/payments/webhook', express.raw({ type: 'application/json', limit: '100kb' }), paymentController.webhook);
+
 app.use(express.json({ limit: '1mb' }));
 if (!isProd) app.use(morgan('dev'));
 
@@ -65,6 +78,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().t
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/registrations', registrationRoutes);
+app.use('/api/payments', paymentRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/feedback', feedbackRoutes);

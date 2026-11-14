@@ -72,7 +72,10 @@ These passwords are public. `npm run seed` **refuses to run when `NODE_ENV=produ
 | `PORT` | backend | Set by Render / most hosts |
 | `CLIENT_ORIGIN` | backend | Only when the frontend is on a different domain (Vercel). Comma-separated origins |
 | `APP_URL` | backend | Public site URL for links in emails (auto-detected on Render) |
-| `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `MAIL_FROM` | backend | Optional email |
+| `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `MAIL_FROM` | backend | Optional email. Gmail: host `smtp.gmail.com`, port `587`, user = your Gmail address, pass = a 16-character [app password](https://myaccount.google.com/apppasswords) (needs 2-step verification), `MAIL_FROM` = `UniEvents <you@gmail.com>` |
+| `RAZORPAY_KEY_ID` `RAZORPAY_KEY_SECRET` | backend | Optional online payment of event fees (use test keys first) |
+| `RAZORPAY_WEBHOOK_SECRET` | backend | Optional. In the Razorpay dashboard add a webhook to `https://<your-app>/api/payments/webhook` for `payment.captured` with this secret; it registers students who pay but close the tab |
+| `CLOUDINARY_CLOUD_NAME` `CLOUDINARY_API_KEY` `CLOUDINARY_API_SECRET` | backend | Optional image hosting (`CLOUDINARY_FOLDER` optional) |
 | `SEED_ON_START`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_EMAIL` | backend | First-deploy bootstrap (see below) |
 | `VITE_API_URL` | frontend | Only when the API is on another domain, e.g. `https://your-api.onrender.com/api` |
 
@@ -113,6 +116,7 @@ All routes are under `/api`. Bearer JWT in `Authorization`.
 | Analytics | `GET /analytics/student`, `/analytics/organizer`, `/analytics/admin` |
 | Admin | `/admin/stats users students organizers events organizer-requests audit-logs settings messages reports/:type` |
 | Public | `GET /public/stats`, `/public/highlights`, `/public/settings` (alias `/settings/public`), `POST /public/newsletter`, `/public/contact` |
+| Payments | `GET /payments/config`, `POST /payments/:eventId/order`, `POST /payments/verify` (students), `POST /payments/webhook` (Razorpay) |
 | Media | `POST /media` (raw image body, max 1.5 MB, type checked by file signature), `GET /media/:id` |
 
 ## Security notes
@@ -126,8 +130,8 @@ All routes are under `/api`. Bearer JWT in `Authorization`.
 
 ## Known limitations
 
-- **No online payment**: an event's fee is informational; organisers collect money outside the platform.
-- **Email is optional**: without SMTP, reset links are not delivered (admins can set a new password for a user). Install `nodemailer` and set `SMTP_*` to enable it.
-- Images are stored in PostgreSQL (small files only); for heavy use, move them to object storage.
+- **Online payments are optional and untested against the live gateway.** Razorpay support switches on only when `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are set. Without them, an event's fee is informational. It was written from Razorpay's documentation, and the signature checks are unit-tested, but it has not been run against Razorpay. **Try it in Razorpay test mode (keys starting `rzp_test_`) before using live keys.** Events that need organiser approval still collect the fee in person. There is no automatic refund: a payment that cannot get a seat is marked `NEEDS_REFUND` and admins are notified to refund it in the Razorpay dashboard.
+- **Email needs your SMTP login.** Without `SMTP_*` nothing is sent (admins can set a new password for a user). With it, the app emails password resets, verification links, registration confirmations and decisions, event approval or rejection, and certificates. Users can switch email off in Settings.
+- **Images** go to Cloudinary when `CLOUDINARY_*` is set (falling back to PostgreSQL if Cloudinary is unreachable); otherwise they are stored in PostgreSQL (small files only). The Cloudinary path is untested against a live account.
 - Reminders run in the web process every 15 minutes; if the service is asleep (e.g. Render free plan), they are sent when it wakes.
 - The build and Prisma client generation could not be run in the authoring sandbox (no network); the first Render/Vercel build is the real build test.

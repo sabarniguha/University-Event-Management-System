@@ -7,18 +7,20 @@ const { newTicketCode } = require('../utils/ticket');
 const { promoteWaitlist } = require('../utils/waitlist');
 const { notify } = require('../utils/notify');
 const { audit } = require('../utils/audit');
+const { emailUsers } = require('../utils/emailUsers');
+const razorpay = require('../utils/razorpay');
 const { toCsv, safeFilename } = require('../utils/csv');
 
 const sameDept = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
 
-// POST /api/registrations/:eventId  (students)
+// Shared by the free flow below and by the paid flow (paymentController).
 // Takes a seat when one is free; otherwise joins the waitlist (if the event allows it).
 // Events that need approval put the request in PENDING until the organiser decides.
-const register = asyncHandler(async (req, res) => {
-  const eventId = parseId(req.params.eventId, 'event id');
-  const userId = req.user.id;
-
-  const registration = await prisma.$transaction(
+// opts.noWaitlist: refuse instead of waitlisting (a paid seat must be a real seat).
+// opts.skipPaymentCheck: the caller has already verified payment.
+async function registerUser(user, eventId, opts = {}) {
+  const userId = user.id;
+  return prisma.$transaction(
     async (tx) => {
       const event = await tx.event.findUnique({ where: { id: eventId } });
       if (!event || event.status !== 'PUBLISHED') throw new HttpError(404, 'Event not found');
@@ -26,8 +28,11 @@ const register = asyncHandler(async (req, res) => {
       if (event.registrationDeadline && event.registrationDeadline < new Date()) {
         throw new HttpError(400, 'Registration for this event has closed');
       }
-      if (event.department && !sameDept(event.department, req.user.department)) {
+      if (event.department && !sameDept(event.department, user.department)) {
         throw new HttpError(403, `This event is open to ${event.department} students only. Check the department on your profile.`);
+      }
+      if (!opts.skipPaymentCheck && paymentRequired(event)) {
+        throw new HttpError(402, 'This event has a fee. Complete the payment to register.');
       }
 
       const existing = await tx.registration.findUnique({ where: { eventId_userId: { eventId, userId } } });
@@ -43,7 +48,7 @@ const register = asyncHandler(async (req, res) => {
         const taken = await tx.registration.count({ where: { eventId, status: 'REGISTERED' } });
         status = 'REGISTERED';
         if (taken >= event.capacity) {
-          if (!event.waitlistEnabled) throw new HttpError(409, 'This event is full');
+          if (!event.waitlistEnabled || opts.noWaitlist) throw new HttpError(409, 'This event is full');
           status = 'WAITLISTED';
         }
       }
@@ -68,7 +73,7 @@ const register = asyncHandler(async (req, res) => {
       } else if (status === 'PENDING') {
         await notify(tx, [event.organizerId], {
           title: 'Registration awaiting approval',
-          message: `${req.user.name} asked to join "${event.title}".`,
+          message: `${user.name} asked to join "${event.title}".`,
           link: `/organizer/events/${eventId}/registrations`,
           type: 'APPROVAL',
         });
@@ -77,7 +82,21 @@ const register = asyncHandler(async (req, res) => {
     },
     { isolationLevel: 'Serializable' }
   );
+}
 
+// Fees are collected online only when a gateway is configured, and not for events that need
+// organiser approval first (those collect the fee in person, so nobody pays and is then declined).
+const paymentRequired = (event) => razorpay.enabled() && event.fee > 0 && !event.requiresRegistrationApproval;
+
+// POST /api/registrations/:eventId  (students)
+const register = asyncHandler(async (req, res) => {
+  const eventId = parseId(req.params.eventId, 'event id');
+  const userId = req.user.id;
+  const registration = await registerUser(req.user, eventId);
+
+  if (registration.status === 'REGISTERED') {
+    emailUsers(userId, { subject: 'You are registered', text: 'Your registration is confirmed. Your QR ticket is ready in My Tickets.', link: '/student/tickets' });
+  }
   let waitlistPosition = null;
   if (registration.status === 'WAITLISTED') {
     waitlistPosition = await prisma.registration.count({
@@ -154,6 +173,11 @@ const decide = asyncHandler(async (req, res) => {
     },
     { isolationLevel: 'Serializable' }
   );
+  emailUsers(reg.userId, {
+    subject: action === 'APPROVE' ? 'Your registration was approved' : 'Your registration was declined',
+    text: action === 'APPROVE' ? `Your request for "${reg.event.title}" was approved (status: ${updated.status.toLowerCase()}).` : `Your request for "${reg.event.title}" was declined.${note ? ` Note: ${note}` : ''}`,
+    link: action === 'APPROVE' ? '/student/tickets' : `/events/${reg.eventId}`,
+  });
   await audit(req, `registration.${action.toLowerCase()}`, 'Registration', id, { eventId: reg.eventId });
   res.json({ registration: updated });
 });
@@ -254,4 +278,6 @@ const exportParticipantsCsv = asyncHandler(async (req, res) => {
   res.send(csv);
 });
 
-module.exports = { register, cancel, decide, myRegistrations, eventParticipants, exportParticipantsCsv };
+module.exports = {
+  registerUser,
+  paymentRequired, register, cancel, decide, myRegistrations, eventParticipants, exportParticipantsCsv };

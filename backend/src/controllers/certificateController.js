@@ -5,6 +5,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { loadManagedEvent, canManageEvent } = require('../utils/access');
 const { notify } = require('../utils/notify');
 const { audit } = require('../utils/audit');
+const { emailUsers } = require('../utils/emailUsers');
 const { readPage, pageInfo } = require('../utils/pagination');
 const { parseId, generateCertificatesSchema } = require('../utils/validators');
 const { certificatePdf } = require('../utils/pdf');
@@ -86,6 +87,7 @@ const generate = asyncHandler(async (req, res) => {
       type: 'CERTIFICATE',
     });
   });
+  emailUsers(regs.map((r) => r.userId), { subject: 'Your certificate is ready', text: `Your certificate for "${event.title}" is ready to view and download.`, link: '/student/certificates' });
   await audit(req, 'certificate.generate', 'Event', event.id, { count: regs.length });
   res.status(201).json({ issued: regs.length });
 });
