@@ -13,7 +13,7 @@ No paid service or API key is needed to run it. Email is optional.
 |---|---|
 | Public site | Home (live stats, featured / upcoming / popular / recent events, categories, FAQ, newsletter), Explore (search, category / date / department / type / online-offline / free-paid filters, sorting, pagination), Categories, Event detail (agenda, speakers, team, eligibility, FAQs, related events), About, Contact, certificate verification |
 | Auth | Student sign-up, role-specific logins (`/login/student`, `/login/organizer`, `/login/admin`), JWT, session restore, forgot / reset password, email-verification flow, change password, profile with photo upload, organiser-access requests approved by admins |
-| Student | Overview, Discover, My Registrations (cancel, waitlist, pending), My Tickets (QR), Attendance History, Certificates (view / print-to-PDF), Notifications, Profile, Settings (theme, reminders) |
+| Student | Overview, Discover, My Registrations (cancel, waitlist, pending), My Tickets (QR), Attendance History, Certificates (view, download PDF), Notifications, Profile, Settings (theme, reminders) |
 | Organiser | Overview, My Events (draft / pending / published / completed / rejected), Create/Edit Event (cover image, mode, meeting link, deadline, capacity, fee, eligibility, department restriction, agenda, speakers, team, FAQs, terms), Manage Registrations (search, filter, approve / decline, CSV), Attendee Management, **QR attendance scanner** (camera / USB scanner / paste, duplicate scans rejected), Certificates (templates, bulk issue, revoke), Analytics |
 | Admin | Overview, User / Student / Organiser management (activate, role, password reset, delete), Event management (feature, edit, delete), **Event approvals** (approve / reject with reason), Category CRUD, Attendance monitoring, Certificates, Reports & analytics (+ CSV), System notifications (broadcast), Audit logs, Platform settings, contact inbox |
 | Platform | Light / dark mode, responsive layout, skeleton loaders, empty states, toasts, confirm dialogs, animated page transitions, rate limiting, zod validation, helmet, CORS, 24-hour reminder job |
@@ -128,7 +128,6 @@ All routes are under `/api`. Bearer JWT in `Authorization`.
 
 - **No online payment**: an event's fee is informational; organisers collect money outside the platform.
 - **Email is optional**: without SMTP, reset links are not delivered (admins can set a new password for a user). Install `nodemailer` and set `SMTP_*` to enable it.
-- Certificate "PDF" uses the browser's print dialog (Save as PDF); there is no server-side PDF generation.
 - Images are stored in PostgreSQL (small files only); for heavy use, move them to object storage.
 - Reminders run in the web process every 15 minutes; if the service is asleep (e.g. Render free plan), they are sent when it wakes.
 - The build and Prisma client generation could not be run in the authoring sandbox (no network); the first Render/Vercel build is the real build test.
