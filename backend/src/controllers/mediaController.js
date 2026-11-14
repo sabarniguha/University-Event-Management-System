@@ -2,6 +2,7 @@ const prisma = require('../utils/prismaClient');
 const HttpError = require('../utils/httpError');
 const asyncHandler = require('../utils/asyncHandler');
 const { parseId } = require('../utils/validators');
+const cloud = require('../utils/cloudinary');
 
 // The declared Content-Type is not trusted: the file's own first bytes decide what it is.
 const sniff = (b) => {
@@ -19,6 +20,16 @@ const upload = asyncHandler(async (req, res) => {
   if (!Buffer.isBuffer(body) || body.length === 0) throw new HttpError(400, 'Send an image file (PNG, JPEG, WebP or GIF)');
   const mimeType = sniff(body);
   if (!mimeType) throw new HttpError(400, 'Only PNG, JPEG, WebP and GIF images are allowed');
+
+  // Prefer Cloudinary when configured; if it is down, fall back to the database so uploads never break.
+  if (cloud.enabled()) {
+    try {
+      const url = await cloud.uploadImage(body, mimeType);
+      return res.status(201).json({ id: null, url });
+    } catch (e) {
+      console.error('[media] Cloudinary upload failed, storing in database instead:', e.message);
+    }
+  }
 
   const file = await prisma.mediaFile.create({
     data: { ownerId: req.user.id, mimeType, size: body.length, data: body },

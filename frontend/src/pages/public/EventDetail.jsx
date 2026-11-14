@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Calendar, Clock, Copy, ExternalLink, Info, MapPin, Settings2, Ticket, Users, Video, Wallet } from 'lucide-react';
 import api, { mediaUrl } from '../../services/api.js';
@@ -10,6 +10,17 @@ import StarRating from '../../components/StarRating.jsx';
 import EventCard, { gradientFor } from '../../components/events/EventCard.jsx';
 import { Badge, ConfirmDialog, ErrorBox, Skeleton } from '../../components/common/Ui.jsx';
 import { errMsg, fmtDate, money, MODE_LABEL } from '../../utils/format.js';
+
+// Loads Razorpay's checkout script once, only when a student actually pays.
+const loadCheckout = () =>
+  new Promise((resolve, reject) => {
+    if (window.Razorpay) return resolve();
+    const el = document.createElement('script');
+    el.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    el.onload = resolve;
+    el.onerror = () => reject(new Error('Could not load the payment window. Check your connection.'));
+    document.body.appendChild(el);
+  });
 
 const Block = ({ title, children }) => (
   <section className="card">
@@ -26,6 +37,10 @@ export default function EventDetail() {
   const { data, loading, error, reload } = useFetch(`/events/${id}`, { u: user?.id || 0 });
   const [busy, setBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [payEnabled, setPayEnabled] = useState(false);
+  useEffect(() => {
+    api.get('/payments/config').then((r) => setPayEnabled(Boolean(r.data.enabled))).catch(() => {});
+  }, []);
 
   if (loading && !data) {
     return (
@@ -66,6 +81,41 @@ export default function EventDetail() {
     } finally {
       setBusy(false);
       setConfirmCancel(false);
+    }
+  };
+
+  const pay = async () => {
+    setBusy(true);
+    try {
+      const { data: order } = await api.post(`/payments/${event.id}/order`);
+      await loadCheckout();
+      await new Promise((resolve, reject) => {
+        const rz = new window.Razorpay({
+          key: order.keyId,
+          order_id: order.orderId,
+          amount: order.amount,
+          currency: order.currency,
+          name: 'UniEvents',
+          description: order.eventTitle,
+          prefill: { name: user?.name, email: user?.email },
+          handler: async (r) => {
+            try {
+              await api.post('/payments/verify', { orderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature });
+              toast.success('Payment received. You are registered!');
+              resolve();
+            } catch (e) { reject(e); }
+          },
+          modal: { ondismiss: () => resolve() },
+        });
+        rz.on('payment.failed', (f) => reject(new Error(f?.error?.description || 'Payment failed')));
+        rz.open();
+      });
+      await reload();
+    } catch (e) {
+      toast.error(errMsg(e));
+      reload();
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -127,8 +177,8 @@ export default function EventDetail() {
     if (!eligibility.eligible) return <p className="text-sm text-red-600">{eligibility.reason} Update your department in your profile if this is wrong.</p>;
     if (full && !event.waitlistEnabled && !event.requiresRegistrationApproval) return <p className="text-sm font-medium text-red-600">This event is full.</p>;
     return (
-      <button className="btn-primary w-full" disabled={busy} onClick={register}>
-        {event.requiresRegistrationApproval ? 'Request to join' : full ? 'Join waitlist' : event.fee > 0 ? `Register (${money(event.fee)})` : 'Register for free'}
+      <button className="btn-primary w-full" disabled={busy} onClick={payEnabled && event.fee > 0 && !event.requiresRegistrationApproval ? pay : register}>
+        {event.requiresRegistrationApproval ? 'Request to join' : full ? 'Join waitlist' : event.fee > 0 ? `${payEnabled && !event.requiresRegistrationApproval ? 'Pay' : 'Register'} (${money(event.fee)})` : 'Register for free'}
       </button>
     );
   };
