@@ -7,6 +7,8 @@ const { notify } = require('../utils/notify');
 const { audit } = require('../utils/audit');
 const { readPage, pageInfo } = require('../utils/pagination');
 const { parseId, generateCertificatesSchema } = require('../utils/validators');
+const { certificatePdf } = require('../utils/pdf');
+const { appUrl } = require('../utils/mailer');
 
 const TEMPLATES = [
   { key: 'classic', name: 'Classic', description: 'Serif lettering with a gold border.' },
@@ -157,6 +159,26 @@ const getOne = asyncHandler(async (req, res) => {
   res.json({ certificate: present(c) });
 });
 
+// GET /api/certificates/:certificateId/pdf - a real PDF file (same access rules as getOne)
+const pdf = asyncHandler(async (req, res) => {
+  const id = String(req.params.certificateId || '').trim().toUpperCase();
+  const c = await prisma.certificate.findUnique({ where: { certificateId: id }, include: { ...certInclude, event: { include: { organizer: { select: { name: true } } } } } });
+  if (!c || (c.userId !== req.user.id && !canManageEvent(req.user, c.event))) throw new HttpError(404, 'Certificate not found');
+  if (c.revokedAt) throw new HttpError(410, 'This certificate has been revoked');
+
+  const d = present(c);
+  const day = (x) => new Date(x).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const file = certificatePdf({
+    ...d,
+    dateText: day(d.startsAt),
+    issuedText: day(d.issuedAt),
+    verifyUrl: `${appUrl()}/verify/${d.certificateId}`,
+  });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="certificate-${d.certificateId}.pdf"`);
+  res.send(file);
+});
+
 // PATCH /api/certificates/:certificateId/revoke  (organiser of event / admin)
 const revoke = asyncHandler(async (req, res) => {
   const id = String(req.params.certificateId || '').trim().toUpperCase();
@@ -167,4 +189,4 @@ const revoke = asyncHandler(async (req, res) => {
   res.json({ revoked: !c.revokedAt });
 });
 
-module.exports = { templates, generate, forEvent, mine, listAll, verify, getOne, revoke };
+module.exports = { templates, generate, forEvent, mine, listAll, verify, getOne, pdf, revoke };
