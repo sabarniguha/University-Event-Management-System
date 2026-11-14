@@ -2,41 +2,80 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --brand-50: 238 242 255; --brand-100: 224 231 255; --brand-200: 199 210 254; --brand-300: 165 180 252;
+  --brand-400: 129 140 248; --brand-500: 99 102 241; --brand-600: 79 70 229; --brand-700: 67 56 202;
+  --brand-800: 55 48 163; --brand-900: 49 46 129;
+
+  --slate-50: 248 250 252; --slate-100: 241 245 249; --slate-200: 226 232 240; --slate-300: 203 213 225;
+  --slate-400: 148 163 184; --slate-500: 100 116 139; --slate-600: 71 85 105; --slate-700: 51 65 85;
+  --slate-800: 30 41 59; --slate-900: 15 23 42; --slate-950: 2 6 23;
+  --surface: 255 255 255;
+}
+
+/* Dark mode flips the grey scale, so existing "text-slate-800 / bg-slate-50" classes just work. */
+.dark {
+  --brand-50: 30 27 75; --brand-100: 49 46 129; --brand-200: 55 48 163; --brand-300: 67 56 202;
+  --brand-400: 129 140 248; --brand-500: 129 140 248; --brand-600: 99 102 241; --brand-700: 165 180 252;
+  --brand-800: 199 210 254; --brand-900: 224 231 255;
+
+  --slate-50: 9 13 24; --slate-100: 30 41 59; --slate-200: 51 65 85; --slate-300: 71 85 105;
+  --slate-400: 100 116 139; --slate-500: 148 163 184; --slate-600: 203 213 225; --slate-700: 226 232 240;
+  --slate-800: 241 245 249; --slate-900: 248 250 252; --slate-950: 255 255 255;
+  --surface: 17 24 39;
+  color-scheme: dark;
+}
+.dark .bg-white { background-color: rgb(var(--surface)); }
+.dark .bg-white\/90 { background-color: rgb(var(--surface) / 0.9); }
+.dark .bg-white\/80 { background-color: rgb(var(--surface) / 0.8); }
+.dark .bg-green-50, .dark .bg-green-100 { background-color: rgb(20 83 45 / 0.35); }
+.dark .bg-red-50, .dark .bg-red-100 { background-color: rgb(127 29 29 / 0.35); }
+.dark .bg-yellow-50, .dark .bg-yellow-100 { background-color: rgb(113 63 18 / 0.4); }
+.dark .bg-blue-50, .dark .bg-blue-100 { background-color: rgb(30 58 138 / 0.4); }
+.dark .bg-indigo-100 { background-color: rgb(49 46 129 / 0.5); }
+.dark .text-green-700 { color: rgb(134 239 172); }
+.dark .text-red-700, .dark .text-red-600 { color: rgb(252 165 165); }
+.dark .text-yellow-800 { color: rgb(253 224 71); }
+.dark .text-blue-700 { color: rgb(147 197 253); }
+.dark .text-indigo-700 { color: rgb(165 180 252); }
+.dark .border-red-200 { border-color: rgb(127 29 29); }
+.dark .border-green-200 { border-color: rgb(20 83 45); }
+
 @layer base {
-  body {
-    @apply bg-slate-50 text-slate-800 antialiased;
+  html { scroll-behavior: smooth; }
+  body { @apply bg-slate-50 font-sans text-slate-800 antialiased; }
+  :focus-visible { @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-slate-50; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
   }
-  .btn-primary {
-    @apply btn bg-brand-600 text-white hover:bg-brand-700;
-  }
-  .btn-outline {
-    @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-100;
-  }
-  .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700;
-  }
-  .btn-sm {
-    @apply px-3 py-1.5 text-xs;
-  }
+  .btn-primary { @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700 dark:text-white; }
+  .btn-outline { @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-100; }
+  .btn-ghost { @apply btn text-slate-600 hover:bg-slate-100; }
+  .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
+  .btn-sm { @apply rounded-lg px-3 py-1.5 text-xs; }
+  .btn-lg { @apply px-6 py-3 text-base; }
   .input {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500;
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30;
   }
-  .label {
-    @apply mb-1 block text-sm font-medium text-slate-700;
+  .label { @apply mb-1 block text-sm font-medium text-slate-700; }
+  .card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-soft; }
+  .th { @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
+  .td { @apply px-4 py-3 text-sm; }
+  .skeleton { @apply relative overflow-hidden rounded-lg bg-slate-200/70; }
+  .skeleton::after {
+    content: ''; @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent;
+    animation: shimmer 1.4s infinite;
   }
-  .card {
-    @apply rounded-xl border border-slate-200 bg-white p-5 shadow-sm;
-  }
-  .th {
-    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
-  }
-  .td {
-    @apply px-4 py-3 text-sm;
-  }
+  .dark .skeleton::after { @apply via-white/10; }
+  .gradient-text { @apply bg-gradient-to-r from-brand-600 to-fuchsia-500 bg-clip-text text-transparent; }
+}
+
+@media print {
+  body { background: #fff !important; }
 }

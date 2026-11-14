@@ -127,7 +127,7 @@ export default function StudentAttendance() {
                           <td className="td text-right">
                             {present && (
                               <div className="flex justify-end gap-2">
-                                <Link to={`/student/certificate/${r.id}`} className="btn-outline btn-sm">Certificate</Link>
+                                {r.certificateId && <Link to={`/student/certificates/${r.certificateId}`} className="btn-outline btn-sm">Certificate</Link>}
                                 <button className="btn-outline btn-sm" onClick={() => setOpenFeedback(openFeedback === r.id ? null : r.id)}>
                                   {r.feedback ? 'Edit rating' : 'Rate event'}
                                 </button>

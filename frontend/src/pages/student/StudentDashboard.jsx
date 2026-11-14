@@ -1,106 +1,62 @@
-import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Award, CheckCircle2, ClipboardList, Percent, ShieldCheck } from 'lucide-react';
 import api from '../../services/api.js';
-import DashboardShell, { StatCard } from '../../components/DashboardShell.jsx';
-import { Badge, EmptyState, ErrorBox, Loader } from '../../components/Ui.jsx';
-import { errMsg, fmtDate } from '../../utils/format.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { useToast } from '../../context/ToastContext.jsx';
+import useFetch from '../../hooks/useFetch.js';
+import DashboardShell from '../../components/DashboardShell.jsx';
+import { Skeleton, StatCard, ErrorBox } from '../../components/common/Ui.jsx';
+import { TrendChart, BarsChart } from '../../components/charts/Charts.jsx';
+import EventList from '../../components/dashboard/EventList.jsx';
+import OrganizerRequestCard from '../../components/dashboard/OrganizerRequestCard.jsx';
+import { pctLabel } from '../../utils/format.js';
 
 export default function StudentDashboard() {
-  const [registrations, setRegistrations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { user } = useAuth();
+  const toast = useToast();
+  const { data: a, loading, error } = useFetch('/analytics/student');
+  const { data: regs } = useFetch('/registrations/me');
 
-  const load = useCallback(() => {
-    return api
-      .get('/registrations/me')
-      .then((res) => setRegistrations(res.data.registrations))
-      .catch((e) => setError(errMsg(e)))
-      .finally(() => setLoading(false));
-  }, []);
+  const upcoming = (regs?.registrations || [])
+    .filter((r) => ['REGISTERED', 'PENDING', 'WAITLISTED'].includes(r.status) && new Date(r.event.endsAt) >= new Date() && r.event.status !== 'CANCELLED')
+    .sort((x, y) => new Date(x.event.startsAt) - new Date(y.event.startsAt))
+    .slice(0, 5)
+    .map((r) => ({ key: r.id, title: r.event.title, to: `/events/${r.event.id}`, date: r.event.startsAt, meta: r.event.venue, status: r.status }));
 
-  useEffect(() => { load(); }, [load]);
-
-  const cancel = async (reg) => {
-    if (!window.confirm(`Cancel your registration for "${reg.event.title}"?`)) return;
-    setError('');
-    try {
-      await api.delete(`/registrations/${reg.event.id}`);
-      await load();
-    } catch (e) {
-      setError(errMsg(e));
-    }
+  const resend = async () => {
+    try { await api.post('/auth/resend-verification'); toast.success('Verification email requested.'); } catch { toast.error('Could not send the email.'); }
   };
 
-  const active = registrations.filter((r) => r.status === 'REGISTERED');
-  const upcoming = active.filter((r) => new Date(r.event.endsAt) >= new Date());
-  const attended = active.filter((r) => r.attendance?.status === 'PRESENT');
-
   return (
-    <DashboardShell
-      title="Student dashboard"
-      subtitle="Your registrations and attendance history"
-      actions={
-        <>
-          <Link to="/student/tickets" className="btn-outline">My tickets</Link>
-          <Link to="/student/attendance" className="btn-outline">My attendance</Link>
-          <Link to="/events" className="btn-primary">Find events</Link>
-        </>
-      }
-    >
+    <DashboardShell title={`Welcome back, ${user.name.split(' ')[0]}`} subtitle="Your events, tickets and progress at a glance." actions={<Link to="/events" className="btn-primary">Discover events</Link>}>
       <ErrorBox message={error} />
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Active registrations" value={active.length} />
-        <StatCard label="Upcoming events" value={upcoming.length} />
-        <StatCard label="Events attended" value={attended.length} />
-      </div>
-
-      {loading ? (
-        <Loader />
-      ) : registrations.length === 0 ? (
-        <EmptyState>
-          You have not registered for any event yet. <Link to="/events" className="font-medium text-brand-600 hover:underline">Browse events</Link>
-        </EmptyState>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="th">Event</th>
-                <th className="th">Date</th>
-                <th className="th">Registration</th>
-                <th className="th">Attendance</th>
-                <th className="th" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {registrations.map((r) => (
-                <tr key={r.id}>
-                  <td className="td">
-                    <Link to={`/events/${r.event.id}`} className="font-medium text-brand-700 hover:underline">{r.event.title}</Link>
-                    <div className="text-xs text-slate-400">{r.event.venue}</div>
-                  </td>
-                  <td className="td">{fmtDate(r.event.startsAt)}</td>
-                  <td className="td">
-                    <Badge>{r.status}</Badge>
-                    {r.status === 'WAITLISTED' && <span className="ml-2 text-xs text-slate-500">#{r.waitlistPosition}</span>}
-                  </td>
-                  <td className="td">
-                    {r.status !== 'REGISTERED' ? '-' : r.attendance ? <Badge>{r.attendance.status}</Badge> : <span className="text-xs text-slate-400">Not marked</span>}
-                  </td>
-                  <td className="td text-right">
-                    {r.status !== 'CANCELLED' && new Date(r.event.startsAt) > new Date() && (
-                      <button className="btn-outline btn-sm" onClick={() => cancel(r)}>
-                        {r.status === 'WAITLISTED' ? 'Leave waitlist' : 'Cancel'}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {!user.emailVerifiedAt && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+          <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Please verify your email address.</span>
+          <button onClick={resend} className="font-medium underline">Resend verification email</button>
         </div>
       )}
+
+      {loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}</div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Registered events" value={a.totals.registered} icon={ClipboardList} hint={`${a.totals.upcoming} upcoming`} />
+          <StatCard label="Attended" value={a.totals.attended} icon={CheckCircle2} tone="green" hint={`${a.totals.missed} missed`} />
+          <StatCard label="Attendance rate" value={pctLabel(a.totals.attendanceRate)} icon={Percent} tone="yellow" />
+          <StatCard label="Certificates" value={a.totals.certificates} icon={Award} hint={`${a.totals.pending + a.totals.waitlisted} pending or waitlisted`} />
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="card">
+          <div className="mb-2 flex items-center justify-between"><h2 className="font-semibold text-slate-900">Upcoming for you</h2><Link to="/student/registrations" className="text-sm text-brand-600 hover:underline">All registrations</Link></div>
+          <EventList items={upcoming} empty="You have no upcoming events." action={<Link to="/events" className="btn-primary btn-sm">Find an event</Link>} />
+        </div>
+        <TrendChart title="Registrations by month" subtitle="Last 6 months" data={a?.registrationsByMonth || []} name="Registrations" />
+      </div>
+      {a && <BarsChart title="Attended by category" data={a.attendedByCategory} horizontal />}
+      <OrganizerRequestCard />
     </DashboardShell>
   );
 }

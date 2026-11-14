@@ -3,8 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="University Event Management System - discover, register and track campus events." />
-    <title>University Event Management System</title>
+    <meta name="description" content="UniEvents - discover, register for and attend campus events. Discover. Connect. Experience Campus Life." />
+    <meta name="theme-color" content="#4f46e5" />
+    <title>UniEvents - Campus Event Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+      // Apply the saved theme before first paint so there is no light/dark flash.
+      try {
+        var t = localStorage.getItem('unievents_theme');
+        var dark = t === 'dark' || ((!t || t === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

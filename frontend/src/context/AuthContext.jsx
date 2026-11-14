@@ -28,6 +28,13 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('uems:logout', logout);
   }, [logout]);
 
+  // Re-read the profile (e.g. after the user edits it or an admin changes their role).
+  const refresh = useCallback(async () => {
+    const { data } = await api.get('/auth/me');
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const authenticate = async (path, payload) => {
     const { data } = await api.post(path, payload);
     localStorage.setItem(TOKEN_KEY, data.token);
@@ -43,8 +50,9 @@ export function AuthProvider({ children }) {
       register: (payload) => authenticate('/auth/register', payload),
       logout,
       setUser,
+      refresh,
     }),
-    [user, loading, logout]
+    [user, loading, logout, refresh]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
