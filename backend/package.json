@@ -10,7 +10,8 @@
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "seed": "node prisma/seed.js",
-    "seed:startup": "node prisma/seedStartup.js"
+    "seed:startup": "node prisma/seedStartup.js",
+    "test": "node --test"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
