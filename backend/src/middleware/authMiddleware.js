@@ -2,6 +2,7 @@ const prisma = require('../utils/prismaClient');
 const { verifyToken } = require('../utils/jwt');
 const HttpError = require('../utils/httpError');
 const asyncHandler = require('../utils/asyncHandler');
+const { isReadOnlyDemoAdmin } = require('../utils/demo');
 
 // Everything the client may know about the signed-in user. Never includes the password hash.
 const userSelect = {
@@ -44,6 +45,10 @@ const authenticate = asyncHandler(async (req, res, next) => {
   const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: userSelect });
   if (!user) throw new HttpError(401, 'Account no longer exists');
   if (!user.isActive) throw new HttpError(403, 'This account has been deactivated. Contact an administrator.');
+
+  if (isReadOnlyDemoAdmin(user) && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    throw new HttpError(403, 'The demo admin is read-only. You can look around but not change anything.');
+  }
 
   req.user = user;
   next();
