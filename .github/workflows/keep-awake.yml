@@ -1,0 +1,22 @@
+name: Keep awake and send reminders
+# Pings the live site every 10 minutes so a free Render service does not sleep, and triggers event reminders.
+# Turn it on by adding a repository VARIABLE APP_URL (e.g. https://your-app.onrender.com) and, optionally,
+# a repository SECRET CRON_SECRET (same value as CRON_SECRET on Render). Does nothing until APP_URL is set.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    if: ${{ vars.APP_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health check
+        run: curl -fsS --retry 3 --max-time 60 "${{ vars.APP_URL }}/api/health"
+      - name: Reminders
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -n "$CRON_SECRET" ]; then
+            curl -fsS -X POST --max-time 60 -H "x-cron-secret: $CRON_SECRET" "${{ vars.APP_URL }}/api/cron/reminders"
+          fi

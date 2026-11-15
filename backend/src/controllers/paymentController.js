@@ -43,6 +43,16 @@ async function finalizePayment(orderId, paymentId) {
     // Paid, but no seat could be given (event filled, closed or was cancelled meanwhile): flag for a manual refund.
     console.error('[payments] paid but could not register, needs refund:', orderId, e.message);
     await prisma.payment.update({ where: { id: payment.id }, data: { status: 'NEEDS_REFUND' } });
+    // Refund automatically; if that fails the payment stays NEEDS_REFUND and an admin can retry from the Payments page.
+    try {
+      await razorpay.refund(paymentId);
+      await prisma.payment.update({ where: { id: payment.id }, data: { status: 'REFUNDED' } });
+      emailUsers(payment.userId, { subject: 'Your payment was refunded', text: `The event "${payment.event.title}" could not take your registration, so your payment has been refunded. It reaches your account in a few working days.` });
+      throw new HttpError(409, 'Your payment went through but the event could no longer take your registration. It has been refunded automatically.');
+    } catch (r) {
+      if (r instanceof HttpError) throw r;
+      console.error('[payments] automatic refund failed:', r.message);
+    }
     await notifyAdmins(prisma, {
       title: 'Payment needs a refund',
       message: `${payment.user.name} paid for "${payment.event.title}" but could not be registered (${e.message}). Refund payment ${paymentId} in the Razorpay dashboard.`,
@@ -127,6 +137,22 @@ const list = asyncHandler(async (req, res) => {
   res.json({ enabled: razorpay.enabled(), payments });
 });
 
+// POST /api/payments/:id/refund  (admin) - refund a NEEDS_REFUND payment through Razorpay
+const refundNow = asyncHandler(async (req, res) => {
+  if (!razorpay.enabled()) throw new HttpError(404, 'Online payments are not enabled');
+  const id = parseId(req.params.id);
+  const payment = await prisma.payment.findUnique({ where: { id } });
+  if (!payment || payment.status !== 'NEEDS_REFUND' || !payment.paymentId) throw new HttpError(409, 'Only payments that need a refund can be refunded');
+  try {
+    await razorpay.refund(payment.paymentId);
+  } catch (e) {
+    throw new HttpError(502, `Razorpay could not refund this payment: ${e.message}`);
+  }
+  await prisma.payment.update({ where: { id }, data: { status: 'REFUNDED' } });
+  await audit(req, 'payment.refund', 'Payment', id);
+  res.json({ ok: true });
+});
+
 // PATCH /api/payments/:id/refunded  (admin) - record that a NEEDS_REFUND payment was refunded in the Razorpay dashboard
 const markRefunded = asyncHandler(async (req, res) => {
   const id = parseId(req.params.id);
@@ -136,4 +162,4 @@ const markRefunded = asyncHandler(async (req, res) => {
   res.json({ ok: true });
 });
 
-module.exports = { list, markRefunded, config, createOrder, verify, webhook, finalizePayment };
+module.exports = { refundNow, list, markRefunded, config, createOrder, verify, webhook, finalizePayment };

@@ -14,6 +14,16 @@ export default function Payments() {
   const { data, loading, error, reload } = useFetch('/payments', { status });
   const rows = data?.payments || [];
 
+  const refundNow = async (id) => {
+    try {
+      await api.post(`/payments/${id}/refund`);
+      toast.success('Refund sent through Razorpay');
+      reload();
+    } catch (e) {
+      toast.error(errMsg(e));
+    }
+  };
+
   const refunded = async (id) => {
     try {
       await api.patch(`/payments/${id}/refunded`);
@@ -25,7 +35,7 @@ export default function Payments() {
   };
 
   return (
-    <DashboardShell title="Payments" subtitle="Event fees paid online. Refunds are made in the Razorpay dashboard, then marked here.">
+    <DashboardShell title="Payments" subtitle="Event fees paid online. Payments that could not get a seat are refunded automatically; if that fails, use Refund now.">
       <ErrorBox message={error} />
       {data && !data.enabled && <p className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">Online payments are switched off (no Razorpay keys set). Past payments, if any, are still listed.</p>}
       <div className="flex flex-wrap gap-2">
@@ -42,7 +52,7 @@ export default function Payments() {
             <td className="td">{p.event.title}</td>
             <td className="td">₹{(p.amount / 100).toLocaleString('en-IN')}</td>
             <td className="td"><Badge>{p.status}</Badge></td>
-            <td className="td">{p.status === 'NEEDS_REFUND' && <button className="btn-outline" onClick={() => refunded(p.id)}>Mark refunded</button>}</td>
+            <td className="td">{p.status === 'NEEDS_REFUND' && <div className="flex gap-2"><button className="btn-primary" onClick={() => refundNow(p.id)}>Refund now</button><button className="btn-outline" onClick={() => refunded(p.id)}>Already refunded</button></div>}</td>
           </tr>
         ))}
       </DataTable>
