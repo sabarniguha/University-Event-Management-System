@@ -16,4 +16,4 @@ ENV NODE_ENV=production
 COPY --from=build /app/backend ./backend
 COPY --from=build /app/frontend/dist ./frontend/dist
 EXPOSE 5000
-CMD ["sh", "-c", "cd backend && npx prisma migrate deploy && node src/server.js"]
+CMD ["sh", "-c", "cd backend && npx prisma migrate deploy && node prisma/seedStartup.js && node src/server.js"]
