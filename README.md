@@ -137,10 +137,16 @@ All routes are under `/api`. Bearer JWT in `Authorization`.
 
 - **Registration link and strict deadline**: organisers (and admins) can paste a Google Form link on an event. The event page shows the exact deadline with a live countdown, the form button disappears and the page says "closed" once the deadline passes, and the server refuses in-app registration after it. A deadline is required whenever a link is added, and the event form asks for one. Event cards show a "Closes in..." badge. The link is a plain https URL typed by the organiser; no sample events include a form link.
 
-## Known limitations
+## Optional services (switch on with environment variables)
 
-- **Online payments are optional and untested against the live gateway.** Razorpay support switches on only when `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are set. Without them, an event's fee is informational. It was written from Razorpay's documentation, and the signature checks are unit-tested, but it has not been run against Razorpay. **Try it in Razorpay test mode (keys starting `rzp_test_`) before using live keys.** Events that need organiser approval still collect the fee in person. There is no automatic refund: a payment that cannot get a seat is marked `NEEDS_REFUND` and admins are notified to refund it in the Razorpay dashboard.
-- **Email needs your SMTP login.** Without `SMTP_*` nothing is sent (admins can set a new password for a user). With it, the app emails password resets, verification links, registration confirmations and decisions, event approval or rejection, and certificates. Users can switch email off in Settings.
-- **Images** go to Cloudinary when `CLOUDINARY_*` is set (falling back to PostgreSQL if Cloudinary is unreachable); otherwise they are stored in PostgreSQL (small files only). The Cloudinary path is untested against a live account.
-- Reminders run in the web process every 15 minutes; if the service is asleep (e.g. Render free plan), they are sent when it wakes.
-- The build and Prisma client generation could not be run in the authoring sandbox (no network); the first Render/Vercel build is the real build test.
+Nothing below is needed to launch the app. Each feature turns on when its keys are set.
+
+- **Email** (`SMTP_*`): password resets, verification links, registration confirmations and decisions, event approval or rejection, and certificates. Users can switch email off in Settings.
+- **Online payments** (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, optional `RAZORPAY_WEBHOOK_SECRET`): students pay event fees in Razorpay checkout. If someone pays but the event filled meanwhile, the payment is refunded automatically; if that fails, admins get a "Refund now" button on the Payments page. Events that need organiser approval collect the fee in person. Try it with test keys (`rzp_test_...`) first.
+- **Image hosting** (`CLOUDINARY_*`): uploads go to Cloudinary, and fall back to PostgreSQL if Cloudinary is unreachable.
+- **Always-on reminders** (`CRON_SECRET` on Render, plus repository variable `APP_URL` and secret `CRON_SECRET` on GitHub): the workflow `.github/workflows/keep-awake.yml` pings the site every 10 minutes so a free Render service stays awake and event reminders go out on time.
+
+## Before you go live
+
+- The first Render/Vercel build is the first real build of this code; watch its log.
+- Remove `SEED_ON_START` and `SEED_ADMIN_PASSWORD` after the first sign-in, and rotate any secret that was ever committed.

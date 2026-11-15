@@ -33,4 +33,18 @@ async function createOrder({ amount, receipt, notes }) {
   return body;
 }
 
-module.exports = { enabled, createOrder, verifyCheckoutSignature, verifyWebhookSignature };
+// Refunds a captured payment in full. Throws on failure.
+async function refund(paymentId) {
+  const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString('base64');
+  const res = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}/refund`, {
+    method: 'POST',
+    headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+    body: '{}',
+    signal: AbortSignal.timeout(15000),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.id) throw new Error(body?.error?.description || `Razorpay returned ${res.status}`);
+  return body;
+}
+
+module.exports = { enabled, refund, createOrder, verifyCheckoutSignature, verifyWebhookSignature };
