@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { CalendarDays, MapPin, Video, Users } from 'lucide-react';
 import { mediaUrl } from '../../services/api.js';
+import { DeadlinePill } from './Deadline.jsx';
 import { dayParts, fmtTime, money, MODE_LABEL } from '../../utils/format.js';
 
 const GRADIENTS = [
@@ -47,6 +48,7 @@ export default function EventCard({ event }) {
             <span className="truncate">{event.mode === 'ONLINE' ? 'Online event' : event.venue}</span>
           </li>
         </ul>
+        {!past && event.registrationDeadline && <div className="mt-3"><DeadlinePill deadline={event.registrationDeadline} /></div>}
         <p className={`mt-auto flex items-center gap-2 pt-3 text-xs font-medium ${left <= 0 && !past ? 'text-red-600' : 'text-slate-500'}`}>
           <Users className="h-4 w-4" />
           {past ? 'Event ended' : left <= 0 ? 'Event full' : `${left} seat${left === 1 ? '' : 's'} left`}

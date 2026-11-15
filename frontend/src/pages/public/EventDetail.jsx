@@ -8,6 +8,7 @@ import useFetch from '../../hooks/useFetch.js';
 import QrCode from '../../components/tickets/QrCode.jsx';
 import StarRating from '../../components/StarRating.jsx';
 import EventCard, { gradientFor } from '../../components/events/EventCard.jsx';
+import { DeadlineBox } from '../../components/events/Deadline.jsx';
 import { Badge, ConfirmDialog, ErrorBox, Skeleton } from '../../components/common/Ui.jsx';
 import { errMsg, fmtDate, money, MODE_LABEL } from '../../utils/format.js';
 
@@ -277,8 +278,20 @@ export default function EventDetail() {
               <li className="flex gap-3"><Calendar className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /><span><span className="block font-medium text-slate-900">{fmtDate(event.startsAt)}</span>to {fmtDate(event.endsAt)}</span></li>
               <li className="flex gap-3">{event.mode === 'ONLINE' ? <Video className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /> : <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />}<span><span className="block font-medium text-slate-900">{event.mode === 'ONLINE' ? 'Online event' : event.venue}</span>{MODE_LABEL[event.mode]}</span></li>
               <li className="flex gap-3"><Wallet className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /><span className="font-medium text-slate-900">{money(event.fee)}</span></li>
-              {event.registrationDeadline && <li className="flex gap-3"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /><span>Register by <span className="font-medium text-slate-900">{fmtDate(event.registrationDeadline)}</span></span></li>}
             </ul>
+            {published && !ended && <DeadlineBox deadline={event.registrationDeadline} />}
+            {published && !ended && event.registrationUrl && (
+              deadlinePassed ? (
+                <p className="text-center text-sm font-medium text-slate-500">The registration form is closed.</p>
+              ) : (
+                <div className="space-y-1">
+                  <a href={event.registrationUrl} target="_blank" rel="noopener noreferrer" className="btn-primary w-full">
+                    <ExternalLink className="h-4 w-4" /> {/^https:\/\/(docs\.google\.com\/forms|forms\.gle|forms\.office\.com)/i.test(event.registrationUrl) ? 'Open the registration form' : 'Open registration link'}
+                  </a>
+                  <p className="text-center text-xs text-slate-500">Fill the organiser's form first, then use the button below to get your QR ticket for check-in.</p>
+                </div>
+              )
+            )}
             <div>
               <div className="mb-1 flex justify-between text-xs text-slate-500"><span className="flex items-center gap-1"><Users className="h-3 w-3" /> {event.registeredCount} / {event.capacity} registered</span><span>{full ? 'Full' : `${seatsLeft} left`}</span></div>
               <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${full ? 'bg-red-500' : 'bg-brand-600'}`} style={{ width: `${fillPct}%` }} /></div>

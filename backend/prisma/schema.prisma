@@ -138,6 +138,7 @@ model Event {
   waitlistEnabled              Boolean     @default(true)
   mode                         EventMode   @default(OFFLINE)
   onlineUrl                    String?
+  registrationUrl              String?
   fee                          Int         @default(0)
   eventType                    String?
   department                   String?

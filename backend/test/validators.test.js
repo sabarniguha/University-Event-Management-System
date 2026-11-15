@@ -48,3 +48,12 @@ test('category slugs', () => {
   assert.strictEqual(slugify('Music and Arts'), 'music-and-arts');
   assert.strictEqual(slugify('Career & Placement'), 'career-and-placement');
 });
+
+test('registration link must be https and needs a deadline', () => {
+  const { eventCreateSchema } = require('../src/utils/validators');
+  const base = { title: 'Hack Day', description: 'A long enough description', venue: 'Hall', startsAt: '2030-01-02T10:00:00Z', endsAt: '2030-01-02T12:00:00Z' };
+  assert.ok(!eventCreateSchema.safeParse({ ...base, registrationUrl: 'http://forms.gle/x', registrationDeadline: '2030-01-01T10:00:00Z' }).success);
+  assert.ok(!eventCreateSchema.safeParse({ ...base, registrationUrl: 'https://forms.gle/x' }).success);
+  assert.ok(eventCreateSchema.safeParse({ ...base, registrationUrl: 'https://forms.gle/x', registrationDeadline: '2030-01-01T10:00:00Z' }).success);
+  assert.ok(eventCreateSchema.safeParse(base).success);
+});
