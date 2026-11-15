@@ -80,7 +80,7 @@ export default function Home() {
   const [q, setQ] = useState('');
   const [email, setEmail] = useState('');
   const [open, setOpen] = useState(0);
-  const { data: stats } = useFetch('/public/stats');
+  const { data: stats, error: statsError } = useFetch('/public/stats');
   const { data: cats } = useFetch('/categories');
   const { data: hl } = useFetch('/public/highlights');
 
@@ -128,6 +128,7 @@ export default function Home() {
             <button className="btn-primary">Search</button>
           </form>
         </div>
+        {statsError && <p role="alert" className="relative mx-auto mb-6 max-w-2xl rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-700">{statsError}</p>}
         <div className="relative mx-auto grid max-w-4xl grid-cols-2 gap-6 px-4 pb-14 sm:grid-cols-4">
           <Stat label="Published events" value={stats?.events} />
           <Stat label="Upcoming" value={stats?.upcoming} />
