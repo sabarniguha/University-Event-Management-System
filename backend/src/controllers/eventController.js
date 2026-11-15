@@ -238,6 +238,9 @@ const updateEvent = asyncHandler(async (req, res) => {
   const deadline = data.registrationDeadline === undefined ? existing.registrationDeadline : data.registrationDeadline;
   if (deadline && deadline > endsAt) throw new HttpError(400, 'Registration deadline cannot be after the event ends');
 
+  const regUrl = data.registrationUrl === undefined ? existing.registrationUrl : data.registrationUrl;
+  if (regUrl && !deadline) throw new HttpError(400, 'Set a registration deadline when you add a registration link');
+
   const mode = data.mode || existing.mode;
   const onlineUrl = data.onlineUrl === undefined ? existing.onlineUrl : data.onlineUrl;
   if (mode !== 'OFFLINE' && !onlineUrl) throw new HttpError(400, 'Add the meeting link for an online or hybrid event');
@@ -376,6 +379,7 @@ const duplicateEvent = asyncHandler(async (req, res) => {
       waitlistEnabled: existing.waitlistEnabled,
       mode: existing.mode,
       onlineUrl: existing.onlineUrl,
+      registrationUrl: existing.registrationUrl,
       fee: existing.fee,
       eventType: existing.eventType,
       department: existing.department,

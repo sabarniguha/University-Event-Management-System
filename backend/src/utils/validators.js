@@ -113,6 +113,11 @@ const eventBase = z.object({
     emptyToNull,
     z.string().trim().max(500).regex(/^https?:\/\/\S+$/i, 'Enter a valid meeting link').nullable().optional()
   ),
+  // External sign-up form (e.g. a Google Form). https only; a deadline is then mandatory.
+  registrationUrl: z.preprocess(
+    emptyToNull,
+    z.string().trim().max(500).regex(/^https:\/\/\S+$/i, 'Enter a valid https:// registration link').nullable().optional()
+  ),
   fee: z.coerce.number().int().min(0).max(1000000).default(0),
   eventType: nullableText(60),
   department: nullableText(100),
@@ -133,6 +138,10 @@ const eventCreateSchema = eventBase
   .refine((d) => d.endsAt > d.startsAt, { message: 'End time must be after start time', path: ['endsAt'] })
   .refine((d) => !d.registrationDeadline || d.registrationDeadline <= d.endsAt, {
     message: 'Registration deadline cannot be after the event ends',
+    path: ['registrationDeadline'],
+  })
+  .refine((d) => !d.registrationUrl || d.registrationDeadline, {
+    message: 'Set a registration deadline when you add a registration link',
     path: ['registrationDeadline'],
   })
   .refine((d) => d.mode === 'OFFLINE' || d.onlineUrl, {

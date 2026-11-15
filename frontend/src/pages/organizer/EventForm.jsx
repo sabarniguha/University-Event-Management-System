@@ -12,7 +12,7 @@ import { DEPARTMENTS, EVENT_TYPES, errMsg, toLocalInput } from '../../utils/form
 
 const EMPTY = {
   title: '', description: '', category: 'General', eventType: '', bannerUrl: '', startsAt: '', endsAt: '', registrationDeadline: '',
-  mode: 'OFFLINE', venue: '', onlineUrl: '', capacity: 100, waitlistEnabled: true, fee: 0, requiresRegistrationApproval: false,
+  mode: 'OFFLINE', venue: '', onlineUrl: '', registrationUrl: '', capacity: 100, waitlistEnabled: true, fee: 0, requiresRegistrationApproval: false,
   department: '', eligibility: '', requirements: '', contactEmail: '', contactPhone: '', terms: '', featured: false,
 };
 
@@ -46,6 +46,7 @@ export default function EventForm() {
       setForm({
         ...EMPTY, ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, e[k] ?? EMPTY[k]])),
         onlineUrl: e.onlineUrl === 'hidden' ? '' : e.onlineUrl || '',
+        registrationUrl: e.registrationUrl || '',
         startsAt: toLocalInput(e.startsAt), endsAt: toLocalInput(e.endsAt),
         registrationDeadline: e.registrationDeadline ? toLocalInput(e.registrationDeadline) : '',
       });
@@ -117,7 +118,7 @@ export default function EventForm() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div><label className="label" htmlFor="st">Starts</label><input id="st" type="datetime-local" required className="input" value={form.startsAt} onChange={set('startsAt')} /></div>
             <div><label className="label" htmlFor="en">Ends</label><input id="en" type="datetime-local" required className="input" value={form.endsAt} onChange={set('endsAt')} /></div>
-            <div><label className="label" htmlFor="dl">Registration deadline</label><input id="dl" type="datetime-local" className="input" value={form.registrationDeadline} onChange={set('registrationDeadline')} /></div>
+            <div><label className="label" htmlFor="dl">Registration deadline *</label><input id="dl" type="datetime-local" required className="input" value={form.registrationDeadline} onChange={set('registrationDeadline')} /></div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -127,6 +128,11 @@ export default function EventForm() {
               </select>
             </div>
             <div><label className="label" htmlFor="venue">Venue</label><input id="venue" className="input" required minLength={2} value={form.venue} onChange={set('venue')} placeholder={form.mode === 'ONLINE' ? 'e.g. Google Meet' : ''} /></div>
+          </div>
+          <div>
+            <label className="label" htmlFor="reg">Registration link (Google Form)</label>
+            <input id="reg" type="url" className="input" value={form.registrationUrl} onChange={set('registrationUrl')} placeholder="https://forms.gle/..." />
+            <p className="mt-1 text-xs text-slate-500">Optional. Paste the link of your Google Form. It is shown on the event page until the deadline above, then the page says registration is closed. Open the form in Google Forms, click Send, and copy the link.</p>
           </div>
           {form.mode !== 'OFFLINE' && (
             <div><label className="label" htmlFor="url">Meeting link</label><input id="url" type="url" required className="input" value={form.onlineUrl} onChange={set('onlineUrl')} placeholder="https://" /><p className="mt-1 text-xs text-slate-500">Only registered students can see this link.</p></div>

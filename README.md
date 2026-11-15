@@ -135,6 +135,8 @@ All routes are under `/api`. Bearer JWT in `Authorization`.
 - **Payments page** (admin): lists online payments and lets admins mark refunded ones after refunding in Razorpay.
 - **CI**: `.github/workflows/ci.yml` runs the backend tests and the frontend build on every push and pull request.
 
+- **Registration link and strict deadline**: organisers (and admins) can paste a Google Form link on an event. The event page shows the exact deadline with a live countdown, the form button disappears and the page says "closed" once the deadline passes, and the server refuses in-app registration after it. A deadline is required whenever a link is added, and the event form asks for one. Event cards show a "Closes in..." badge. The link is a plain https URL typed by the organiser; no sample events include a form link.
+
 ## Known limitations
 
 - **Online payments are optional and untested against the live gateway.** Razorpay support switches on only when `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are set. Without them, an event's fee is informational. It was written from Razorpay's documentation, and the signature checks are unit-tested, but it has not been run against Razorpay. **Try it in Razorpay test mode (keys starting `rzp_test_`) before using live keys.** Events that need organiser approval still collect the fee in person. There is no automatic refund: a payment that cannot get a seat is marked `NEEDS_REFUND` and admins are notified to refund it in the Razorpay dashboard.
