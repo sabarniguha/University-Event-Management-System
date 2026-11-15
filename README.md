@@ -139,8 +139,8 @@ All routes are under `/api`. Bearer JWT in `Authorization`.
 
 ## Sign-up and demo accounts
 
-- **Register page** has Student, Organiser and Admin tabs. The Organiser tab creates a normal student account plus an organiser request that an administrator approves under Organizer Requests. The Admin tab explains that admin accounts are created by an existing admin, so nobody can make themselves one.
-- **Demo accounts (optional)**: set `ENABLE_DEMO_ACCOUNTS=true` and `DEMO_PASSWORD=<8+ characters>` on the server. A demo student (`demo.student@uni.edu`) and demo organiser (`demo.organizer@uni.edu`) are created and shown, with the password, on their login pages. There is never a demo admin. The password is public, so use this only for a demo site and remove the two variables for real use.
+- **Register page** has Student, Organiser and Admin tabs. The Organiser tab creates a normal student account plus an organiser request that an administrator approves under Organizer Requests. The Admin tab explains that admin accounts are created by an existing admin, so nobody can make themselves one (the demo admin above is the only exception, and it is read-only).
+- **Demo accounts (optional)**: set `ENABLE_DEMO_ACCOUNTS=true` and `DEMO_PASSWORD=<8+ characters>` on the server. A demo student (`demo.student@uni.edu`) and demo organiser (`demo.organizer@uni.edu`) are created and shown, with the password, on their login pages. A read-only demo admin (`demo.admin@uni.edu`) is created only with the extra `ENABLE_DEMO_ADMIN=true`: it can browse every admin page but any change is refused. It can see all user details, so never enable it on a site with real students. The password is public, so use this only for a demo site and remove the two variables for real use.
 
 ## Optional services (switch on with environment variables)
 
