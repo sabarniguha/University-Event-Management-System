@@ -56,6 +56,7 @@ const AdminCategories = page(() => import('./pages/admin/Categories.jsx'));
 const AdminCertificates = page(() => import('./pages/admin/AdminCertificates.jsx'));
 const AdminAnalytics = page(() => import('./pages/admin/AdminAnalytics.jsx'));
 const SystemNotifications = page(() => import('./pages/admin/SystemNotifications.jsx'));
+const Payments = page(() => import('./pages/admin/Payments.jsx'));
 const AuditLogs = page(() => import('./pages/admin/AuditLogs.jsx'));
 const PlatformSettings = page(() => import('./pages/admin/PlatformSettings.jsx'));
 
@@ -132,6 +133,7 @@ export default function App() {
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/notifications" element={<SystemNotifications />} />
               <Route path="/admin/audit-logs" element={<AuditLogs />} />
+              <Route path="/admin/payments" element={<Payments />} />
               <Route path="/admin/settings" element={<PlatformSettings />} />
             </Route>
           </Route>

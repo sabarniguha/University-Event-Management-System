@@ -1,0 +1,24 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Backend install, generate client, test
+        working-directory: backend
+        run: |
+          npm install --include=dev
+          npx prisma generate
+          npm test
+      - name: Frontend install and build
+        working-directory: frontend
+        run: |
+          npm install --include=dev
+          npm run build

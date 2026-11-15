@@ -116,7 +116,8 @@ All routes are under `/api`. Bearer JWT in `Authorization`.
 | Analytics | `GET /analytics/student`, `/analytics/organizer`, `/analytics/admin` |
 | Admin | `/admin/stats users students organizers events organizer-requests audit-logs settings messages reports/:type` |
 | Public | `GET /public/stats`, `/public/highlights`, `/public/settings` (alias `/settings/public`), `POST /public/newsletter`, `/public/contact` |
-| Payments | `GET /payments/config`, `POST /payments/:eventId/order`, `POST /payments/verify` (students), `POST /payments/webhook` (Razorpay) |
+| Calendar | `GET /calendar/:id` (public, downloads an `.ics` file for a published event) |
+| Payments | `GET /payments` and `PATCH /payments/:id/refunded` (admin), `GET /payments/config`, `POST /payments/:eventId/order`, `POST /payments/verify` (students), `POST /payments/webhook` (Razorpay) |
 | Media | `POST /media` (raw image body, max 1.5 MB, type checked by file signature), `GET /media/:id` |
 
 ## Security notes
@@ -127,6 +128,12 @@ All routes are under `/api`. Bearer JWT in `Authorization`.
 - Check-in is validated server-side; one attendance record per registration (database unique constraint), so duplicate scans are rejected.
 - Uploads are limited to PNG / JPEG / WebP / GIF, checked by file signature, size-limited and rate-limited.
 - Rate limits on the API, login, forms, password reset and uploads. Helmet and CORS are enabled.
+
+## Extras
+
+- **Add to calendar**: every published event has an `.ics` download (Google, Apple and Outlook calendars).
+- **Payments page** (admin): lists online payments and lets admins mark refunded ones after refunding in Razorpay.
+- **CI**: `.github/workflows/ci.yml` runs the backend tests and the frontend build on every push and pull request.
 
 ## Known limitations
 
