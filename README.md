@@ -165,3 +165,5 @@ The page is not reaching the API. Vite bakes `VITE_API_URL` in at build time, so
 3. Open `https://<your-render-app>.onrender.com/api/health`. It should answer `{"status":"ok"}`. A free Render service sleeps and takes about a minute to wake.
 
 The Render address serves the whole app by itself, so Vercel is optional. The site now shows a clear red message when it cannot reach the API.
+
+https://university-event-management-system-3.onrender.com/ is the link
