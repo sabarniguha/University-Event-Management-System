@@ -37,6 +37,14 @@ const registerSchema = z.object({
   studentId: optionalText(40),
   year: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(8).optional()),
   college: optionalText(150),
+  // Optional: also ask for organiser access. The account is still a STUDENT until an admin approves.
+  organizer: z
+    .object({
+      organization: z.string().trim().min(2, 'Tell us which club or department you represent').max(150),
+      designation: optionalText(100),
+      reason: optionalText(1000),
+    })
+    .optional(),
 });
 
 const loginSchema = z.object({

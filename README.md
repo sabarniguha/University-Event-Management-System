@@ -137,6 +137,11 @@ All routes are under `/api`. Bearer JWT in `Authorization`.
 
 - **Registration link and strict deadline**: organisers (and admins) can paste a Google Form link on an event. The event page shows the exact deadline with a live countdown, the form button disappears and the page says "closed" once the deadline passes, and the server refuses in-app registration after it. A deadline is required whenever a link is added, and the event form asks for one. Event cards show a "Closes in..." badge. The link is a plain https URL typed by the organiser; no sample events include a form link.
 
+## Sign-up and demo accounts
+
+- **Register page** has Student, Organiser and Admin tabs. The Organiser tab creates a normal student account plus an organiser request that an administrator approves under Organizer Requests. The Admin tab explains that admin accounts are created by an existing admin, so nobody can make themselves one.
+- **Demo accounts (optional)**: set `ENABLE_DEMO_ACCOUNTS=true` and `DEMO_PASSWORD=<8+ characters>` on the server. A demo student (`demo.student@uni.edu`) and demo organiser (`demo.organizer@uni.edu`) are created and shown, with the password, on their login pages. There is never a demo admin. The password is public, so use this only for a demo site and remove the two variables for real use.
+
 ## Optional services (switch on with environment variables)
 
 Nothing below is needed to launch the app. Each feature turns on when its keys are set.
