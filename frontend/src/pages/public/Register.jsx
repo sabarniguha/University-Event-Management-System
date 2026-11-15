@@ -12,6 +12,8 @@ export default function Register() {
   const navigate = useNavigate();
   const { data: pub } = useFetch('/public/settings');
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', department: '', studentId: '', year: '', college: '' });
+  const [tab, setTab] = useState('student');
+  const [org, setOrg] = useState({ organization: '', designation: '', reason: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -25,7 +27,7 @@ export default function Register() {
     setBusy(true);
     try {
       const { confirm, ...payload } = form;
-      await register(payload);
+      await register(tab === 'organizer' ? { ...payload, organizer: org } : payload);
       navigate('/student', { replace: true });
     } catch (err) {
       setError(errMsg(err));
@@ -39,11 +41,21 @@ export default function Register() {
   return (
     <AuthCard
       wide
-      title="Create your student account"
-      subtitle="Join UniEvents to discover and register for campus events."
+      title={tab === 'organizer' ? 'Apply for an organiser account' : 'Create your account'}
+      subtitle={tab === 'organizer' ? 'Sign up, then an administrator reviews your request. Until it is approved you can use the app as a student.' : 'Join UniEvents to discover and register for campus events.'}
       footer={<>Already have an account? <Link to="/login/student" className="font-medium text-brand-600 hover:underline">Sign in</Link></>}
     >
-      {closed ? (
+      <div className="mb-4 grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 text-sm font-medium" role="tablist">
+        {[['student', 'Student'], ['organizer', 'Organiser'], ['admin', 'Admin']].map(([k, label]) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`rounded-lg px-3 py-2 ${tab === k ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>{label}</button>
+        ))}
+      </div>
+      {tab === 'admin' ? (
+        <div className="space-y-3 text-sm text-slate-600">
+          <p>Admin accounts cannot be created from the public site, so nobody can make themselves an administrator. An existing admin adds new admins in <b>User Management</b>.</p>
+          <Link to="/login/admin" className="btn-primary w-full">Go to admin login</Link>
+        </div>
+      ) : closed ? (
         <p className="rounded-xl bg-yellow-100 px-4 py-3 text-sm text-yellow-800">New sign-ups are currently closed. Please contact your administrator.</p>
       ) : (
         <form onSubmit={submit} className="space-y-4">
@@ -70,7 +82,15 @@ export default function Register() {
             <div><label className="label" htmlFor="studentId">Student ID (optional)</label><input id="studentId" name="studentId" className="input" value={form.studentId} onChange={set} /></div>
             <div><label className="label" htmlFor="college">College (optional)</label><input id="college" name="college" className="input" value={form.college} onChange={set} /></div>
           </div>
-          <button className="btn-primary w-full" disabled={busy}>{busy ? 'Creating account...' : 'Create account'}</button>
+          {tab === 'organizer' && (
+            <fieldset className="space-y-4 rounded-xl border border-slate-200 p-4">
+              <legend className="px-1 text-sm font-semibold text-slate-700">Organiser details</legend>
+              <div><label className="label" htmlFor="organization">Club, society or department</label><input id="organization" required minLength={2} className="input" value={org.organization} onChange={(e) => setOrg({ ...org, organization: e.target.value })} placeholder="e.g. UEM Robotics Club" /></div>
+              <div><label className="label" htmlFor="designation">Your role (optional)</label><input id="designation" className="input" value={org.designation} onChange={(e) => setOrg({ ...org, designation: e.target.value })} placeholder="e.g. Secretary" /></div>
+              <div><label className="label" htmlFor="reason">What events will you run? (optional)</label><textarea id="reason" rows={3} className="input" value={org.reason} onChange={(e) => setOrg({ ...org, reason: e.target.value })} /></div>
+            </fieldset>
+          )}
+          <button className="btn-primary w-full" disabled={busy}>{busy ? 'Creating account...' : tab === 'organizer' ? 'Sign up and request organiser access' : 'Create account'}</button>
         </form>
       )}
     </AuthCard>

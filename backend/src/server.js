@@ -3,6 +3,7 @@ const app = require('./app');
 const prisma = require('./utils/prismaClient');
 const { ensureDefaults } = require('./utils/settings');
 const { startReminderJob } = require('./utils/reminders');
+const { ensureDemoAccounts } = require('./utils/demo');
 
 const PORT = Number(process.env.PORT) || 5000;
 
@@ -18,6 +19,7 @@ if (process.env.NODE_ENV === 'production' && process.env.JWT_SECRET.length < 32)
 const server = app.listen(PORT, () => {
   console.log(`UniEvents API listening on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
   ensureDefaults().catch((e) => console.error('[startup] could not create default categories:', e.message));
+  ensureDemoAccounts().catch((e) => console.error('[startup] could not create demo accounts:', e.message));
   startReminderJob();
 });
 

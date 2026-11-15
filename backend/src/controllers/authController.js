@@ -58,8 +58,18 @@ const register = asyncHandler(async (req, res) => {
     select: userSelect,
   });
 
+  if (data.organizer) {
+    await prisma.organizerProfile.create({ data: { ...data.organizer, userId: user.id } });
+    await notifyAdmins(prisma, {
+      title: 'New organiser request',
+      message: `${user.name} signed up and asked for organiser access (${data.organizer.organization}).`,
+      link: '/admin/organizers',
+      type: 'APPROVAL',
+    });
+  }
+
   sendVerificationEmail(user).catch((e) => console.error('[auth] verification email failed:', e.message));
-  res.status(201).json({ token: signToken(user), user });
+  res.status(201).json({ token: signToken(user), user, organizerRequested: Boolean(data.organizer) });
 });
 
 const login = asyncHandler(async (req, res) => {

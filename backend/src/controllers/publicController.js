@@ -1,7 +1,11 @@
 const prisma = require('../utils/prismaClient');
 const asyncHandler = require('../utils/asyncHandler');
 const { getSettings, publicSettings } = require('../utils/settings');
+const { demoInfo } = require('../utils/demo');
 const { newsletterSchema, contactSchema } = require('../utils/validators');
+
+// GET /api/public/demo - demo accounts, only when the owner switched demo mode on
+const demo = (req, res) => res.json(demoInfo());
 
 // GET /api/public/stats - real counts only, used by the home page
 const stats = asyncHandler(async (req, res) => {
@@ -84,4 +88,4 @@ const contact = asyncHandler(async (req, res) => {
   res.status(201).json({ message: 'Thanks! We received your message and will get back to you.' });
 });
 
-module.exports = { stats, highlights, settings, subscribe, contact };
+module.exports = { demo, stats, highlights, settings, subscribe, contact };

@@ -11,6 +11,7 @@ const formLimiter = rateLimit({
 });
 
 router.get('/stats', c.stats);
+router.get('/demo', c.demo);
 router.get('/highlights', c.highlights);
 router.get('/settings', c.settings);
 router.post('/newsletter', formLimiter, c.subscribe);

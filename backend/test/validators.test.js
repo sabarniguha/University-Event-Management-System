@@ -57,3 +57,11 @@ test('registration link must be https and needs a deadline', () => {
   assert.ok(eventCreateSchema.safeParse({ ...base, registrationUrl: 'https://forms.gle/x', registrationDeadline: '2030-01-01T10:00:00Z' }).success);
   assert.ok(eventCreateSchema.safeParse(base).success);
 });
+
+test('register accepts an optional organiser request but never a role', () => {
+  const base = { name: 'Asha Rao', email: 'asha@uni.edu', password: 'Password1' };
+  const ok = v.registerSchema.safeParse({ ...base, role: 'ADMIN', organizer: { organization: 'Robotics Club' } });
+  assert.ok(ok.success);
+  assert.equal(ok.data.role, undefined);
+  assert.ok(!v.registerSchema.safeParse({ ...base, organizer: { organization: 'x' } }).success);
+});
