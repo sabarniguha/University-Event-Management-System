@@ -150,3 +150,13 @@ Nothing below is needed to launch the app. Each feature turns on when its keys a
 
 - The first Render/Vercel build is the first real build of this code; watch its log.
 - Remove `SEED_ON_START` and `SEED_ADMIN_PASSWORD` after the first sign-in, and rotate any secret that was ever committed.
+
+## If the Vercel site shows "-" and no events
+
+The page is not reaching the API. Vite bakes `VITE_API_URL` in at build time, so after setting it you must **redeploy** on Vercel.
+
+1. Vercel, Project, Settings, Environment Variables: `VITE_API_URL` = `https://<your-render-app>.onrender.com/api` (ends with `/api`), then Deployments, Redeploy.
+2. Render, Environment: `CLIENT_ORIGIN` = your Vercel address (e.g. `https://frontend-six-tan-80.vercel.app`, no trailing slash).
+3. Open `https://<your-render-app>.onrender.com/api/health`. It should answer `{"status":"ok"}`. A free Render service sleeps and takes about a minute to wake.
+
+The Render address serves the whole app by itself, so Vercel is optional. The site now shows a clear red message when it cannot reach the API.

@@ -14,9 +14,22 @@ api.interceptors.request.use((config) => {
 });
 
 // If the token is rejected, drop it and tell the app to log the user out.
+const NOT_CONNECTED =
+  'Cannot reach the UniEvents server. If this site is on Vercel, set VITE_API_URL to https://<your-render-app>.onrender.com/api in Vercel and redeploy.';
+const UNREACHABLE =
+  'Cannot reach the UniEvents server. If it was idle, wait a minute and try again. Otherwise add this site\'s address to CLIENT_ORIGIN on the server.';
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // An API call that comes back as a web page means the request never reached the API
+    // (typically VITE_API_URL is missing, so the host just served index.html).
+    if (response.config.responseType !== 'blob' && typeof response.data === 'string' && /^\s*(<!doctype html|<html)/i.test(response.data)) {
+      return Promise.reject(new Error(NOT_CONNECTED));
+    }
+    return response;
+  },
   (error) => {
+    if (!error.response && error.config && !error.config.signal?.aborted) error.message = UNREACHABLE;
     const url = error.config?.url || '';
     const isAuthAttempt = /\/auth\/(login|register|forgot-password|reset-password|verify-email|change-password)/.test(url);
     if (error.response?.status === 401 && !isAuthAttempt && localStorage.getItem(TOKEN_KEY)) {
