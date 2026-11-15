@@ -1,6 +1,6 @@
 import {
   Award, BarChart3, Bell, CalendarDays, CheckCircle2, ClipboardList, History, LayoutDashboard,
-  Megaphone, PlusCircle, ScanLine, ScrollText, Search, Settings, ShieldCheck, Tag, Ticket, User, UserCheck, UserCog, Users,
+  Megaphone, PlusCircle, ScanLine, ScrollText, Search, Settings, ShieldCheck, Tag, Ticket, User, UserCheck, UserCog, Users, Wallet,
 } from 'lucide-react';
 
 // One list per role. Every entry points at a real page (see App.jsx).
@@ -43,6 +43,7 @@ export const NAV = {
     { to: '/admin/analytics', label: 'Reports & Analytics', icon: BarChart3 },
     { to: '/announcements', label: 'Announcements', icon: Megaphone },
     { to: '/admin/notifications', label: 'System Notifications', icon: Bell },
+    { to: '/admin/payments', label: 'Payments', icon: Wallet },
     { to: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText },
     { to: '/admin/settings', label: 'Platform Settings', icon: ShieldCheck },
   ],

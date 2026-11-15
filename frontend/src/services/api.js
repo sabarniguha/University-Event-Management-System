@@ -3,7 +3,7 @@ import axios from 'axios';
 export const TOKEN_KEY = 'uems_token';
 
 // Empty on a single-service deploy (same origin). On Vercel set VITE_API_URL=https://<your-api>/api
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({ baseURL: API_URL });
 

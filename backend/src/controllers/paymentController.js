@@ -7,6 +7,7 @@ const { parseId } = require('../utils/validators');
 const { registerUser, paymentRequired } = require('./registrationController');
 const { notifyAdmins } = require('../utils/notify');
 const { emailUsers } = require('../utils/emailUsers');
+const { audit } = require('../utils/audit');
 
 const sameDept = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
 
@@ -114,4 +115,25 @@ const webhook = asyncHandler(async (req, res) => {
   res.json({ ok: true });
 });
 
-module.exports = { config, createOrder, verify, webhook, finalizePayment };
+// GET /api/payments  (admin) - payments newest first, optional ?status=NEEDS_REFUND
+const list = asyncHandler(async (req, res) => {
+  const status = ['CREATED', 'PAID', 'FAILED', 'NEEDS_REFUND', 'REFUNDED'].includes(req.query.status) ? req.query.status : undefined;
+  const payments = await prisma.payment.findMany({
+    where: status ? { status } : {},
+    orderBy: { createdAt: 'desc' },
+    take: 200,
+    include: { user: { select: { name: true, email: true } }, event: { select: { id: true, title: true } } },
+  });
+  res.json({ enabled: razorpay.enabled(), payments });
+});
+
+// PATCH /api/payments/:id/refunded  (admin) - record that a NEEDS_REFUND payment was refunded in the Razorpay dashboard
+const markRefunded = asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  const done = await prisma.payment.updateMany({ where: { id, status: 'NEEDS_REFUND' }, data: { status: 'REFUNDED' } });
+  if (done.count === 0) throw new HttpError(409, 'Only payments that need a refund can be marked refunded');
+  await audit(req, 'payment.refunded', 'Payment', id);
+  res.json({ ok: true });
+});
+
+module.exports = { list, markRefunded, config, createOrder, verify, webhook, finalizePayment };
