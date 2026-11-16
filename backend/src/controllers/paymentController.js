@@ -144,7 +144,14 @@ const list = asyncHandler(async (req, res) => {
 // GET /api/payments/mine  (students) - their own receipts
 const mine = asyncHandler(async (req, res) => {
   const payments = await prisma.payment.findMany({
-    where: { userId: req.user.id, status: { in: ['PAID', 'NEEDS_REFUND', 'REFUNDED'] } },
+    where: {
+      userId: req.user.id,
+      OR: [
+        { status: { in: ['PAID', 'NEEDS_REFUND', 'REFUNDED'] } },
+        // Started but not completed in the last 3 days = pending.
+        { status: 'CREATED', createdAt: { gte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) } },
+      ],
+    },
     orderBy: { createdAt: 'desc' },
     include: { event: { select: { id: true, title: true, startsAt: true } } },
   });

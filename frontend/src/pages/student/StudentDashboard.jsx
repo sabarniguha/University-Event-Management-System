@@ -7,6 +7,7 @@ import useFetch from '../../hooks/useFetch.js';
 import DashboardShell from '../../components/DashboardShell.jsx';
 import { Skeleton, StatCard, ErrorBox } from '../../components/common/Ui.jsx';
 import { TrendChart, BarsChart } from '../../components/charts/Charts.jsx';
+import PendingPayments from '../../components/dashboard/PendingPayments.jsx';
 import FeaturedStrip from '../../components/events/FeaturedStrip.jsx';
 import EventList from '../../components/dashboard/EventList.jsx';
 import OrganizerRequestCard from '../../components/dashboard/OrganizerRequestCard.jsx';
@@ -31,6 +32,7 @@ export default function StudentDashboard() {
   return (
     <DashboardShell title={`Welcome back, ${user.name.split(' ')[0]}`} subtitle="Your events, tickets and progress at a glance." actions={<Link to="/events" className="btn-primary">Discover events</Link>}>
       <ErrorBox message={error} />
+      <PendingPayments />
       {!user.emailVerifiedAt && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
           <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Please verify your email address.</span>

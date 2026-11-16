@@ -7,7 +7,7 @@ import DashboardShell from '../../components/DashboardShell.jsx';
 import { Badge, DataTable, ErrorBox } from '../../components/common/Ui.jsx';
 import { errMsg, fmtDate } from '../../utils/format.js';
 
-const FILTERS = [['', 'All'], ['NEEDS_REFUND', 'Needs refund'], ['PAID', 'Paid'], ['REFUNDED', 'Refunded'], ['CREATED', 'Unpaid']];
+const FILTERS = [['', 'All'], ['NEEDS_REFUND', 'Needs refund'], ['PAID', 'Paid'], ['REFUNDED', 'Refunded'], ['CREATED', 'Pending']];
 
 export default function Payments() {
   const toast = useToast();
@@ -41,8 +41,8 @@ export default function Payments() {
     <DashboardShell title="Payments" subtitle={isAdmin ? "Event fees paid online. Payments that could not get a seat are refunded automatically; if that fails, use Refund now." : "Who has paid for your events, with their Razorpay payment IDs."}>
       <ErrorBox message={error} />
       {data?.summary && (
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[['PAID', 'Collected'], ['NEEDS_REFUND', 'Needs refund'], ['REFUNDED', 'Refunded']].map(([k, label]) => (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[['PAID', 'Collected'], ['CREATED', 'Pending (not completed)'], ['NEEDS_REFUND', 'Needs refund'], ['REFUNDED', 'Refunded']].map(([k, label]) => (
             <div key={k} className="card"><p className="text-xs uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 text-2xl font-bold text-slate-900">₹{((data.summary[k]?.amount || 0) / 100).toLocaleString('en-IN')}</p><p className="text-xs text-slate-500">{data.summary[k]?.count || 0} payment(s)</p></div>
           ))}
         </div>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Award, CalendarDays, CheckCircle2, ClipboardList, UserCheck, Users } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
 import DashboardShell from '../../components/DashboardShell.jsx';
+import PendingPayments from '../../components/dashboard/PendingPayments.jsx';
 import FeaturedStrip from '../../components/events/FeaturedStrip.jsx';
 import { ErrorBox, Skeleton, StatCard } from '../../components/common/Ui.jsx';
 import { BarsChart, DonutChart, TrendChart } from '../../components/charts/Charts.jsx';
@@ -13,6 +14,7 @@ export default function AdminDashboard() {
   return (
     <DashboardShell title="Admin overview" subtitle="Everything happening across the platform.">
       <ErrorBox message={error} />
+      <PendingPayments />
       {(st?.pendingEvents > 0 || st?.pendingOrganizers > 0) && (
         <div className="flex flex-wrap gap-3">
           {st.pendingEvents > 0 && <Link to="/admin/approvals" className="btn-primary"><CheckCircle2 className="h-4 w-4" /> {st.pendingEvents} event(s) awaiting approval</Link>}
