@@ -23,6 +23,7 @@ const ResetPassword = page(() => import('./pages/public/ResetPassword.jsx'));
 const VerifyEmail = page(() => import('./pages/public/VerifyEmail.jsx'));
 const VerifyCertificate = page(() => import('./pages/public/VerifyCertificate.jsx'));
 const VerifyTicket = page(() => import('./pages/public/VerifyTicket.jsx'));
+const ScanTickets = page(() => import('./pages/organizer/ScanTickets.jsx'));
 const NotFound = page(() => import('./pages/public/NotFound.jsx'));
 
 const Announcements = page(() => import('./pages/Announcements.jsx'));
@@ -117,6 +118,7 @@ export default function App() {
               <Route path="/organizer/attendees" element={<AttendeeManagement />} />
               <Route path="/organizer/scanner" element={<ScannerPicker />} />
               <Route path="/organizer/attendance" element={<AttendanceOverview />} />
+              <Route path="/organizer/scan" element={<ScanTickets />} />
               <Route path="/organizer/certificates" element={<OrganizerCertificates />} />
               <Route path="/organizer/certificates/view/:certificateId" element={<CertificateView />} />
               <Route path="/organizer/analytics" element={<OrganizerAnalytics />} />
@@ -131,6 +133,7 @@ export default function App() {
               <Route path="/admin/approvals" element={<Approvals />} />
               <Route path="/admin/categories" element={<AdminCategories />} />
               <Route path="/admin/attendance" element={<AttendanceOverview />} />
+              <Route path="/admin/scan" element={<ScanTickets />} />
               <Route path="/admin/certificates" element={<AdminCertificates />} />
               <Route path="/admin/certificates/view/:certificateId" element={<CertificateView />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
