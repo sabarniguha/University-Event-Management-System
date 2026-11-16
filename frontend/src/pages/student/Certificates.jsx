@@ -8,6 +8,7 @@ import useFetch from '../../hooks/useFetch.js';
 import DashboardShell from '../../components/DashboardShell.jsx';
 import { EmptyState, ErrorBox, Skeleton } from '../../components/common/Ui.jsx';
 import { fmtDay } from '../../utils/format.js';
+import { SampleCertificate, SampleTicket, VerifyLinks } from '../../components/verify/Samples.jsx';
 
 export default function Certificates() {
   const toast = useToast();
@@ -37,6 +38,8 @@ export default function Certificates() {
           ))}
         </div>
       )}
+      <SampleCertificate />
+      <VerifyLinks />
     </DashboardShell>
   );
 }

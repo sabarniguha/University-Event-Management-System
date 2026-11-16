@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Award, CalendarDays, CheckCircle2, ClipboardList, UserCheck, Users } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
 import DashboardShell from '../../components/DashboardShell.jsx';
+import FeaturedStrip from '../../components/events/FeaturedStrip.jsx';
 import { ErrorBox, Skeleton, StatCard } from '../../components/common/Ui.jsx';
 import { BarsChart, DonutChart, TrendChart } from '../../components/charts/Charts.jsx';
 
@@ -36,6 +37,7 @@ export default function AdminDashboard() {
           <BarsChart title="Published events by category" data={a.eventsByCategory} horizontal />
         </div>
       )}
+      <FeaturedStrip />
     </DashboardShell>
   );
 }

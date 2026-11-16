@@ -9,6 +9,7 @@ import EventPicker from '../../components/events/EventPicker.jsx';
 import { Badge, DataTable, EmptyState, ErrorBox, Modal } from '../../components/common/Ui.jsx';
 import CertificateSheet from '../../components/tickets/CertificateSheet.jsx';
 import { errMsg, fmtDay } from '../../utils/format.js';
+import { SampleCertificate, SampleTicket, VerifyLinks } from '../../components/verify/Samples.jsx';
 
 const TEMPLATES = [['classic', 'Classic'], ['modern', 'Modern'], ['minimal', 'Minimal']];
 
@@ -91,6 +92,8 @@ export default function OrganizerCertificates() {
     <DashboardShell title="Certificates" subtitle="Choose an event to issue or manage its certificates.">
       <EventPicker filter={(e) => e.status === 'PUBLISHED' && new Date(e.startsAt) <= new Date()} empty="Certificates can be issued once an event has started."
         renderAction={(e) => <Link to={`/organizer/events/${e.id}/certificates`} className="btn-outline btn-sm">Manage</Link>} />
+      <SampleCertificate />
+      <VerifyLinks />
     </DashboardShell>
   );
 }

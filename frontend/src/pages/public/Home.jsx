@@ -40,6 +40,20 @@ function Section({ title, subtitle, to, children, tinted = false }) {
   );
 }
 
+// Starred events; if none are starred yet, the soonest upcoming ones, so this section is never empty.
+function FeaturedRow() {
+  const featured = useFetch('/events', { featured: 'true', limit: 3 });
+  const fallback = useFetch('/events', { sort: 'upcoming', limit: 3 });
+  if (featured.loading || fallback.loading) return <CardSkeletons count={3} />;
+  const events = featured.data?.events?.length ? featured.data.events : fallback.data?.events || [];
+  if (events.length === 0) return <EmptyState icon={CalendarCheck} title="No events here yet">Featured events will appear here once events are published.</EmptyState>;
+  return (
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {events.map((e) => <motion.div key={e.id} {...fade}><EventCard event={e} /></motion.div>)}
+    </div>
+  );
+}
+
 function EventRow({ path, params, emptyText }) {
   const { data, loading } = useFetch(path, params);
   if (loading) return <CardSkeletons count={3} />;
@@ -138,7 +152,7 @@ export default function Home() {
       </section>
 
       <Section title="Featured events" subtitle="Hand-picked by the UniEvents team" to="/events?featured=true">
-        <EventRow path="/events" params={{ featured: 'true', limit: 3 }} emptyText="No featured events right now. Check out the upcoming ones below." />
+        <FeaturedRow />
       </Section>
 
       <Section title="Upcoming events" subtitle="Happening soon on campus" to="/events" tinted>

@@ -5,6 +5,7 @@ import useFetch from '../../hooks/useFetch.js';
 import DashboardShell from '../../components/DashboardShell.jsx';
 import { ErrorBox, Skeleton, StatCard } from '../../components/common/Ui.jsx';
 import { BarsChart, TrendChart } from '../../components/charts/Charts.jsx';
+import FeaturedStrip from '../../components/events/FeaturedStrip.jsx';
 import EventList from '../../components/dashboard/EventList.jsx';
 import { pctLabel } from '../../utils/format.js';
 
@@ -40,6 +41,7 @@ export default function OrganizerDashboard() {
         <TrendChart title="Registrations by month" subtitle="Last 6 months" data={a?.registrationsByMonth || []} name="Registrations" />
       </div>
       {a && <BarsChart title="Most registered events" data={(a.perEvent || []).map((e) => ({ label: e.title.slice(0, 22), count: e.registered }))} horizontal />}
+      <FeaturedStrip />
     </DashboardShell>
   );
 }
