@@ -160,6 +160,10 @@ Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/s
 
 For an event with a fee and manual approval: the student requests to join (status PENDING), the organiser approves (status AWAITING_PAYMENT, the student is notified and emailed), the student pays online and becomes REGISTERED with a QR ticket. A late approval can still be paid after the registration deadline. If the event fills up in the meantime, the payment is refunded automatically.
 
+## Issuing certificates
+
+Organisers (and admins, from **Certificates, Issue certificates**) open an event's Certificates page and click **Generate certificates**. By default they go to students marked present; tick "Also certify registered students who were not scanned" to include everyone who registered. Each certificate gets a unique ID, appears in the student's Certificates page and notifications (and email, if set up), and can be verified by anyone at `/verify`. Admins may issue before an event starts; organisers after it starts.
+
 ## Seeing who paid
 
 - **Students**: My Payments lists their receipts (amount, date, Razorpay payment ID).

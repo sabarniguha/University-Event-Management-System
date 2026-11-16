@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Award, Eye, Undo2, XCircle } from 'lucide-react';
 import api from '../../services/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import useFetch from '../../hooks/useFetch.js';
 import DashboardShell from '../../components/DashboardShell.jsx';
@@ -19,13 +20,14 @@ function EventCertificates({ id }) {
   const { data: ev } = useFetch(`/events/${id}`);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [includeRegistered, setIncludeRegistered] = useState(false);
   const [form, setForm] = useState({ templateKey: 'classic', title: 'Certificate of Participation', signatoryName: '', signatoryTitle: '' });
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const generate = async () => {
     setBusy(true);
     try {
-      const { data: res } = await api.post('/certificates/generate', { eventId: Number(id), ...form });
+      const { data: res } = await api.post('/certificates/generate', { eventId: Number(id), ...form, includeRegistered });
       toast.success(res.issued ? `Issued ${res.issued} certificate(s).` : res.message);
       setOpen(false);
       reload();
@@ -50,8 +52,8 @@ function EventCertificates({ id }) {
   return (
     <DashboardShell
       title={data ? `Certificates: ${data.event.title}` : 'Certificates'}
-      subtitle="Certificates go only to students who were marked present."
-      actions={<button className="btn-primary" onClick={() => setOpen(true)} disabled={!data || data.pendingCount === 0}><Award className="h-4 w-4" /> Generate for {data?.pendingCount ?? 0} attendee(s)</button>}
+      subtitle="By default certificates go to students who were marked present. You can also certify everyone who registered."
+      actions={<button className="btn-primary" onClick={() => setOpen(true)} disabled={!data || (data.pendingCount === 0 && data.registeredPendingCount === 0)}><Award className="h-4 w-4" /> Generate certificates</button>}
     >
       <ErrorBox message={error} />
       <DataTable columns={['Student', 'Certificate ID', 'Issued', 'Status', '']} loading={loading}
@@ -71,13 +73,17 @@ function EventCertificates({ id }) {
       </DataTable>
 
       <Modal open={open} onClose={() => setOpen(false)} wide title="Generate certificates"
-        footer={<><button className="btn-outline" onClick={() => setOpen(false)}>Cancel</button><button className="btn-primary" disabled={busy} onClick={generate}>{busy ? 'Generating...' : `Issue ${data?.pendingCount || 0}`}</button></>}>
+        footer={<><button className="btn-outline" onClick={() => setOpen(false)}>Cancel</button><button className="btn-primary" disabled={busy} onClick={generate}>{busy ? 'Generating...' : `Issue ${includeRegistered ? data?.registeredPendingCount || 0 : data?.pendingCount || 0}`}</button></>}>
         <div className="grid gap-3 sm:grid-cols-2">
           <div><label className="label" htmlFor="tpl">Template</label><select id="tpl" className="input" value={form.templateKey} onChange={set('templateKey')}>{TEMPLATES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
           <div><label className="label" htmlFor="ttl">Certificate title</label><input id="ttl" className="input" value={form.title} onChange={set('title')} /></div>
           <div><label className="label" htmlFor="sn">Signatory name</label><input id="sn" className="input" value={form.signatoryName} onChange={set('signatoryName')} /></div>
           <div><label className="label" htmlFor="st">Signatory title</label><input id="st" className="input" value={form.signatoryTitle} onChange={set('signatoryTitle')} /></div>
         </div>
+        <label className="mt-4 flex items-start gap-2 text-sm">
+          <input type="checkbox" className="mt-1" checked={includeRegistered} onChange={(e) => setIncludeRegistered(e.target.checked)} />
+          <span>Also certify registered students who were not scanned at the door.<br /><span className="text-xs text-slate-500">{data?.pendingCount ?? 0} marked present, {data?.registeredPendingCount ?? 0} registered in total are waiting for a certificate.</span></span>
+        </label>
         <p className="mb-2 mt-4 text-xs font-medium uppercase text-slate-500">Preview</p>
         <div className="origin-top-left overflow-hidden rounded-xl border border-slate-200"><CertificateSheet cert={preview} /></div>
       </Modal>
@@ -87,10 +93,11 @@ function EventCertificates({ id }) {
 
 export default function OrganizerCertificates() {
   const { id } = useParams();
+  const { user } = useAuth();
   if (id) return <EventCertificates id={id} />;
   return (
     <DashboardShell title="Certificates" subtitle="Choose an event to issue or manage its certificates.">
-      <EventPicker filter={(e) => e.status === 'PUBLISHED' && new Date(e.startsAt) <= new Date()} empty="Certificates can be issued once an event has started."
+      <EventPicker filter={(e) => e.status === 'PUBLISHED' && (user.role === 'ADMIN' || new Date(e.startsAt) <= new Date())} empty="Certificates can be issued once an event has started."
         renderAction={(e) => <Link to={`/organizer/events/${e.id}/certificates`} className="btn-outline btn-sm">Manage</Link>} />
       <SampleCertificate />
       <VerifyLinks />

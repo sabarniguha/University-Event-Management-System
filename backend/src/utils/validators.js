@@ -193,6 +193,8 @@ const feedbackSchema = z.object({
 const generateCertificatesSchema = z.object({
   eventId: z.coerce.number().int().positive(),
   registrationIds: z.array(z.coerce.number().int().positive()).max(5000).optional(),
+  // Also certify registered students who were not scanned at the door.
+  includeRegistered: z.boolean().optional(),
   templateKey: z.enum(['classic', 'modern', 'minimal']).default('classic'),
   title: z.string().trim().min(3).max(120).default('Certificate of Participation'),
   signatoryName: optionalText(100),

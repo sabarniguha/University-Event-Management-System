@@ -15,7 +15,7 @@ export default function AdminCertificates() {
   const { data, loading, error } = useFetch('/certificates', { q: dq, page, limit: 20 });
   const list = data?.certificates || [];
   return (
-    <DashboardShell title="Certificates" subtitle="Every certificate issued on the platform.">
+    <DashboardShell title="Certificates" subtitle="Every certificate issued on the platform." actions={<Link to="/organizer/certificates" className="btn-primary"><Award className="h-4 w-4" /> Issue certificates</Link>}>
       <ErrorBox message={error} />
       <SearchInput value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="Search by certificate ID, student or event" className="max-w-md" />
       <DataTable columns={['Certificate ID', 'Student', 'Event', 'Issued', 'Status', '']} loading={loading}
