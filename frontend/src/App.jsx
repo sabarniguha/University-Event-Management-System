@@ -24,6 +24,7 @@ const VerifyEmail = page(() => import('./pages/public/VerifyEmail.jsx'));
 const VerifyCertificate = page(() => import('./pages/public/VerifyCertificate.jsx'));
 const VerifyTicket = page(() => import('./pages/public/VerifyTicket.jsx'));
 const ScanTickets = page(() => import('./pages/organizer/ScanTickets.jsx'));
+const StudentPayments = page(() => import('./pages/student/Payments.jsx'));
 const NotFound = page(() => import('./pages/public/NotFound.jsx'));
 
 const Announcements = page(() => import('./pages/Announcements.jsx'));
@@ -100,6 +101,7 @@ export default function App() {
               <Route path="/student/registrations" element={<MyRegistrations />} />
               <Route path="/student/tickets" element={<MyTickets />} />
               <Route path="/student/attendance" element={<StudentAttendance />} />
+              <Route path="/student/payments" element={<StudentPayments />} />
               <Route path="/student/certificates" element={<StudentCertificates />} />
               <Route path="/student/certificates/:certificateId" element={<CertificateView />} />
             </Route>
@@ -118,6 +120,7 @@ export default function App() {
               <Route path="/organizer/attendees" element={<AttendeeManagement />} />
               <Route path="/organizer/scanner" element={<ScannerPicker />} />
               <Route path="/organizer/attendance" element={<AttendanceOverview />} />
+              <Route path="/organizer/payments" element={<Payments />} />
               <Route path="/organizer/scan" element={<ScanTickets />} />
               <Route path="/organizer/certificates" element={<OrganizerCertificates />} />
               <Route path="/organizer/certificates/view/:certificateId" element={<CertificateView />} />
