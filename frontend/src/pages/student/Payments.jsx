@@ -1,15 +1,32 @@
 import useFetch from '../../hooks/useFetch.js';
 import DashboardShell from '../../components/DashboardShell.jsx';
 import { Badge, EmptyState, ErrorBox, Loader } from '../../components/common/Ui.jsx';
+import { Link } from 'react-router-dom';
 import { fmtDate } from '../../utils/format.js';
 
 // A student's payment receipts.
 export default function StudentPayments() {
   const { data, loading, error } = useFetch('/payments/mine');
-  const list = data?.payments || [];
+  const all = data?.payments || [];
+  const pending = all.filter((p) => p.status === 'CREATED');
+  const list = all.filter((p) => p.status !== 'CREATED');
   return (
     <DashboardShell title="My payments" subtitle="Receipts for event fees you paid online.">
       <ErrorBox message={error} />
+      {pending.length > 0 && (
+        <section className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+          <h2 className="font-semibold text-yellow-900">Pending payments ({pending.length})</h2>
+          <p className="text-sm text-yellow-800">You started paying for these but did not finish. Your seat is not booked until the payment is complete.</p>
+          <ul className="mt-2 space-y-2">
+            {pending.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span><b>{p.event.title}</b> &middot; ₹{(p.amount / 100).toLocaleString('en-IN')} &middot; started {fmtDate(p.createdAt)}</span>
+                <Link to={`/events/${p.event.id}`} className="btn-primary btn-sm">Complete payment</Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {loading ? <Loader /> : list.length === 0 ? (
         <EmptyState title="No payments yet">When you pay for an event, your receipt appears here.</EmptyState>
       ) : (

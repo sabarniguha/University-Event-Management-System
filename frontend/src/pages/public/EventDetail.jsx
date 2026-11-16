@@ -180,10 +180,19 @@ export default function EventDetail() {
     if (deadlinePassed) return <p className="text-sm text-slate-500">Registration has closed.</p>;
     if (!eligibility.eligible) return <p className="text-sm text-red-600">{eligibility.reason} Update your department in your profile if this is wrong.</p>;
     if (full && !event.waitlistEnabled && !event.requiresRegistrationApproval) return <p className="text-sm font-medium text-red-600">This event is full.</p>;
+    const online = payEnabled && event.fee > 0 && !event.requiresRegistrationApproval;
     return (
-      <button className="btn-primary w-full" disabled={busy} onClick={payEnabled && event.fee > 0 && !event.requiresRegistrationApproval ? pay : register}>
-        {event.requiresRegistrationApproval ? 'Request to join' : full ? 'Join waitlist' : event.fee > 0 ? `${payEnabled && !event.requiresRegistrationApproval ? 'Pay' : 'Register'} (${money(event.fee)})` : 'Register for free'}
-      </button>
+      <div className="space-y-2">
+        <button className="btn-primary w-full" disabled={busy} onClick={online ? pay : register}>
+          {event.requiresRegistrationApproval ? 'Request to join' : full ? 'Join waitlist' : event.fee > 0 ? `${online ? 'Pay' : 'Register'} (${money(event.fee)})` : 'Register for free'}
+        </button>
+        {online && <p className="text-center text-xs text-slate-500">Pay securely with UPI (scan the QR code, Google Pay, PhonePe, Paytm), card or netbanking.</p>}
+        {event.fee > 0 && !online && (
+          <p className="text-center text-xs text-slate-500">
+            {event.requiresRegistrationApproval ? 'The organiser approves your request first and collects the fee in person.' : 'Online payment is not switched on for this site yet, so the organiser collects the fee in person.'}
+          </p>
+        )}
+      </div>
     );
   };
 

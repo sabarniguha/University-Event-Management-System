@@ -5,6 +5,7 @@ import useFetch from '../../hooks/useFetch.js';
 import DashboardShell from '../../components/DashboardShell.jsx';
 import { ErrorBox, Skeleton, StatCard } from '../../components/common/Ui.jsx';
 import { BarsChart, TrendChart } from '../../components/charts/Charts.jsx';
+import PendingPayments from '../../components/dashboard/PendingPayments.jsx';
 import FeaturedStrip from '../../components/events/FeaturedStrip.jsx';
 import EventList from '../../components/dashboard/EventList.jsx';
 import { pctLabel } from '../../utils/format.js';
@@ -23,6 +24,7 @@ export default function OrganizerDashboard() {
   return (
     <DashboardShell title={`Hello, ${user.name.split(' ')[0]}`} subtitle="How your events are doing." actions={<Link to="/organizer/events/new" className="btn-primary">Create event</Link>}>
       <ErrorBox message={error} />
+      <PendingPayments />
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}</div>
       ) : (
