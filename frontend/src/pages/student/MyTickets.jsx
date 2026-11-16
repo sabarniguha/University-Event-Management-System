@@ -5,6 +5,7 @@ import DashboardShell from '../../components/DashboardShell.jsx';
 import QrCode from '../../components/QrCode.jsx';
 import { Badge, EmptyState, ErrorBox, Loader } from '../../components/Ui.jsx';
 import { errMsg, fmtDate } from '../../utils/format.js';
+import { SampleCertificate, SampleTicket, VerifyLinks } from '../../components/verify/Samples.jsx';
 
 export default function MyTickets() {
   const [regs, setRegs] = useState([]);
@@ -80,6 +81,8 @@ export default function MyTickets() {
           )}
         </>
       )}
+      <SampleTicket />
+      <VerifyLinks />
     </DashboardShell>
   );
 }

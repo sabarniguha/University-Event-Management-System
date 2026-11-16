@@ -4,6 +4,7 @@ import { Award, Eye } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
 import useDebounce from '../../hooks/useDebounce.js';
 import DashboardShell from '../../components/DashboardShell.jsx';
+import { SampleCertificate, SampleTicket, VerifyLinks } from '../../components/verify/Samples.jsx';
 import { Badge, DataTable, EmptyState, ErrorBox, Pagination, SearchInput } from '../../components/common/Ui.jsx';
 import { fmtDay } from '../../utils/format.js';
 
@@ -31,6 +32,8 @@ export default function AdminCertificates() {
         ))}
       </DataTable>
       <Pagination pagination={data?.pagination} onPage={setPage} />
+      <SampleCertificate />
+      <VerifyLinks />
     </DashboardShell>
   );
 }

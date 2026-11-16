@@ -22,6 +22,7 @@ const ForgotPassword = page(() => import('./pages/public/ForgotPassword.jsx'));
 const ResetPassword = page(() => import('./pages/public/ResetPassword.jsx'));
 const VerifyEmail = page(() => import('./pages/public/VerifyEmail.jsx'));
 const VerifyCertificate = page(() => import('./pages/public/VerifyCertificate.jsx'));
+const VerifyTicket = page(() => import('./pages/public/VerifyTicket.jsx'));
 const NotFound = page(() => import('./pages/public/NotFound.jsx'));
 
 const Announcements = page(() => import('./pages/Announcements.jsx'));
@@ -80,6 +81,8 @@ export default function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/verify" element={<VerifyCertificate />} />
           <Route path="/verify/:code" element={<VerifyCertificate />} />
+          <Route path="/verify-ticket" element={<VerifyTicket />} />
+          <Route path="/verify-ticket/:code" element={<VerifyTicket />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 

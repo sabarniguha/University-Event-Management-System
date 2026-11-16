@@ -22,6 +22,7 @@ export default function Footer() {
             <li><Link className={col} to="/events">Explore events</Link></li>
             <li><Link className={col} to="/categories">Categories</Link></li>
             <li><Link className={col} to="/verify">Verify a certificate</Link></li>
+            <li><Link className={col} to="/verify-ticket">Verify a ticket</Link></li>
           </ul>
         </div>
         <div>

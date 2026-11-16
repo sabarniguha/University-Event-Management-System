@@ -7,6 +7,7 @@ import useFetch from '../../hooks/useFetch.js';
 import DashboardShell from '../../components/DashboardShell.jsx';
 import { Skeleton, StatCard, ErrorBox } from '../../components/common/Ui.jsx';
 import { TrendChart, BarsChart } from '../../components/charts/Charts.jsx';
+import FeaturedStrip from '../../components/events/FeaturedStrip.jsx';
 import EventList from '../../components/dashboard/EventList.jsx';
 import OrganizerRequestCard from '../../components/dashboard/OrganizerRequestCard.jsx';
 import { pctLabel } from '../../utils/format.js';
@@ -56,6 +57,7 @@ export default function StudentDashboard() {
         <TrendChart title="Registrations by month" subtitle="Last 6 months" data={a?.registrationsByMonth || []} name="Registrations" />
       </div>
       {a && <BarsChart title="Attended by category" data={a.attendedByCategory} horizontal />}
+      <FeaturedStrip />
       <OrganizerRequestCard />
     </DashboardShell>
   );
