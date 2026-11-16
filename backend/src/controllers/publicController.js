@@ -2,7 +2,11 @@ const prisma = require('../utils/prismaClient');
 const asyncHandler = require('../utils/asyncHandler');
 const { getSettings, publicSettings } = require('../utils/settings');
 const { demoInfo } = require('../utils/demo');
+const { mailConfigured } = require('../utils/mailer');
 const { newsletterSchema, contactSchema } = require('../utils/validators');
+
+// GET /api/public/config - whether email verification is active (it needs SMTP to be set up)
+const config = (req, res) => res.json({ emailVerification: mailConfigured() });
 
 // GET /api/public/demo - demo accounts, only when the owner switched demo mode on
 const demo = (req, res) => res.json(demoInfo());
@@ -88,4 +92,4 @@ const contact = asyncHandler(async (req, res) => {
   res.status(201).json({ message: 'Thanks! We received your message and will get back to you.' });
 });
 
-module.exports = { demo, stats, highlights, settings, subscribe, contact };
+module.exports = { config, demo, stats, highlights, settings, subscribe, contact };

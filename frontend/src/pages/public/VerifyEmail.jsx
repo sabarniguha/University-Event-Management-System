@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext.jsx';
 import api from '../../services/api.js';
 import AuthCard from '../../components/layout/AuthCard.jsx';
 import { ErrorBox, Loader, SuccessBox } from '../../components/common/Ui.jsx';
 import { errMsg } from '../../utils/format.js';
 
 export default function VerifyEmail() {
+  const { user, refresh } = useAuth();
   const [params] = useSearchParams();
   const token = params.get('token');
   const [state, setState] = useState({ status: token ? 'loading' : 'error', message: token ? '' : 'This verification link is incomplete.' });
@@ -13,7 +15,7 @@ export default function VerifyEmail() {
   useEffect(() => {
     if (!token) return;
     api.post('/auth/verify-email', { token })
-      .then(() => setState({ status: 'ok' }))
+      .then(() => { setState({ status: 'ok' }); if (user) refresh?.(); })
       .catch((e) => setState({ status: 'error', message: errMsg(e) }));
   }, [token]);
 

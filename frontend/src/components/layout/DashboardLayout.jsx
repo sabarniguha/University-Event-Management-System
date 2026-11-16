@@ -7,6 +7,7 @@ import api from '../../services/api.js';
 import Sidebar from '../navigation/Sidebar.jsx';
 import NotificationBell from '../notifications/NotificationBell.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
+import VerifyEmailBanner from './VerifyEmailBanner.jsx';
 
 // Sidebar + top bar + animated page area for every signed-in role.
 export default function DashboardLayout() {
@@ -71,6 +72,7 @@ export default function DashboardLayout() {
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 print:p-0">
         <AnimatePresence mode="wait">
           <motion.div key={location.pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>
+            <VerifyEmailBanner />
             <Outlet />
           </motion.div>
         </AnimatePresence>

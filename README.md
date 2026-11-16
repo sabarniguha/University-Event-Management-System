@@ -148,6 +148,10 @@ All routes are under `/api`. Bearer JWT in `Authorization`.
 - Anyone can verify a **certificate ID** at `/verify` and a **ticket code** at `/verify-ticket` (no sign-in; linked from the footer and from every role's certificate pages). Ticket checks show only the event, status and an abbreviated holder name.
 - **Featured events** appear on the home page and on the student, organiser and admin dashboards. Admins star events in Event Management; until any are starred, the soonest upcoming events are shown instead.
 
+## Email verification (all roles)
+
+When SMTP is configured, every new account gets a verification link at its own address: students and organisers who sign up, and any account an admin creates (student, organiser or admin). A yellow banner with a "Resend link" button shows until the address is confirmed. Until then a student cannot register for events and an organiser cannot create them; admins are never locked out. Admins can click the mail-check icon in User Management to mark a placeholder address (for example `organizer@uni.edu`) as verified. Without SMTP nothing can be sent, so nothing is blocked.
+
 ## Optional services (switch on with environment variables)
 
 Nothing below is needed to launch the app. Each feature turns on when its keys are set.

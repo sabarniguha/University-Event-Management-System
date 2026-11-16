@@ -3,6 +3,7 @@ const { verifyToken } = require('../utils/jwt');
 const HttpError = require('../utils/httpError');
 const asyncHandler = require('../utils/asyncHandler');
 const { isReadOnlyDemoAdmin } = require('../utils/demo');
+const { mailConfigured } = require('../utils/mailer');
 
 // Everything the client may know about the signed-in user. Never includes the password hash.
 const userSelect = {
@@ -54,6 +55,16 @@ const authenticate = asyncHandler(async (req, res, next) => {
   next();
 });
 
+// When email delivery is set up, students and organisers must confirm their address before they
+// register for events or create them. Admins are exempt so nobody can be locked out of the platform.
+// Without SMTP nothing can be sent, so this check is skipped.
+const requireVerifiedEmail = (req, res, next) => {
+  if (mailConfigured() && req.user && req.user.role !== 'ADMIN' && !req.user.emailVerifiedAt) {
+    return next(new HttpError(403, `Please verify your email first. We sent a link to ${req.user.email}. You can ask for a new one from your dashboard.`));
+  }
+  return next();
+};
+
 // Attaches req.user when a valid token is present, but never blocks the request.
 const optionalAuth = asyncHandler(async (req, res, next) => {
   const token = extractToken(req);
@@ -69,4 +80,4 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
   next();
 });
 
-module.exports = { authenticate, optionalAuth, userSelect };
+module.exports = { requireVerifiedEmail, authenticate, optionalAuth, userSelect };
