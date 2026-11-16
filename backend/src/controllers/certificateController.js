@@ -51,7 +51,6 @@ const templates = (req, res) => res.json({ templates: TEMPLATES });
 const generate = asyncHandler(async (req, res) => {
   const data = generateCertificatesSchema.parse(req.body);
   const event = await loadManagedEvent(data.eventId, req.user);
-  if (event.startsAt > new Date() && req.user.role !== 'ADMIN') throw new HttpError(400, 'Certificates can be issued once the event has started');
 
   const where = {
     eventId: event.id,
