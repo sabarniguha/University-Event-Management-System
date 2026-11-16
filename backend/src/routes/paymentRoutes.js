@@ -8,7 +8,8 @@ const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 40, standardHeaders
 
 // The webhook is mounted separately in app.js (it needs the raw body).
 router.get('/config', c.config);
-router.get('/', authenticate, requireRole('ADMIN'), c.list);
+router.get('/', authenticate, requireRole('ADMIN', 'ORGANIZER'), c.list);
+router.get('/mine', authenticate, requireRole('STUDENT'), c.mine);
 router.post('/:id/refund', authenticate, requireRole('ADMIN'), c.refundNow);
 router.patch('/:id/refunded', authenticate, requireRole('ADMIN'), c.markRefunded);
 router.post('/verify', authenticate, requireRole('STUDENT'), limiter, c.verify);

@@ -156,6 +156,13 @@ When SMTP is configured, every new account gets a verification link at its own a
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.
 
+## Seeing who paid
+
+- **Students**: My Payments lists their receipts (amount, date, Razorpay payment ID).
+- **Organisers**: Payments lists who paid for *their* events, with student name, email, student ID and payment ID, plus totals collected.
+- **Admins**: the same for every event, plus the refund controls and a step-by-step Razorpay setup guide while keys are missing.
+- At checkout, students see UPI first (QR code, Google Pay, PhonePe, Paytm), then cards, netbanking and wallets, whichever are enabled on your Razorpay account.
+
 ## Optional services (switch on with environment variables)
 
 Nothing below is needed to launch the app. Each feature turns on when its keys are set.

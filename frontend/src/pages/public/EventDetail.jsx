@@ -98,7 +98,10 @@ export default function EventDetail() {
           currency: order.currency,
           name: 'UniEvents',
           description: order.eventTitle,
-          prefill: { name: user?.name, email: user?.email },
+          prefill: { name: user?.name, email: user?.email, contact: user?.phone || undefined },
+          theme: { color: '#4f46e5' },
+          // UPI first (QR code, GPay, PhonePe, Paytm), then every other method enabled on the Razorpay account.
+          config: { display: { blocks: { upi: { name: 'Pay with UPI (QR, GPay, PhonePe, Paytm)', instruments: [{ method: 'upi' }] }, other: { name: 'Cards, netbanking, wallets', instruments: [{ method: 'card' }, { method: 'netbanking' }, { method: 'wallet' }] } }, sequence: ['block.upi', 'block.other'], preferences: { show_default_blocks: true } } },
           handler: async (r) => {
             try {
               await api.post('/payments/verify', { orderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature });

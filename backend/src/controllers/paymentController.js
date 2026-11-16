@@ -128,13 +128,27 @@ const webhook = asyncHandler(async (req, res) => {
 // GET /api/payments  (admin) - payments newest first, optional ?status=NEEDS_REFUND
 const list = asyncHandler(async (req, res) => {
   const status = ['CREATED', 'PAID', 'FAILED', 'NEEDS_REFUND', 'REFUNDED'].includes(req.query.status) ? req.query.status : undefined;
+  // Organisers only see payments for their own events; admins see everything.
+  const scope = req.user.role === 'ADMIN' ? {} : { event: { organizerId: req.user.id } };
   const payments = await prisma.payment.findMany({
-    where: status ? { status } : {},
+    where: { ...scope, ...(status ? { status } : {}) },
     orderBy: { createdAt: 'desc' },
     take: 200,
-    include: { user: { select: { name: true, email: true } }, event: { select: { id: true, title: true } } },
+    include: { user: { select: { name: true, email: true, studentId: true } }, event: { select: { id: true, title: true } } },
   });
-  res.json({ enabled: razorpay.enabled(), payments });
+  const sums = await prisma.payment.groupBy({ by: ['status'], where: scope, _sum: { amount: true }, _count: true });
+  const summary = Object.fromEntries(sums.map((s) => [s.status, { count: s._count, amount: s._sum.amount || 0 }]));
+  res.json({ enabled: razorpay.enabled(), payments, summary });
+});
+
+// GET /api/payments/mine  (students) - their own receipts
+const mine = asyncHandler(async (req, res) => {
+  const payments = await prisma.payment.findMany({
+    where: { userId: req.user.id, status: { in: ['PAID', 'NEEDS_REFUND', 'REFUNDED'] } },
+    orderBy: { createdAt: 'desc' },
+    include: { event: { select: { id: true, title: true, startsAt: true } } },
+  });
+  res.json({ payments });
 });
 
 // POST /api/payments/:id/refund  (admin) - refund a NEEDS_REFUND payment through Razorpay
@@ -162,4 +176,4 @@ const markRefunded = asyncHandler(async (req, res) => {
   res.json({ ok: true });
 });
 
-module.exports = { refundNow, list, markRefunded, config, createOrder, verify, webhook, finalizePayment };
+module.exports = { mine, refundNow, list, markRefunded, config, createOrder, verify, webhook, finalizePayment };
