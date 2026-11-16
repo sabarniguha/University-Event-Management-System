@@ -166,11 +166,22 @@ export default function EventDetail() {
         </div>
       );
     }
+    if (status === 'AWAITING_PAYMENT') {
+      return (
+        <div className="space-y-3 text-center">
+          <Badge>APPROVED: PAYMENT DUE</Badge>
+          <p className="text-sm text-slate-600">The organiser approved your request. Pay {money(event.fee)} to confirm your seat and get your QR ticket.</p>
+          <button className="btn-primary w-full" disabled={busy} onClick={pay}>Pay now ({money(event.fee)})</button>
+          <p className="text-xs text-slate-500">UPI (scan the QR code, Google Pay, PhonePe, Paytm), card or netbanking.</p>
+          <button className="btn-ghost w-full text-red-600" onClick={() => setConfirmCancel(true)}>Withdraw request</button>
+        </div>
+      );
+    }
     if (status === 'PENDING') {
       return (
         <div className="space-y-3 text-center">
           <Badge>PENDING</Badge>
-          <p className="text-sm text-slate-600">Waiting for the organiser to approve your registration.</p>
+          <p className="text-sm text-slate-600">Waiting for the organiser to approve your registration.{payEnabled && event.fee > 0 ? ` After approval you pay ${money(event.fee)} here to confirm your seat.` : ''}</p>
           <button className="btn-outline w-full" onClick={() => setConfirmCancel(true)}>Withdraw request</button>
         </div>
       );
@@ -189,7 +200,7 @@ export default function EventDetail() {
         {online && <p className="text-center text-xs text-slate-500">Pay securely with UPI (scan the QR code, Google Pay, PhonePe, Paytm), card or netbanking.</p>}
         {event.fee > 0 && !online && (
           <p className="text-center text-xs text-slate-500">
-            {event.requiresRegistrationApproval ? 'The organiser approves your request first and collects the fee in person.' : 'Online payment is not switched on for this site yet, so the organiser collects the fee in person.'}
+            {event.requiresRegistrationApproval ? (payEnabled ? `The organiser approves your request first. After approval you pay ${money(event.fee)} online here.` : 'The organiser approves your request first and collects the fee in person.') : 'Online payment is not switched on for this site yet, so the organiser collects the fee in person.'}
           </p>
         )}
       </div>

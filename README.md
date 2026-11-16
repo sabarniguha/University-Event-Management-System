@@ -156,6 +156,10 @@ When SMTP is configured, every new account gets a verification link at its own a
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.
 
+## Approval plus payment
+
+For an event with a fee and manual approval: the student requests to join (status PENDING), the organiser approves (status AWAITING_PAYMENT, the student is notified and emailed), the student pays online and becomes REGISTERED with a QR ticket. A late approval can still be paid after the registration deadline. If the event fills up in the meantime, the payment is refunded automatically.
+
 ## Seeing who paid
 
 - **Students**: My Payments lists their receipts (amount, date, Razorpay payment ID).
@@ -168,7 +172,7 @@ Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/s
 Nothing below is needed to launch the app. Each feature turns on when its keys are set.
 
 - **Email** (`SMTP_*`): password resets, verification links, registration confirmations and decisions, event approval or rejection, and certificates. Users can switch email off in Settings.
-- **Online payments** (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, optional `RAZORPAY_WEBHOOK_SECRET`): students pay event fees in Razorpay checkout. If someone pays but the event filled meanwhile, the payment is refunded automatically; if that fails, admins get a "Refund now" button on the Payments page. Events that need organiser approval collect the fee in person. Try it with test keys (`rzp_test_...`) first.
+- **Online payments** (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, optional `RAZORPAY_WEBHOOK_SECRET`): students pay event fees in Razorpay checkout. If someone pays but the event filled meanwhile, the payment is refunded automatically; if that fails, admins get a "Refund now" button on the Payments page. Events that need organiser approval work in two steps when payments are on: the organiser approves, then the student gets a **Pay now** button and is registered once the payment succeeds (without Razorpay keys the fee is collected in person). Try it with test keys (`rzp_test_...`) first.
 - **Image hosting** (`CLOUDINARY_*`): uploads go to Cloudinary, and fall back to PostgreSQL if Cloudinary is unreachable.
 - **Always-on reminders** (`CRON_SECRET` on Render, plus repository variable `APP_URL` and secret `CRON_SECRET` on GitHub): the workflow `.github/workflows/keep-awake.yml` pings the site every 10 minutes so a free Render service stays awake and event reminders go out on time.
 

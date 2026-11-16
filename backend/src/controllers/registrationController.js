@@ -25,7 +25,10 @@ async function registerUser(user, eventId, opts = {}) {
       const event = await tx.event.findUnique({ where: { id: eventId } });
       if (!event || event.status !== 'PUBLISHED') throw new HttpError(404, 'Event not found');
       if (event.endsAt < new Date()) throw new HttpError(400, 'This event has already ended');
-      if (event.registrationDeadline && event.registrationDeadline < new Date()) {
+      const existing = await tx.registration.findUnique({ where: { eventId_userId: { eventId, userId } } });
+      // An approved student paying after the deadline is allowed: the organiser approved them late.
+      const payingApproved = opts.skipPaymentCheck && existing?.status === 'AWAITING_PAYMENT';
+      if (event.registrationDeadline && event.registrationDeadline < new Date() && !payingApproved) {
         throw new HttpError(400, 'Registration for this event has closed');
       }
       if (event.department && !sameDept(event.department, user.department)) {
@@ -35,14 +38,19 @@ async function registerUser(user, eventId, opts = {}) {
         throw new HttpError(402, 'This event has a fee. Complete the payment to register.');
       }
 
-      const existing = await tx.registration.findUnique({ where: { eventId_userId: { eventId, userId } } });
+      if (opts.skipPaymentCheck && event.requiresRegistrationApproval && !payingApproved) {
+        throw new HttpError(409, 'There is no approved registration waiting for payment');
+      }
+      if (existing?.status === 'AWAITING_PAYMENT' && !payingApproved) {
+        throw new HttpError(409, 'The organiser approved your request. Pay to confirm your seat.');
+      }
       if (existing?.status === 'REGISTERED') throw new HttpError(409, 'You are already registered');
       if (existing?.status === 'WAITLISTED') throw new HttpError(409, 'You are already on the waitlist');
       if (existing?.status === 'PENDING') throw new HttpError(409, 'Your registration is waiting for the organiser to approve it');
       if (existing?.status === 'REJECTED') throw new HttpError(403, 'The organiser declined your registration for this event');
 
       let status;
-      if (event.requiresRegistrationApproval) {
+      if (event.requiresRegistrationApproval && !payingApproved) {
         status = 'PENDING';
       } else {
         const taken = await tx.registration.count({ where: { eventId, status: 'REGISTERED' } });
@@ -86,6 +94,9 @@ async function registerUser(user, eventId, opts = {}) {
 
 // Fees are collected online only when a gateway is configured, and not for events that need
 // organiser approval first (those collect the fee in person, so nobody pays and is then declined).
+// Approval events with a fee: the organiser approves first, then the student pays online.
+const payAfterApproval = (event) => razorpay.enabled() && event.fee > 0 && event.requiresRegistrationApproval;
+
 const paymentRequired = (event) => razorpay.enabled() && event.fee > 0 && !event.requiresRegistrationApproval;
 
 // POST /api/registrations/:eventId  (students)
@@ -146,7 +157,11 @@ const decide = asyncHandler(async (req, res) => {
   const updated = await prisma.$transaction(
     async (tx) => {
       let status = 'REJECTED';
-      if (action === 'APPROVE') {
+      if (action === 'APPROVE' && payAfterApproval(reg.event)) {
+        const takenNow = await tx.registration.count({ where: { eventId: reg.eventId, status: 'REGISTERED' } });
+        if (takenNow >= reg.event.capacity) throw new HttpError(409, 'The event is full. Increase the capacity first.');
+        status = 'AWAITING_PAYMENT';
+      } else if (action === 'APPROVE') {
         const taken = await tx.registration.count({ where: { eventId: reg.eventId, status: 'REGISTERED' } });
         status = 'REGISTERED';
         if (taken >= reg.event.capacity) {
@@ -159,14 +174,16 @@ const decide = asyncHandler(async (req, res) => {
         data: { status, decisionNote: note || null, joinedAt: status === 'WAITLISTED' ? new Date() : undefined },
       });
       await notify(tx, [reg.userId], {
-        title: action === 'APPROVE' ? (status === 'WAITLISTED' ? 'Added to the waitlist' : 'Registration approved') : 'Registration declined',
+        title: action === 'APPROVE' ? (status === 'WAITLISTED' ? 'Added to the waitlist' : status === 'AWAITING_PAYMENT' ? 'Approved: pay to confirm' : 'Registration approved') : 'Registration declined',
         message:
           action === 'APPROVE'
             ? status === 'WAITLISTED'
               ? `"${reg.event.title}" is full, so you were added to the waitlist.`
+              : status === 'AWAITING_PAYMENT'
+              ? `The organiser approved your request for "${reg.event.title}". Pay ₹${reg.event.fee} to confirm your seat and get your QR ticket.`
               : `You are registered for "${reg.event.title}". Your QR ticket is ready.`
             : `Your request for "${reg.event.title}" was declined.${note ? ` Note: ${note}` : ''}`,
-        link: action === 'APPROVE' ? '/student/tickets' : `/events/${reg.eventId}`,
+        link: action === 'APPROVE' && status === 'REGISTERED' ? '/student/tickets' : `/events/${reg.eventId}`,
         type: 'REGISTRATION',
       });
       return saved;
@@ -175,8 +192,8 @@ const decide = asyncHandler(async (req, res) => {
   );
   emailUsers(reg.userId, {
     subject: action === 'APPROVE' ? 'Your registration was approved' : 'Your registration was declined',
-    text: action === 'APPROVE' ? `Your request for "${reg.event.title}" was approved (status: ${updated.status.toLowerCase()}).` : `Your request for "${reg.event.title}" was declined.${note ? ` Note: ${note}` : ''}`,
-    link: action === 'APPROVE' ? '/student/tickets' : `/events/${reg.eventId}`,
+    text: action === 'APPROVE' ? (updated.status === 'AWAITING_PAYMENT' ? `Your request for "${reg.event.title}" was approved. Pay ₹${reg.event.fee} online to confirm your seat and get your QR ticket.` : `Your request for "${reg.event.title}" was approved (status: ${updated.status.toLowerCase()}).`) : `Your request for "${reg.event.title}" was declined.${note ? ` Note: ${note}` : ''}`,
+    link: action === 'APPROVE' && updated.status === 'REGISTERED' ? '/student/tickets' : `/events/${reg.eventId}`,
   });
   await audit(req, `registration.${action.toLowerCase()}`, 'Registration', id, { eventId: reg.eventId });
   res.json({ registration: updated });
@@ -280,4 +297,5 @@ const exportParticipantsCsv = asyncHandler(async (req, res) => {
 
 module.exports = {
   registerUser,
+  payAfterApproval,
   paymentRequired, register, cancel, decide, myRegistrations, eventParticipants, exportParticipantsCsv };

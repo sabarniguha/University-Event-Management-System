@@ -28,6 +28,7 @@ enum RegistrationStatus {
   CANCELLED
   PENDING
   REJECTED
+  AWAITING_PAYMENT
 }
 
 enum AttendanceStatus {
