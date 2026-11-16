@@ -97,7 +97,7 @@ export default function OrganizerCertificates() {
   if (id) return <EventCertificates id={id} />;
   return (
     <DashboardShell title="Certificates" subtitle="Choose an event to issue or manage its certificates.">
-      <EventPicker filter={(e) => e.status === 'PUBLISHED' && (user.role === 'ADMIN' || new Date(e.startsAt) <= new Date())} empty="Certificates can be issued once an event has started."
+      <EventPicker filter={(e) => e.status === 'PUBLISHED'} empty="Publish an event first, then you can issue its certificates."
         renderAction={(e) => <Link to={`/organizer/events/${e.id}/certificates`} className="btn-outline btn-sm">Manage</Link>} />
       <SampleCertificate />
       <VerifyLinks />

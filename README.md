@@ -162,7 +162,7 @@ For an event with a fee and manual approval: the student requests to join (statu
 
 ## Issuing certificates
 
-Organisers (and admins, from **Certificates, Issue certificates**) open an event's Certificates page and click **Generate certificates**. By default they go to students marked present; tick "Also certify registered students who were not scanned" to include everyone who registered. Each certificate gets a unique ID, appears in the student's Certificates page and notifications (and email, if set up), and can be verified by anyone at `/verify`. Admins may issue before an event starts; organisers after it starts.
+Organisers (and admins, from **Certificates, Issue certificates**) open an event's Certificates page and click **Generate certificates**. By default they go to students marked present; tick "Also certify registered students who were not scanned" to include everyone who registered. Each certificate gets a unique ID, appears in the student's Certificates page and notifications (and email, if set up), and can be verified by anyone at `/verify`. Organisers (for their own events) and admins can both issue at any time, including before an event starts.
 
 ## Seeing who paid
 
