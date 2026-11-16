@@ -28,7 +28,7 @@ async function sendVerificationEmail(user) {
   await sendMail({
     to: user.email,
     subject: 'Verify your UniEvents email',
-    text: `Hi ${user.name},\n\nConfirm your email address by opening this link (valid for 48 hours):\n${link}\n\nIf you did not create an account, ignore this message.`,
+    text: `Hi ${user.name},\n\nConfirm your email address${user.role && user.role !== 'STUDENT' ? ` for your UniEvents ${user.role.toLowerCase()} account` : ''} by opening this link (valid for 48 hours):\n${link}\n\nIf you did not expect this email, ignore it.`,
   });
 }
 
@@ -179,6 +179,7 @@ const requestOrganizer = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  sendVerificationEmail,
   register,
   login,
   me,

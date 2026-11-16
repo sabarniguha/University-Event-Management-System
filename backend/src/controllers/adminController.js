@@ -109,8 +109,18 @@ const createUser = asyncHandler(async (req, res) => {
     data: { name: data.name, email: data.email, passwordHash, role: data.role, department: data.department, phone: data.phone },
     select: listSelect,
   });
+  // Everyone gets a verification link at their own address, whatever their role.
+  require('./authController').sendVerificationEmail(user).catch((e) => console.error('[admin] verification email failed:', e.message));
   await audit(req, 'user.create', 'User', user.id, { email: user.email, role: user.role });
   res.status(201).json({ user });
+});
+
+// POST /api/admin/users/:id/verify-email - for addresses that cannot receive mail (e.g. demo or placeholder accounts)
+const markEmailVerified = asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  const user = await prisma.user.update({ where: { id }, data: { emailVerifiedAt: new Date() }, select: listSelect });
+  await audit(req, 'user.verify_email', 'User', id, { email: user.email });
+  res.json({ user });
 });
 
 // PATCH /api/admin/users/:id - edit details or (de)activate an account
@@ -318,6 +328,7 @@ module.exports = {
   listStudents: listByRole('STUDENT'),
   listOrganizers: listByRole('ORGANIZER'),
   createUser,
+  markEmailVerified,
   updateUser,
   resetUserPassword,
   updateUserRole,

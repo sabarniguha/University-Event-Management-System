@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useFetch from '../../hooks/useFetch.js';
 import AuthCard from '../../components/layout/AuthCard.jsx';
@@ -11,6 +12,8 @@ export default function Register() {
   const { user, register } = useAuth();
   const navigate = useNavigate();
   const { data: pub } = useFetch('/public/settings');
+  const { data: cfg } = useFetch('/public/config');
+  const toast = useToast();
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', department: '', studentId: '', year: '', college: '' });
   const [tab, setTab] = useState('student');
   const [org, setOrg] = useState({ organization: '', designation: '', reason: '' });
@@ -28,6 +31,7 @@ export default function Register() {
     try {
       const { confirm, ...payload } = form;
       await register(tab === 'organizer' ? { ...payload, organizer: org } : payload);
+      if (cfg?.emailVerification) toast.success(`Account created. We sent a verification link to ${form.email}.`);
       navigate('/student', { replace: true });
     } catch (err) {
       setError(errMsg(err));

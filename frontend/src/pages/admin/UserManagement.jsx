@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyRound, Plus, Trash2, UserX, UserCheck } from 'lucide-react';
+import { KeyRound, MailCheck, Plus, Trash2, UserX, UserCheck } from 'lucide-react';
 import api from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -77,6 +77,7 @@ export default function UserManagement({ role = 'all' }) {
               {u.id !== me.id && (
                 <div className="flex justify-end gap-1">
                   <button className="btn-ghost btn-sm" title={u.isActive ? 'Deactivate' : 'Activate'} onClick={() => toggleActive(u)}>{u.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}</button>
+                  {!u.emailVerifiedAt && <button className="btn-ghost btn-sm" title="Mark email as verified" onClick={() => run(() => api.post(`/admin/users/${u.id}/verify-email`), 'Email marked as verified.')}><MailCheck className="h-4 w-4" /></button>}
                   <button className="btn-ghost btn-sm" title="Set new password" onClick={() => { setPwTarget(u); setNewPw(''); }}><KeyRound className="h-4 w-4" /></button>
                   <button className="btn-ghost btn-sm text-red-600" title="Delete" onClick={() => setDelTarget(u)}><Trash2 className="h-4 w-4" /></button>
                 </div>
