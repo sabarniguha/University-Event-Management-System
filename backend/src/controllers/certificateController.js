@@ -51,12 +51,12 @@ const templates = (req, res) => res.json({ templates: TEMPLATES });
 const generate = asyncHandler(async (req, res) => {
   const data = generateCertificatesSchema.parse(req.body);
   const event = await loadManagedEvent(data.eventId, req.user);
-  if (event.startsAt > new Date()) throw new HttpError(400, 'Certificates can be issued once the event has started');
+  if (event.startsAt > new Date() && req.user.role !== 'ADMIN') throw new HttpError(400, 'Certificates can be issued once the event has started');
 
   const where = {
     eventId: event.id,
     status: 'REGISTERED',
-    attendance: { is: { status: 'PRESENT' } },
+    ...(data.includeRegistered ? {} : { attendance: { is: { status: 'PRESENT' } } }),
     certificate: { is: null },
   };
   if (data.registrationIds && data.registrationIds.length) where.id = { in: data.registrationIds };
@@ -96,13 +96,14 @@ const generate = asyncHandler(async (req, res) => {
 const forEvent = asyncHandler(async (req, res) => {
   const eventId = parseId(req.params.eventId, 'event id');
   const event = await loadManagedEvent(eventId, req.user);
-  const [certificates, eligible] = await Promise.all([
+  const [certificates, eligible, registeredPending] = await Promise.all([
     prisma.certificate.findMany({ where: { eventId }, orderBy: { issuedAt: 'desc' }, include: certInclude }),
     prisma.registration.count({
       where: { eventId, status: 'REGISTERED', attendance: { is: { status: 'PRESENT' } }, certificate: { is: null } },
     }),
+    prisma.registration.count({ where: { eventId, status: 'REGISTERED', certificate: { is: null } } }),
   ]);
-  res.json({ event: { id: event.id, title: event.title, startsAt: event.startsAt }, certificates: certificates.map(present), pendingCount: eligible });
+  res.json({ event: { id: event.id, title: event.title, startsAt: event.startsAt }, certificates: certificates.map(present), pendingCount: eligible, registeredPendingCount: registeredPending });
 });
 
 // GET /api/certificates/my  (students)
