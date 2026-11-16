@@ -31,6 +31,7 @@ export default function EventForm() {
   const navigate = useNavigate();
   const { data: cats } = useFetch('/categories');
   const { data: pub } = useFetch('/public/settings');
+  const { data: payCfg } = useFetch('/payments/config');
   const [form, setForm] = useState(EMPTY);
   const [lists, setLists] = useState({ agenda: [], speakers: [], team: [], faqs: [] });
   const [status, setStatus] = useState('DRAFT');
@@ -142,7 +143,11 @@ export default function EventForm() {
         <Section title="Registration">
           <div className="grid gap-4 sm:grid-cols-2">
             <div><label className="label" htmlFor="cap">Capacity</label><input id="cap" type="number" min={1} required className="input" value={form.capacity} onChange={set('capacity')} /></div>
-            <div><label className="label" htmlFor="fee">Fee in rupees (0 = free)</label><input id="fee" type="number" min={0} className="input" value={form.fee} onChange={set('fee')} /><p className="mt-1 text-xs text-slate-500">Shown to students. Payment is not collected on the platform.</p></div>
+            <div><label className="label" htmlFor="fee">Fee in rupees (0 = free)</label><input id="fee" type="number" min={0} className="input" value={form.fee} onChange={set('fee')} /><p className="mt-1 text-xs text-slate-500">
+              {payCfg?.enabled
+                ? (form.requiresRegistrationApproval ? 'Shown to students. Because you approve registrations first, the fee is collected in person, not online.' : 'Students pay this online (UPI QR, Google Pay, PhonePe, card, netbanking). You can see who paid under Payments.')
+                : 'Shown to students. Online payment is not switched on for this site, so you collect the fee in person.'}
+            </p></div>
           </div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.waitlistEnabled} onChange={set('waitlistEnabled')} /> Enable waitlist when the event is full</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.requiresRegistrationApproval} onChange={set('requiresRegistrationApproval')} /> I want to approve each registration manually</label>
