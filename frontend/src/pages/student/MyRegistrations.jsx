@@ -22,7 +22,7 @@ export default function MyRegistrations() {
     const ended = new Date(r.event.endsAt) < now;
     if (tab === 'upcoming') return r.status === 'REGISTERED' && !ended;
     if (tab === 'past') return r.status === 'REGISTERED' && ended;
-    if (tab === 'waiting') return ['PENDING', 'WAITLISTED'].includes(r.status);
+    if (tab === 'waiting') return ['PENDING', 'WAITLISTED', 'AWAITING_PAYMENT'].includes(r.status);
     if (tab === 'cancelled') return ['CANCELLED', 'REJECTED'].includes(r.status);
     return true;
   });
@@ -48,7 +48,7 @@ export default function MyRegistrations() {
       <DataTable columns={['Event', 'When', 'Status', 'Attendance', '']} loading={loading}
         empty={rows.length === 0 && <div className="p-6"><EmptyState icon={ClipboardList} title="Nothing here">No registrations in this view. <Link to="/events" className="text-brand-600 hover:underline">Browse events</Link></EmptyState></div>}>
         {rows.map((r) => {
-          const canCancel = ['REGISTERED', 'WAITLISTED', 'PENDING'].includes(r.status) && new Date(r.event.startsAt) > now;
+          const canCancel = ['REGISTERED', 'WAITLISTED', 'PENDING', 'AWAITING_PAYMENT'].includes(r.status) && new Date(r.event.startsAt) > now;
           return (
             <tr key={r.id}>
               <td className="td"><Link to={`/events/${r.event.id}`} className="font-medium text-slate-900 hover:text-brand-600">{r.event.title}</Link><p className="text-xs text-slate-500">{r.event.venue}</p></td>
@@ -57,6 +57,7 @@ export default function MyRegistrations() {
               <td className="td">{r.attendance ? <Badge>{r.attendance.status}</Badge> : '-'}</td>
               <td className="td text-right">
                 {r.status === 'REGISTERED' && <Link to="/student/tickets" className="btn-outline btn-sm mr-2">Ticket</Link>}
+                {r.status === 'AWAITING_PAYMENT' && <Link to={`/events/${r.event.id}`} className="btn-primary btn-sm mr-2">Pay now</Link>}
                 {canCancel && <button className="btn-ghost btn-sm text-red-600" onClick={() => setTarget(r)}>Cancel</button>}
               </td>
             </tr>

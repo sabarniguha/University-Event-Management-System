@@ -4,7 +4,7 @@ const HttpError = require('../utils/httpError');
 const asyncHandler = require('../utils/asyncHandler');
 const razorpay = require('../utils/razorpay');
 const { parseId } = require('../utils/validators');
-const { registerUser, paymentRequired } = require('./registrationController');
+const { registerUser, paymentRequired, payAfterApproval } = require('./registrationController');
 const { notifyAdmins } = require('../utils/notify');
 const { emailUsers } = require('../utils/emailUsers');
 const { audit } = require('../utils/audit');
@@ -74,14 +74,19 @@ const createOrder = asyncHandler(async (req, res) => {
   const eventId = parseId(req.params.eventId, 'event id');
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event || event.status !== 'PUBLISHED') throw new HttpError(404, 'Event not found');
-  if (!paymentRequired(event)) throw new HttpError(400, 'This event does not need an online payment');
+  const approvalFlow = payAfterApproval(event);
+  if (!paymentRequired(event) && !approvalFlow) throw new HttpError(400, 'This event does not need an online payment');
   if (event.endsAt < new Date()) throw new HttpError(400, 'This event has already ended');
-  if (event.registrationDeadline && event.registrationDeadline < new Date()) throw new HttpError(400, 'Registration for this event has closed');
+  if (!approvalFlow && event.registrationDeadline && event.registrationDeadline < new Date()) throw new HttpError(400, 'Registration for this event has closed');
   if (event.department && !sameDept(event.department, req.user.department)) {
     throw new HttpError(403, `This event is open to ${event.department} students only.`);
   }
   const existing = await prisma.registration.findUnique({ where: { eventId_userId: { eventId, userId: req.user.id } } });
-  if (existing && !['CANCELLED'].includes(existing.status)) throw new HttpError(409, 'You already have a registration for this event');
+  if (approvalFlow) {
+    if (existing?.status !== 'AWAITING_PAYMENT') throw new HttpError(409, 'The organiser must approve your request before you can pay.');
+  } else if (existing && !['CANCELLED'].includes(existing.status)) {
+    throw new HttpError(409, 'You already have a registration for this event');
+  }
   const taken = await prisma.registration.count({ where: { eventId, status: 'REGISTERED' } });
   if (taken >= event.capacity) throw new HttpError(409, 'This event is full');
 
