@@ -184,6 +184,15 @@ Students earn 10 points per attended event, 5 per feedback given and 3 for joini
 - Set `APP_URL` to your public address (Render sets `RENDER_EXTERNAL_URL` automatically) so previews and the sitemap use the right domain.
 - Previews and the sitemap come from the Express server, so share the Render link. A frontend hosted separately on Vercel cannot add them.
 
+## Install the app and offline tickets
+
+UniEvents is an installable web app. On Android/Chrome/Edge use **Install the app** (footer or Settings); on iPhone use Safari, Share, **Add to Home Screen**. Once installed it opens full-screen with its own icon, and shortcuts for My Tickets and Discover Events.
+
+- The app itself still opens with no signal (a service worker keeps the page shell and built files; it never stores anything from `/api`).
+- Each time a student opens **My Tickets** while online, their current confirmed tickets (QR code, title, date, venue) are saved on that phone. With no signal, an **offline** bar appears with **Show my saved tickets** (`/offline-tickets`), which works even if the phone has been signed out of the session because it is offline. Saved tickets are removed when the student signs out and expire after the event ends.
+- Staying signed in: opening the app offline no longer signs you out; only an answer from the server saying the session is invalid does.
+- Check-in still needs the organiser's scanner to be online.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { CalendarHeart } from 'lucide-react';
+import InstallButton from './InstallButton.jsx';
 
 const col = 'text-sm text-slate-500 hover:text-brand-600';
 
@@ -31,6 +32,7 @@ export default function Footer() {
             <li><Link className={col} to="/about">About</Link></li>
             <li><Link className={col} to="/contact">Contact</Link></li>
             <li><Link className={col} to="/register">Create an account</Link></li>
+            <li><InstallButton className="text-sm text-slate-500 hover:text-brand-600 inline-flex items-center gap-1" /></li>
           </ul>
         </div>
       </div>

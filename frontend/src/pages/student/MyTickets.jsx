@@ -5,6 +5,8 @@ import DashboardShell from '../../components/DashboardShell.jsx';
 import QrCode from '../../components/QrCode.jsx';
 import { Badge, EmptyState, ErrorBox, Loader } from '../../components/Ui.jsx';
 import { errMsg, fmtDate } from '../../utils/format.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { loadAllTickets, saveTickets } from '../../utils/offlineTickets.js';
 import { SampleCertificate, SampleTicket, VerifyLinks } from '../../components/verify/Samples.jsx';
 
 export default function MyTickets() {
@@ -12,13 +14,23 @@ export default function MyTickets() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const { user } = useAuth();
+  const [offline, setOffline] = useState(false);
+
   useEffect(() => {
     api
       .get('/registrations/me')
-      .then((res) => setRegs(res.data.registrations))
-      .catch((e) => setError(errMsg(e)))
+      .then((res) => {
+        setRegs(res.data.registrations);
+        if (user) saveTickets(user.id, res.data.registrations); // keep a copy for use without signal
+      })
+      .catch((e) => {
+        // No answer from the server at all (offline): show the copy saved on this phone instead.
+        if (!e.response && loadAllTickets().length > 0) setOffline(true);
+        else setError(errMsg(e));
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   const now = new Date();
   const live = (r) => r.event.status !== 'CANCELLED' && new Date(r.event.endsAt) >= now;
@@ -32,6 +44,11 @@ export default function MyTickets() {
       actions={<Link to="/student/attendance" className="btn-outline">My attendance</Link>}
     >
       <ErrorBox message={error} />
+      {offline && (
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+          You are offline. <Link to="/offline-tickets" className="font-medium underline">Show my saved tickets</Link>
+        </p>
+      )}
 
       {loading ? (
         <Loader />
