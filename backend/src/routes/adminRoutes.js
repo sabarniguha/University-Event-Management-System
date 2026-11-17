@@ -9,6 +9,7 @@ router.get('/stats', c.stats);
 router.get('/analytics', c.analytics);
 
 router.get('/users', c.listUsers);
+router.post('/users/import', require('../controllers/bulkImportController').importStudents);
 router.post('/users', c.createUser);
 router.patch('/users/:id', c.updateUser);
 router.patch('/users/:id/role', c.updateUserRole);

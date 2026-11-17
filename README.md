@@ -156,6 +156,11 @@ When SMTP is configured, every new account gets a verification link at its own a
 
 Organisers set **Minimum / Maximum members** on the event form (both 1 means a normal solo event). For a team event, a student registers first, then creates a team or joins one with its 6-character code on the event page. Each member registers (and pays, if there is a fee) on their own, one team per student per event, and the leader can remove members or disband. Organisers and admins see every team under **Registrations -> Teams** and can download a CSV.
 
+## Bulk CSV import
+
+- **Admin -> Students -> Import CSV** creates up to 500 student accounts at once from a CSV (`name,email` required; `department,studentId,phone` optional). Each student is emailed a link to choose their own password and verify their email; no passwords are shown or stored in plain text. Without SMTP set up nothing is emailed (use Reset password instead).
+- **Organiser/Admin -> Attendance -> Import CSV** marks people present from a CSV with an `email` or `studentId` column. Only confirmed registrations are matched, and unmatched rows are listed.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.

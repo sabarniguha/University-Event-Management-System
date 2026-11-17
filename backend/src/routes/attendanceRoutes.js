@@ -15,6 +15,7 @@ router.get('/event/:eventId', requireRole('ORGANIZER', 'ADMIN'), c.eventAttendan
 router.get('/event/:eventId/export', requireRole('ORGANIZER', 'ADMIN'), c.exportAttendanceCsv);
 router.post('/checkin', requireRole('ORGANIZER', 'ADMIN'), c.checkIn);
 router.post('/check-in', requireRole('ORGANIZER', 'ADMIN'), c.checkIn); // alias
+router.post('/import', requireRole('ORGANIZER', 'ADMIN'), require('../controllers/bulkImportController').importAttendance);
 router.post('/bulk', requireRole('ORGANIZER', 'ADMIN'), c.bulkMark);
 router.post('/', requireRole('ORGANIZER', 'ADMIN'), c.markAttendance);
 
