@@ -9,6 +9,7 @@ import { Skeleton, StatCard, ErrorBox } from '../../components/common/Ui.jsx';
 import { TrendChart, BarsChart } from '../../components/charts/Charts.jsx';
 import PendingPayments from '../../components/dashboard/PendingPayments.jsx';
 import FeaturedStrip from '../../components/events/FeaturedStrip.jsx';
+import RewardsCard from '../../components/dashboard/RewardsCard.jsx';
 import RecommendedStrip from '../../components/events/RecommendedStrip.jsx';
 import EventList from '../../components/dashboard/EventList.jsx';
 import OrganizerRequestCard from '../../components/dashboard/OrganizerRequestCard.jsx';
@@ -60,6 +61,7 @@ export default function StudentDashboard() {
         <TrendChart title="Registrations by month" subtitle="Last 6 months" data={a?.registrationsByMonth || []} name="Registrations" />
       </div>
       {a && <BarsChart title="Attended by category" data={a.attendedByCategory} horizontal />}
+      <RewardsCard />
       <RecommendedStrip />
       <FeaturedStrip />
       <OrganizerRequestCard />
