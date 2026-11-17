@@ -9,6 +9,7 @@ import QrCode from '../../components/tickets/QrCode.jsx';
 import StarRating from '../../components/StarRating.jsx';
 import EventCard, { gradientFor } from '../../components/events/EventCard.jsx';
 import TeamPanel from '../../components/events/TeamPanel.jsx';
+import SurveyPanel from '../../components/events/SurveyPanel.jsx';
 import { DeadlineBox } from '../../components/events/Deadline.jsx';
 import { Badge, ConfirmDialog, ErrorBox, Skeleton } from '../../components/common/Ui.jsx';
 import { errMsg, fmtDate, money, MODE_LABEL } from '../../utils/format.js';
@@ -328,6 +329,7 @@ export default function EventDetail() {
           </div>
 
           <TeamPanel event={event} registration={myRegistration} />
+          <SurveyPanel event={event} registration={myRegistration} />
 
           {canManage && (
             <div className="card space-y-2">
@@ -336,6 +338,7 @@ export default function EventDetail() {
               <Link to={`/organizer/events/${event.id}/registrations`} className="btn-outline w-full">Registrations</Link>
               <Link to={`/organizer/events/${event.id}/attendance`} className="btn-outline w-full">Attendance and QR check-in</Link>
               <Link to={`/organizer/events/${event.id}/feedback`} className="btn-outline w-full">Feedback</Link>
+              <Link to={`/organizer/events/${event.id}/survey`} className="btn-outline w-full">Survey questions</Link>
             </div>
           )}
 

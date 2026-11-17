@@ -25,6 +25,7 @@ const VerifyCertificate = page(() => import('./pages/public/VerifyCertificate.js
 const VerifyTicket = page(() => import('./pages/public/VerifyTicket.jsx'));
 const ScanTickets = page(() => import('./pages/organizer/ScanTickets.jsx'));
 const StudentPayments = page(() => import('./pages/student/Payments.jsx'));
+const EventSurvey = page(() => import('./pages/organizer/EventSurvey.jsx'));
 const EventTeams = page(() => import('./pages/organizer/EventTeams.jsx'));
 const NotFound = page(() => import('./pages/public/NotFound.jsx'));
 
@@ -124,6 +125,7 @@ export default function App() {
               <Route path="/organizer/payments" element={<Payments />} />
               <Route path="/organizer/scan" element={<ScanTickets />} />
               <Route path="/organizer/events/:id/teams" element={<EventTeams />} />
+              <Route path="/organizer/events/:id/survey" element={<EventSurvey />} />
               <Route path="/organizer/certificates" element={<OrganizerCertificates />} />
               <Route path="/organizer/certificates/view/:certificateId" element={<CertificateView />} />
               <Route path="/organizer/analytics" element={<OrganizerAnalytics />} />
