@@ -40,6 +40,7 @@ const StudentDashboard = page(() => import('./pages/student/StudentDashboard.jsx
 const MyRegistrations = page(() => import('./pages/student/MyRegistrations.jsx'));
 const MyTickets = page(() => import('./pages/student/MyTickets.jsx'));
 const StudentAttendance = page(() => import('./pages/student/StudentAttendance.jsx'));
+const Rewards = page(() => import('./pages/student/Rewards.jsx'));
 const StudentCertificates = page(() => import('./pages/student/Certificates.jsx'));
 
 const OrganizerDashboard = page(() => import('./pages/organizer/OrganizerDashboard.jsx'));
@@ -106,6 +107,7 @@ export default function App() {
               <Route path="/student/attendance" element={<StudentAttendance />} />
               <Route path="/student/payments" element={<StudentPayments />} />
               <Route path="/student/certificates" element={<StudentCertificates />} />
+              <Route path="/student/rewards" element={<Rewards />} />
               <Route path="/student/certificates/:certificateId" element={<CertificateView />} />
             </Route>
 

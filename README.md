@@ -173,6 +173,10 @@ The student dashboard shows up to three upcoming events they have not joined, ra
 
 Organisers and admins open **Photos and sponsors** on an event to upload gallery photos (up to 40) and sponsor logos with an optional website (up to 12). They appear on the public event page as a "Our sponsors" strip and a photo grid with a full-size viewer. Uploads use the same image storage as event banners (Cloudinary if configured, otherwise the database), 1.5 MB each.
 
+## Points, badges and leaderboard
+
+Students earn 10 points per attended event, 5 per feedback given and 3 for joining a team. Six badges unlock automatically (First Step, Regular, Campus Champion, Explorer, Voice of the Campus, Team Player) and levels run Bronze 10, Silver 60, Gold 150. Everything is calculated from real attendance, feedback and team records on request, so nothing is invented and nothing extra is stored. The leaderboard shows the top ten with shortened names (for example "Asha R."). See **Points and Badges** in the student menu.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.
