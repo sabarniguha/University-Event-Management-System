@@ -4,6 +4,7 @@ import api from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import InstallButton from '../../components/layout/InstallButton.jsx';
 import DashboardShell from '../../components/DashboardShell.jsx';
 import PasswordInput from '../../components/forms/PasswordInput.jsx';
 import { ErrorBox, Switch } from '../../components/common/Ui.jsx';
@@ -49,6 +50,11 @@ export default function Settings() {
   return (
     <DashboardShell title="Settings" subtitle="Appearance, notifications and security.">
       <div className="grid gap-6 lg:grid-cols-2">
+        <div className="card">
+          <h2 className="font-semibold text-slate-900">Install UniEvents</h2>
+          <p className="mt-1 text-sm text-slate-500">Add UniEvents to your home screen. Your tickets stay available with no signal.</p>
+          <div className="mt-3"><InstallButton className="btn-primary" /></div>
+        </div>
         <div className="card">
           <h2 className="font-semibold text-slate-900">Appearance</h2>
           <div className="mt-3 grid grid-cols-3 gap-2">

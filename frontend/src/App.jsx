@@ -5,6 +5,7 @@ import DashboardLayout from './components/layout/DashboardLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import RoleProtectedRoute from './components/RoleProtectedRoute.jsx';
 import { Loader } from './components/common/Ui.jsx';
+import OfflineBanner from './components/layout/OfflineBanner.jsx';
 
 // Pages are loaded on demand so the first visit downloads as little as possible.
 const page = (loader) => lazy(loader);
@@ -40,6 +41,7 @@ const StudentDashboard = page(() => import('./pages/student/StudentDashboard.jsx
 const MyRegistrations = page(() => import('./pages/student/MyRegistrations.jsx'));
 const MyTickets = page(() => import('./pages/student/MyTickets.jsx'));
 const StudentAttendance = page(() => import('./pages/student/StudentAttendance.jsx'));
+const OfflineTickets = page(() => import('./pages/public/OfflineTickets.jsx'));
 const Rewards = page(() => import('./pages/student/Rewards.jsx'));
 const StudentCertificates = page(() => import('./pages/student/Certificates.jsx'));
 
@@ -70,6 +72,7 @@ const PlatformSettings = page(() => import('./pages/admin/PlatformSettings.jsx')
 export default function App() {
   return (
     <Suspense fallback={<Loader />}>
+      <OfflineBanner />
       <Routes>
         {/* Public website */}
         <Route element={<PublicLayout />}>
@@ -88,6 +91,7 @@ export default function App() {
           <Route path="/verify" element={<VerifyCertificate />} />
           <Route path="/verify/:code" element={<VerifyCertificate />} />
           <Route path="/verify-ticket" element={<VerifyTicket />} />
+          <Route path="/offline-tickets" element={<OfflineTickets />} />
           <Route path="/verify-ticket/:code" element={<VerifyTicket />} />
           <Route path="*" element={<NotFound />} />
         </Route>

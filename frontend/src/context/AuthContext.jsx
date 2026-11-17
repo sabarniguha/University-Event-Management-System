@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import api, { TOKEN_KEY } from '../services/api.js';
+import { clearSavedTickets } from '../utils/offlineTickets.js';
 
 const AuthContext = createContext(null);
 
@@ -9,6 +10,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
+    clearSavedTickets();
     setUser(null);
   }, []);
 
@@ -18,7 +20,7 @@ export function AuthProvider({ children }) {
     api
       .get('/auth/me')
       .then((res) => setUser(res.data.user))
-      .catch(() => localStorage.removeItem(TOKEN_KEY))
+      .catch((e) => { if (e.response) localStorage.removeItem(TOKEN_KEY); }) // only sign out when the server answered; being offline keeps you signed in
       .finally(() => setLoading(false));
   }, []);
 
