@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyRound, MailCheck, Plus, Trash2, UserX, UserCheck } from 'lucide-react';
+import { KeyRound, MailCheck, Plus, Trash2, Upload, UserX, UserCheck } from 'lucide-react';
 import api from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -9,6 +9,7 @@ import DashboardShell from '../../components/DashboardShell.jsx';
 import { Badge, ConfirmDialog, DataTable, EmptyState, ErrorBox, Modal, Pagination, SearchInput } from '../../components/common/Ui.jsx';
 import { errMsg, fmtDay } from '../../utils/format.js';
 import OrganizerRequests from './OrganizerRequests.jsx';
+import CsvImport from '../../components/common/CsvImport.jsx';
 
 const COPY = {
   all: { title: 'User management', sub: 'Every account on the platform.', path: '/admin/users' },
@@ -27,6 +28,7 @@ export default function UserManagement({ role = 'all' }) {
   const dq = useDebounce(q);
   const params = { q: dq, status, page, limit: 15, ...(role === 'all' && roleFilter ? { role: roleFilter } : {}) };
   const { data, loading, error, reload } = useFetch(copy.path, params);
+  const [importing, setImporting] = useState(false);
   const [create, setCreate] = useState(false);
   const [pwTarget, setPwTarget] = useState(null);
   const [delTarget, setDelTarget] = useState(null);
@@ -44,7 +46,11 @@ export default function UserManagement({ role = 'all' }) {
 
   const users = data?.users || [];
   return (
-    <DashboardShell title={copy.title} subtitle={copy.sub} actions={<button className="btn-primary" onClick={() => setCreate(true)}><Plus className="h-4 w-4" /> Create account</button>}>
+    <DashboardShell title={copy.title} subtitle={copy.sub} actions={<>{role !== 'ORGANIZER' && <button className="btn-outline" onClick={() => setImporting(true)}><Upload className="h-4 w-4" /> Import CSV</button>}<button className="btn-primary" onClick={() => setCreate(true)}><Plus className="h-4 w-4" /> Create account</button></>}>
+      <CsvImport open={importing} onClose={() => setImporting(false)} title="Import students from CSV" endpoint="/admin/users/import" needed={['name', 'email']} sampleName="students-sample.csv"
+        sample={'name,email,department,studentId,phone\nAsha Rao,asha@college.edu,Computer Science,CS2101,9876543210\n'}
+        help="Each row creates a student account and emails the student a link to choose a password and verify their address. Columns: name, email (required); department, studentId, phone (optional). Up to 500 rows."
+        summary={(r) => `${r.created} account(s) created, ${r.skipped} skipped.`} onDone={reload} />
       <ErrorBox message={error} />
       {role === 'ORGANIZER' && <OrganizerRequests onChange={reload} />}
       <div className="flex flex-col gap-3 sm:flex-row">

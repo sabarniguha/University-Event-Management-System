@@ -4,6 +4,7 @@ import api from '../../services/api.js';
 import DashboardShell, { StatCard } from '../../components/DashboardShell.jsx';
 import { Badge, EmptyState, ErrorBox, Loader } from '../../components/Ui.jsx';
 import { errMsg, fmtDate, pctLabel } from '../../utils/format.js';
+import CsvImport from '../../components/common/CsvImport.jsx';
 
 const REFRESH_MS = 15000;
 const FILTERS = [
@@ -30,6 +31,7 @@ export default function EventAttendance() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const canScan = typeof window !== 'undefined' && 'BarcodeDetector' in window && Boolean(navigator.mediaDevices);
 
@@ -184,10 +186,15 @@ export default function EventAttendance() {
         <>
           <Link to="/organizer/attendance" className="btn-outline">All events</Link>
           <Link to={`/organizer/events/${id}/feedback`} className="btn-outline">Feedback</Link>
+          <button className="btn-outline" onClick={() => setImporting(true)}>Import CSV</button>
           <button className="btn-primary" onClick={exportCsv}>Export CSV</button>
         </>
       }
     >
+      <CsvImport open={importing} onClose={() => setImporting(false)} title="Mark attendance from CSV" endpoint="/attendance/import" extra={{ eventId: Number(id), status: 'PRESENT' }} needed={[]} sampleName="attendance-sample.csv"
+        sample={'email,studentId\nasha@college.edu,\n,CS2102\n'}
+        help="Upload the list of people who attended (for example from a sign-in sheet). Each row needs an email or a studentId that matches a confirmed registration; matched students are marked present."
+        summary={(r) => `${r.marked} marked present, ${r.notFound} not matched.`} onDone={() => load()} />
       <ErrorBox message={error} />
 
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
