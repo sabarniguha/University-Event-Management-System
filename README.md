@@ -165,6 +165,10 @@ Organisers set **Minimum / Maximum members** on the event form (both 1 means a n
 
 On any event, organisers and admins open **Survey questions** to add their own questions (short answer, multiple choice, yes/no, 1-5 rating), either **after registering** (t-shirt size, diet) or **after the event** (feedback). Students answer them in a "Questions from the organiser" box on the event page once registered; answers can be edited. **Export answers** downloads one CSV row per student. Registration questions do not block registering; they are asked right after.
 
+## Recommended for you
+
+The student dashboard shows up to three upcoming events they have not joined, ranked by their department, the categories of events they registered for or attended before, how full the event is and how soon it starts. Each card says why it was suggested. It is calculated from real data on request; nothing is stored.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.
