@@ -65,3 +65,13 @@ test('register accepts an optional organiser request but never a role', () => {
   assert.equal(ok.data.role, undefined);
   assert.ok(!v.registerSchema.safeParse({ ...base, organizer: { organization: 'x' } }).success);
 });
+
+test('event: team size defaults to solo and max cannot be below min', () => {
+  const solo = v.eventCreateSchema.parse(base);
+  assert.strictEqual(solo.teamMin, 1);
+  assert.strictEqual(solo.teamMax, 1);
+  const team = v.eventCreateSchema.parse({ ...base, teamMin: '2', teamMax: '4' });
+  assert.strictEqual(team.teamMin, 2);
+  assert.strictEqual(team.teamMax, 4);
+  assert.throws(() => v.eventCreateSchema.parse({ ...base, teamMin: 5, teamMax: 3 }));
+});

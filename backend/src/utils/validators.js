@@ -139,6 +139,9 @@ const eventBase = z.object({
   contactPhone: nullableText(30),
   terms: nullableText(3000),
   requiresRegistrationApproval: z.boolean().default(false),
+  // Team events: members per team. 1 and 1 means a normal solo event.
+  teamMin: z.coerce.number().int().min(1).max(50).default(1),
+  teamMax: z.coerce.number().int().min(1).max(50).default(1),
   featured: z.boolean().optional(),
 });
 
@@ -148,6 +151,7 @@ const eventCreateSchema = eventBase
     message: 'Registration deadline cannot be after the event ends',
     path: ['registrationDeadline'],
   })
+  .refine((d) => d.teamMax >= d.teamMin, { message: 'Maximum team size cannot be smaller than the minimum', path: ['teamMax'] })
   .refine((d) => !d.registrationUrl || d.registrationDeadline, {
     message: 'Set a registration deadline when you add a registration link',
     path: ['registrationDeadline'],

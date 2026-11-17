@@ -152,6 +152,10 @@ All routes are under `/api`. Bearer JWT in `Authorization`.
 
 When SMTP is configured, every new account gets a verification link at its own address: students and organisers who sign up, and any account an admin creates (student, organiser or admin). A yellow banner with a "Resend link" button shows until the address is confirmed. Until then a student cannot register for events and an organiser cannot create them; admins are never locked out. Admins can click the mail-check icon in User Management to mark a placeholder address (for example `organizer@uni.edu`) as verified. Without SMTP nothing can be sent, so nothing is blocked.
 
+## Team events
+
+Organisers set **Minimum / Maximum members** on the event form (both 1 means a normal solo event). For a team event, a student registers first, then creates a team or joins one with its 6-character code on the event page. Each member registers (and pays, if there is a fee) on their own, one team per student per event, and the leader can remove members or disband. Organisers and admins see every team under **Registrations -> Teams** and can download a CSV.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.

@@ -41,6 +41,7 @@ function EventRegistrations({ id }) {
       actions={
         <>
           <button className="btn-outline" onClick={() => downloadFile(`/registrations/event/${id}/export`, 'registrations.csv').catch((e) => toast.error(errMsg(e)))}><Download className="h-4 w-4" /> CSV</button>
+          <Link to={`/organizer/events/${id}/teams`} className="btn-outline">Teams</Link>
           <Link to={`/organizer/events/${id}/attendance`} className="btn-primary">Attendance and check-in</Link>
         </>
       }

@@ -12,7 +12,7 @@ import { DEPARTMENTS, EVENT_TYPES, errMsg, toLocalInput } from '../../utils/form
 
 const EMPTY = {
   title: '', description: '', category: 'General', eventType: '', bannerUrl: '', startsAt: '', endsAt: '', registrationDeadline: '',
-  mode: 'OFFLINE', venue: '', onlineUrl: '', registrationUrl: '', capacity: 100, waitlistEnabled: true, fee: 0, requiresRegistrationApproval: false,
+  mode: 'OFFLINE', venue: '', onlineUrl: '', registrationUrl: '', capacity: 100, waitlistEnabled: true, fee: 0, requiresRegistrationApproval: false, teamMin: 1, teamMax: 1,
   department: '', eligibility: '', requirements: '', contactEmail: '', contactPhone: '', terms: '', featured: false,
 };
 
@@ -67,7 +67,7 @@ export default function EventForm() {
     try {
       const payload = {
         ...form,
-        capacity: Number(form.capacity), fee: Number(form.fee),
+        capacity: Number(form.capacity), fee: Number(form.fee), teamMin: Number(form.teamMin), teamMax: Number(form.teamMax),
         startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : '',
         endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : '',
         registrationDeadline: form.registrationDeadline ? new Date(form.registrationDeadline).toISOString() : null,
@@ -150,6 +150,14 @@ export default function EventForm() {
             </p></div>
           </div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.waitlistEnabled} onChange={set('waitlistEnabled')} /> Enable waitlist when the event is full</label>
+          <div className="rounded-xl border border-slate-200 p-4">
+            <p className="text-sm font-medium text-slate-900">Team event</p>
+            <p className="mb-2 text-xs text-slate-500">For hackathons, quizzes and sports. Leave both at 1 for a normal solo event. Students register first, then create or join a team.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="label" htmlFor="tmin">Minimum members</label><input id="tmin" type="number" min={1} max={50} className="input" value={form.teamMin} onChange={set('teamMin')} /></div>
+              <div><label className="label" htmlFor="tmax">Maximum members</label><input id="tmax" type="number" min={1} max={50} className="input" value={form.teamMax} onChange={set('teamMax')} /></div>
+            </div>
+          </div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.requiresRegistrationApproval} onChange={set('requiresRegistrationApproval')} /> I want to approve each registration manually</label>
           {user.role === 'ADMIN' && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.featured} onChange={set('featured')} /> Feature on the home page</label>}
         </Section>

@@ -238,6 +238,10 @@ const updateEvent = asyncHandler(async (req, res) => {
   const deadline = data.registrationDeadline === undefined ? existing.registrationDeadline : data.registrationDeadline;
   if (deadline && deadline > endsAt) throw new HttpError(400, 'Registration deadline cannot be after the event ends');
 
+  const tMin = data.teamMin ?? existing.teamMin;
+  const tMax = data.teamMax ?? existing.teamMax;
+  if (tMax < tMin) throw new HttpError(400, 'Maximum team size cannot be smaller than the minimum');
+
   const regUrl = data.registrationUrl === undefined ? existing.registrationUrl : data.registrationUrl;
   if (regUrl && !deadline) throw new HttpError(400, 'Set a registration deadline when you add a registration link');
 
@@ -393,6 +397,8 @@ const duplicateEvent = asyncHandler(async (req, res) => {
       contactPhone: existing.contactPhone,
       terms: existing.terms,
       requiresRegistrationApproval: existing.requiresRegistrationApproval,
+      teamMin: existing.teamMin,
+      teamMax: existing.teamMax,
       organizerId: req.user.id,
     },
     include: countInclude,

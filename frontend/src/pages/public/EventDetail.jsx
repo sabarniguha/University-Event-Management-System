@@ -8,6 +8,7 @@ import useFetch from '../../hooks/useFetch.js';
 import QrCode from '../../components/tickets/QrCode.jsx';
 import StarRating from '../../components/StarRating.jsx';
 import EventCard, { gradientFor } from '../../components/events/EventCard.jsx';
+import TeamPanel from '../../components/events/TeamPanel.jsx';
 import { DeadlineBox } from '../../components/events/Deadline.jsx';
 import { Badge, ConfirmDialog, ErrorBox, Skeleton } from '../../components/common/Ui.jsx';
 import { errMsg, fmtDate, money, MODE_LABEL } from '../../utils/format.js';
@@ -300,6 +301,7 @@ export default function EventDetail() {
             <ul className="space-y-3 text-sm text-slate-600">
               <li className="flex gap-3"><Calendar className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /><span><span className="block font-medium text-slate-900">{fmtDate(event.startsAt)}</span>to {fmtDate(event.endsAt)}</span></li>
               <li className="flex gap-3">{event.mode === 'ONLINE' ? <Video className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /> : <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />}<span><span className="block font-medium text-slate-900">{event.mode === 'ONLINE' ? 'Online event' : event.venue}</span>{MODE_LABEL[event.mode]}</span></li>
+              {event.teamMax > 1 && <li className="flex gap-3"><Users className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /><span><span className="block font-medium text-slate-900">Team event</span>{event.teamMin === event.teamMax ? `${event.teamMax} members per team` : `${event.teamMin} to ${event.teamMax} members per team`}</span></li>}
               <li className="flex gap-3"><Wallet className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /><span className="font-medium text-slate-900">{money(event.fee)}</span></li>
             </ul>
             {published && !ended && <DeadlineBox deadline={event.registrationDeadline} />}
@@ -324,6 +326,8 @@ export default function EventDetail() {
             <button onClick={copyLink} className="btn-ghost w-full text-xs"><Copy className="h-3.5 w-3.5" /> Copy link to share</button>
             {published && <a href={`${API_URL}/calendar/${event.id}`} className="btn-ghost w-full text-xs"><Calendar className="h-3.5 w-3.5" /> Add to calendar (.ics)</a>}
           </div>
+
+          <TeamPanel event={event} registration={myRegistration} />
 
           {canManage && (
             <div className="card space-y-2">
