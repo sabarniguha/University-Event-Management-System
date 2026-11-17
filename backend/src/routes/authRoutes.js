@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const rateLimit = require('express-rate-limit');
 const c = require('../controllers/authController');
+const tf = require('../controllers/twoFactorController');
 const { authenticate } = require('../middleware/authMiddleware');
 
 const limiter = (limit, message) =>
@@ -18,6 +19,12 @@ const emailLimiter = limiter(10, 'Too many requests, please try again in a few m
 
 router.post('/register', authLimiter, c.register);
 router.post('/login', authLimiter, c.login);
+router.post('/2fa/login', authLimiter, tf.loginWithCode);
+router.get('/2fa/status', authenticate, tf.status);
+router.post('/2fa/setup', authenticate, tf.setup);
+router.post('/2fa/enable', authenticate, authLimiter, tf.enable);
+router.post('/2fa/disable', authenticate, authLimiter, tf.disable);
+router.post('/2fa/backup-codes', authenticate, authLimiter, tf.regenerateBackup);
 router.post('/forgot-password', emailLimiter, c.forgotPassword);
 router.post('/reset-password', emailLimiter, c.resetPassword);
 router.post('/verify-email', emailLimiter, c.verifyEmail);

@@ -100,6 +100,13 @@ model User {
   isActive          Boolean   @default(true)
   emailVerifiedAt   DateTime?
   lastLoginAt       DateTime?
+  // Optional two-factor sign-in (admins) and temporary lockout after repeated wrong passwords.
+  twoFactorSecretEnc String?
+  twoFactorEnabledAt DateTime?
+  twoFactorBackup    Json?
+  twoFactorLastStep  Int?
+  failedLogins       Int       @default(0)
+  lockedUntil        DateTime?
   notificationPrefs Json?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt

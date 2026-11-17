@@ -39,6 +39,8 @@ export function AuthProvider({ children }) {
 
   const authenticate = async (path, payload) => {
     const { data } = await api.post(path, payload);
+    // Admins who turned on two-factor get no session yet: the page must ask for the code first.
+    if (data.twoFactorRequired) return { twoFactorRequired: true, challenge: data.challenge };
     localStorage.setItem(TOKEN_KEY, data.token);
     setUser(data.user);
     return data.user;
@@ -50,6 +52,7 @@ export function AuthProvider({ children }) {
       loading,
       login: (email, password, role) => authenticate('/auth/login', { email, password, role }),
       register: (payload) => authenticate('/auth/register', payload),
+      completeTwoFactor: (challenge, code) => authenticate('/auth/2fa/login', { challenge, code }),
       logout,
       setUser,
       refresh,

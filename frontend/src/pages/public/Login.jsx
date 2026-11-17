@@ -10,7 +10,9 @@ import { ROLE_LOGINS, dashboardPath, errMsg } from '../../utils/format.js';
 // Role-specific login page: /login/student, /login/organizer, /login/admin
 export default function Login() {
   const { type } = useParams();
-  const { user, login } = useAuth();
+  const { user, login, completeTwoFactor } = useAuth();
+  const [challenge, setChallenge] = useState(null);
+  const [code, setCode] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -30,6 +32,7 @@ export default function Login() {
     setBusy(true);
     try {
       const u = await login(form.email, form.password, info.role);
+      if (u.twoFactorRequired) { setChallenge(u.challenge); setCode(''); return; }
       navigate(location.state?.from || dashboardPath(u.role), { replace: true });
     } catch (err) {
       setError(errMsg(err));
@@ -37,6 +40,39 @@ export default function Login() {
       setBusy(false);
     }
   };
+
+  const onCode = async (e) => {
+    e.preventDefault();
+    setError('');
+    setBusy(true);
+    try {
+      const u = await completeTwoFactor(challenge, code);
+      navigate(location.state?.from || dashboardPath(u.role), { replace: true });
+    } catch (err) {
+      const msg = errMsg(err);
+      setError(msg);
+      if (/timed out/i.test(msg)) setChallenge(null); // go back to the password step
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (challenge) {
+    return (
+      <AuthCard title="Two-factor check" subtitle="Open your authenticator app and enter the 6-digit code for UniEvents.">
+        <form onSubmit={onCode} className="space-y-4">
+          <ErrorBox message={error} />
+          <div>
+            <label className="label" htmlFor="tf">Code</label>
+            <input id="tf" className="input font-mono tracking-widest" autoFocus autoComplete="one-time-code" inputMode="text" value={code} onChange={(e) => setCode(e.target.value)} required />
+            <p className="mt-1 text-xs text-slate-500">Lost your phone? Enter one of your backup codes instead.</p>
+          </div>
+          <button className="btn-primary w-full" disabled={busy}>{busy ? 'Checking...' : 'Verify and sign in'}</button>
+          <button type="button" className="btn-ghost w-full" onClick={() => { setChallenge(null); setError(''); }}>Back</button>
+        </form>
+      </AuthCard>
+    );
+  }
 
   const others = Object.entries(ROLE_LOGINS).filter(([t]) => t !== type);
   return (
