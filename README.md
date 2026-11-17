@@ -169,6 +169,10 @@ On any event, organisers and admins open **Survey questions** to add their own q
 
 The student dashboard shows up to three upcoming events they have not joined, ranked by their department, the categories of events they registered for or attended before, how full the event is and how soon it starts. Each card says why it was suggested. It is calculated from real data on request; nothing is stored.
 
+## Event photos and sponsors
+
+Organisers and admins open **Photos and sponsors** on an event to upload gallery photos (up to 40) and sponsor logos with an optional website (up to 12). They appear on the public event page as a "Our sponsors" strip and a photo grid with a full-size viewer. Uploads use the same image storage as event banners (Cloudinary if configured, otherwise the database), 1.5 MB each.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.

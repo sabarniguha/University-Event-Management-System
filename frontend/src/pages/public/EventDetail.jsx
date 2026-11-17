@@ -10,6 +10,7 @@ import StarRating from '../../components/StarRating.jsx';
 import EventCard, { gradientFor } from '../../components/events/EventCard.jsx';
 import TeamPanel from '../../components/events/TeamPanel.jsx';
 import SurveyPanel from '../../components/events/SurveyPanel.jsx';
+import GalleryStrip from '../../components/events/GalleryStrip.jsx';
 import { DeadlineBox } from '../../components/events/Deadline.jsx';
 import { Badge, ConfirmDialog, ErrorBox, Skeleton } from '../../components/common/Ui.jsx';
 import { errMsg, fmtDate, money, MODE_LABEL } from '../../utils/format.js';
@@ -294,6 +295,8 @@ export default function EventDetail() {
             </Block>
           )}
 
+          <GalleryStrip eventId={event.id} />
+
           {event.terms && <Block title="Terms and conditions"><p className="whitespace-pre-line text-sm text-slate-500">{event.terms}</p></Block>}
         </div>
 
@@ -339,6 +342,7 @@ export default function EventDetail() {
               <Link to={`/organizer/events/${event.id}/attendance`} className="btn-outline w-full">Attendance and QR check-in</Link>
               <Link to={`/organizer/events/${event.id}/feedback`} className="btn-outline w-full">Feedback</Link>
               <Link to={`/organizer/events/${event.id}/survey`} className="btn-outline w-full">Survey questions</Link>
+              <Link to={`/organizer/events/${event.id}/gallery`} className="btn-outline w-full">Photos and sponsors</Link>
             </div>
           )}
 

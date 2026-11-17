@@ -1,0 +1,69 @@
+import { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { Trash2 } from 'lucide-react';
+import api, { mediaUrl } from '../../services/api.js';
+import useFetch from '../../hooks/useFetch.js';
+import { useToast } from '../../context/ToastContext.jsx';
+import DashboardShell from '../../components/DashboardShell.jsx';
+import ImageUpload from '../../components/forms/ImageUpload.jsx';
+import { ErrorBox, Loader } from '../../components/common/Ui.jsx';
+import { errMsg } from '../../utils/format.js';
+
+// Organiser/admin: add event photos and sponsor logos shown on the public event page.
+export default function EventGallery() {
+  const { id } = useParams();
+  const toast = useToast();
+  const { data, loading, error, reload } = useFetch(`/gallery/event/${id}`);
+  const [photo, setPhoto] = useState('');
+  const [sponsor, setSponsor] = useState({ url: '', title: '', link: '' });
+  const [busy, setBusy] = useState(false);
+
+  const add = async (body, done) => {
+    setBusy(true);
+    try { await api.post(`/gallery/event/${id}`, body); done(); reload(); toast.success('Added'); } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
+  };
+  const remove = async (assetId) => {
+    try { await api.delete(`/gallery/${assetId}`); reload(); } catch (e) { toast.error(errMsg(e)); }
+  };
+
+  return (
+    <DashboardShell title="Photos and sponsors" subtitle="Shown on the public event page." actions={<Link to={`/events/${id}`} className="btn-outline">View event page</Link>}>
+      <ErrorBox message={error} />
+      {loading && !data ? <Loader /> : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="card space-y-3">
+            <h2 className="font-semibold text-slate-900">Photos</h2>
+            <p className="text-xs text-slate-500">Upload photos from the event, up to 40.</p>
+            <ImageUpload label="New photo" value={photo} onChange={(v) => { setPhoto(v); if (v) add({ kind: 'PHOTO', url: v }, () => setPhoto('')); }} />
+            <div className="grid grid-cols-3 gap-2">
+              {(data?.photos || []).map((p) => (
+                <div key={p.id} className="relative">
+                  <img src={mediaUrl(p.url)} alt="" className="h-24 w-full rounded-lg object-cover" />
+                  <button type="button" className="absolute right-1 top-1 rounded-full bg-slate-900/70 p-1 text-white" onClick={() => remove(p.id)} aria-label="Delete photo"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card space-y-3">
+            <h2 className="font-semibold text-slate-900">Sponsors</h2>
+            <p className="text-xs text-slate-500">Add a logo, the sponsor's name and, optionally, their website. Up to 12.</p>
+            <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); add({ kind: 'SPONSOR', ...sponsor }, () => setSponsor({ url: '', title: '', link: '' })); }}>
+              <ImageUpload label="Logo" value={sponsor.url} onChange={(v) => setSponsor({ ...sponsor, url: v })} />
+              <input className="input" placeholder="Sponsor name" value={sponsor.title} onChange={(e) => setSponsor({ ...sponsor, title: e.target.value })} required maxLength={100} aria-label="Sponsor name" />
+              <input className="input" placeholder="Website (optional, https://...)" value={sponsor.link} onChange={(e) => setSponsor({ ...sponsor, link: e.target.value })} aria-label="Sponsor website" />
+              <button className="btn-primary" disabled={busy || !sponsor.url}>Add sponsor</button>
+            </form>
+            <ul className="divide-y divide-slate-100">
+              {(data?.sponsors || []).map((s) => (
+                <li key={s.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <span className="flex items-center gap-3"><img src={mediaUrl(s.url)} alt="" className="h-8 w-14 object-contain" />{s.title}</span>
+                  <button type="button" className="text-red-500" onClick={() => remove(s.id)} aria-label={`Remove ${s.title}`}><Trash2 className="h-4 w-4" /></button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </DashboardShell>
+  );
+}
