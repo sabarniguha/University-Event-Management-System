@@ -26,6 +26,7 @@ const surveyRoutes = require('./routes/surveyRoutes');
 const recommendationRoutes = require('./routes/recommendationRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
 const rewardsRoutes = require('./routes/rewardsRoutes');
+const seo = require('./routes/seoRoutes');
 const paymentController = require('./controllers/paymentController');
 const razorpayUtil = require('./utils/razorpay');
 const rateLimit = require('express-rate-limit');
@@ -107,10 +108,13 @@ app.use('/api/public', publicRoutes);
 // Spec-friendly aliases
 app.get('/api/settings/public', (req, res, next) => { req.url = '/settings'; publicRoutes(req, res, next); });
 
+app.use(seo.router);
+
 // In production the Express server also serves the built React app (single deployable service).
 if (isProd) {
   const dist = path.join(__dirname, '..', '..', 'frontend', 'dist');
-  app.use(express.static(dist));
+  app.use(express.static(dist, { index: false }));
+  app.get('/events/:id', seo.eventPage(dist));
   app.get(/^\/(?!api).*/, (req, res) => res.sendFile(path.join(dist, 'index.html')));
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { Calendar, Clock, Copy, ExternalLink, Info, MapPin, Settings2, Ticket, Users, Video, Wallet } from 'lucide-react';
+import { Calendar, Clock, Copy, ExternalLink, Info, MapPin, MessageCircle, Settings2, Ticket, Users, Video, Wallet } from 'lucide-react';
 import api, { API_URL, mediaUrl } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -328,6 +328,7 @@ export default function EventDetail() {
             </div>
             {action()}
             <button onClick={copyLink} className="btn-ghost w-full text-xs"><Copy className="h-3.5 w-3.5" /> Copy link to share</button>
+            {published && <a href={`https://wa.me/?text=${encodeURIComponent(`${event.title} - ${window.location.href}`)}`} target="_blank" rel="noopener noreferrer" className="btn-ghost w-full text-xs"><MessageCircle className="h-3.5 w-3.5" /> Share on WhatsApp</a>}
             {published && <a href={`${API_URL}/calendar/${event.id}`} className="btn-ghost w-full text-xs"><Calendar className="h-3.5 w-3.5" /> Add to calendar (.ics)</a>}
           </div>
 

@@ -177,6 +177,13 @@ Organisers and admins open **Photos and sponsors** on an event to upload gallery
 
 Students earn 10 points per attended event, 5 per feedback given and 3 for joining a team. Six badges unlock automatically (First Step, Regular, Campus Champion, Explorer, Voice of the Campus, Team Player) and levels run Bronze 10, Silver 60, Gold 150. Everything is calculated from real attendance, feedback and team records on request, so nothing is invented and nothing extra is stored. The leaderboard shows the top ten with shortened names (for example "Asha R."). See **Points and Badges** in the student menu.
 
+## Sharing and search
+
+- Event links get a proper preview (title, date and venue, banner image) when pasted into WhatsApp, Telegram, LinkedIn and similar apps, because the server adds the tags to each event page. **Share on WhatsApp** is on every event page.
+- `/sitemap.xml` lists every published event and `/robots.txt` points search engines to it (the private dashboards are excluded). Submit `https://your-site/sitemap.xml` in Google Search Console.
+- Set `APP_URL` to your public address (Render sets `RENDER_EXTERNAL_URL` automatically) so previews and the sitemap use the right domain.
+- Previews and the sitemap come from the Express server, so share the Render link. A frontend hosted separately on Vercel cannot add them.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.
