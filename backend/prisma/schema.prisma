@@ -119,6 +119,8 @@ model User {
   certificatesIssued    Certificate[]      @relation("CertificateIssuer")
   mediaFiles            MediaFile[]
   payments              Payment[]
+  teamMemberships       EventTeamMember[]
+  teamsLed              EventTeam[]       @relation("TeamLeader")
 
   @@index([role])
   @@index([isActive])
@@ -153,6 +155,8 @@ model Event {
   contactPhone                 String?
   terms                        String?
   requiresRegistrationApproval Boolean     @default(false)
+  teamMin                      Int         @default(1)
+  teamMax                      Int         @default(1)
   featured                     Boolean     @default(false)
   rejectionReason              String?
   submittedAt                  DateTime?
@@ -169,6 +173,7 @@ model Event {
   feedback      Feedback[]
   certificates  Certificate[]
   payments      Payment[]
+  teams         EventTeam[]
 
   @@index([status, startsAt])
   @@index([organizerId])
@@ -413,4 +418,37 @@ model Payment {
   @@index([userId])
   @@index([eventId, status])
   @@index([status])
+}
+
+// A group of students taking part in a team event together (hackathon, quiz, sport).
+// Every member still has their own registration, ticket, attendance and certificate.
+model EventTeam {
+  id         Int      @id @default(autoincrement())
+  eventId    Int
+  name       String
+  leaderId   Int
+  inviteCode String   @unique
+  createdAt  DateTime @default(now())
+
+  event   Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  leader  User              @relation("TeamLeader", fields: [leaderId], references: [id], onDelete: Cascade)
+  members EventTeamMember[]
+
+  @@unique([eventId, name])
+  @@index([eventId])
+}
+
+model EventTeamMember {
+  id       Int      @id @default(autoincrement())
+  teamId   Int
+  eventId  Int
+  userId   Int
+  joinedAt DateTime @default(now())
+
+  team EventTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // A student can be in only one team per event.
+  @@unique([eventId, userId])
+  @@index([teamId])
 }
