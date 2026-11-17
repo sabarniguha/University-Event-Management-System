@@ -193,6 +193,14 @@ UniEvents is an installable web app. On Android/Chrome/Edge use **Install the ap
 - Staying signed in: opening the app offline no longer signs you out; only an answer from the server saying the session is invalid does.
 - Check-in still needs the organiser's scanner to be online.
 
+## Admin two-factor sign-in and login lockout
+
+- **Two-factor (optional, admins only):** Settings -> **Two-factor sign-in** -> Set up. Scan the QR code with Google Authenticator, Authy or Microsoft Authenticator, enter the 6-digit code, and save the 8 one-time backup codes (shown once). After that, signing in needs the password and a code. Codes work once. Turn it off or make new backup codes from the same card (needs password and a code).
+- **If an admin is locked out:** another admin can click the shield icon on their row in Users to remove their 2FA and lockout. If there is no other admin, run `npm run admin:reset-2fa -- admin@example.com` in the backend (Render shell).
+- **Lockout (all real accounts):** 5 wrong passwords or codes in a row lock that account for 15 minutes (`LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES`). A successful sign-in or a password reset by email clears it. The shared **demo accounts are exempt**, and the demo admin never uses 2FA, so demo mode behaves exactly as before.
+- 2FA secrets are stored encrypted. Set `TWO_FACTOR_KEY` (any long random string) if you ever plan to rotate `JWT_SECRET`, otherwise rotating it makes enrolled admins use `admin:reset-2fa`.
+- Nothing changes for any account that has not turned 2FA on, apart from the lockout.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.

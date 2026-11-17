@@ -15,6 +15,7 @@ router.patch('/users/:id', c.updateUser);
 router.patch('/users/:id/role', c.updateUserRole);
 router.post('/users/:id/reset-password', c.resetUserPassword);
 router.post('/users/:id/verify-email', c.markEmailVerified);
+router.post('/users/:id/reset-2fa', require('../controllers/twoFactorController').adminReset);
 router.delete('/users/:id', c.deleteUser);
 router.get('/students', c.listStudents);
 router.get('/organizers', c.listOrganizers);

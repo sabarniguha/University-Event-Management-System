@@ -38,4 +38,7 @@ const demoInfo = () =>
     ? { enabled: true, password: process.env.DEMO_PASSWORD, accounts: accounts().map(({ role, email }) => ({ role, email })) }
     : { enabled: false };
 
-module.exports = { ensureDemoAccounts, demoInfo, demoEnabled, demoAdminEnabled, isReadOnlyDemoAdmin };
+// Demo logins are shared publicly, so they are never locked out and never use two-factor sign-in.
+const isDemoAccount = (email) => demoEnabled() && accounts().some((a) => a.email === email);
+
+module.exports = { ensureDemoAccounts, demoInfo, demoEnabled, demoAdminEnabled, isReadOnlyDemoAdmin, isDemoAccount };

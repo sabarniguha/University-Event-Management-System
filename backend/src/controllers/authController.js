@@ -9,6 +9,8 @@ const { sendMail, appUrl } = require('../utils/mailer');
 const { getSettings } = require('../utils/settings');
 const { notifyAdmins } = require('../utils/notify');
 const { audit } = require('../utils/audit');
+const guard = require('../utils/loginGuard');
+const { isReadOnlyDemoAdmin } = require('../utils/demo');
 const {
   registerSchema,
   loginSchema,
@@ -76,9 +78,13 @@ const login = asyncHandler(async (req, res) => {
   const { email, password, role } = loginSchema.parse(req.body);
 
   const found = await prisma.user.findUnique({ where: { email } });
+  if (guard.isLocked(found)) throw new HttpError(429, guard.lockMessage(found));
   // Same message for unknown email and wrong password to avoid account enumeration.
   const ok = found && (await bcrypt.compare(password, found.passwordHash));
-  if (!ok) throw new HttpError(401, 'Invalid email or password');
+  if (!ok) {
+    await guard.recordFailure(found);
+    throw new HttpError(401, 'Invalid email or password');
+  }
   if (!found.isActive) throw new HttpError(403, 'This account has been deactivated. Contact an administrator.');
 
   // Separate login pages: a student cannot sign in through the admin page, and so on.
@@ -88,8 +94,13 @@ const login = asyncHandler(async (req, res) => {
     throw new HttpError(403, `This account is not ${label} account. Please use the correct login page.`);
   }
 
-  const user = await prisma.user.update({ where: { id: found.id }, data: { lastLoginAt: new Date() }, select: userSelect });
-  res.json({ token: signToken(user), user });
+  // Accounts with two-factor sign-in on (admins who chose it) must also give a code before they get a session.
+  if (found.twoFactorEnabledAt && !isReadOnlyDemoAdmin(found)) {
+    return res.json({ twoFactorRequired: true, challenge: require('./twoFactorController').signChallenge(found.id) });
+  }
+
+  const user = await prisma.user.update({ where: { id: found.id }, data: { lastLoginAt: new Date(), ...guard.clearData }, select: userSelect });
+  return res.json({ token: signToken(user), user });
 });
 
 const me = asyncHandler(async (req, res) => {
@@ -132,7 +143,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 const resetPassword = asyncHandler(async (req, res) => {
   const { token, password } = resetPasswordSchema.parse(req.body);
   const record = await consumeToken(token, 'RESET_PASSWORD');
-  await prisma.user.update({ where: { id: record.userId }, data: { passwordHash: await bcrypt.hash(password, 12) } });
+  await prisma.user.update({ where: { id: record.userId }, data: { passwordHash: await bcrypt.hash(password, 12), ...guard.clearData } });
   res.json({ message: 'Password updated. You can sign in now.' });
 });
 
