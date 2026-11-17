@@ -121,6 +121,7 @@ model User {
   payments              Payment[]
   teamMemberships       EventTeamMember[]
   teamsLed              EventTeam[]       @relation("TeamLeader")
+  surveyAnswers         EventAnswer[]
 
   @@index([role])
   @@index([isActive])
@@ -174,6 +175,7 @@ model Event {
   certificates  Certificate[]
   payments      Payment[]
   teams         EventTeam[]
+  questions     EventQuestion[]
 
   @@index([status, startsAt])
   @@index([organizerId])
@@ -451,4 +453,36 @@ model EventTeamMember {
   // A student can be in only one team per event.
   @@unique([eventId, userId])
   @@index([teamId])
+}
+
+// Organiser-defined survey questions: asked after registering (REGISTRATION) or after the event (FEEDBACK).
+model EventQuestion {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  kind      String   @default("REGISTRATION")
+  label     String
+  type      String   @default("TEXT")
+  options   Json?
+  required  Boolean  @default(false)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  event   Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers EventAnswer[]
+
+  @@index([eventId, kind])
+}
+
+model EventAnswer {
+  id         Int      @id @default(autoincrement())
+  questionId Int
+  userId     Int
+  value      String
+  updatedAt  DateTime @updatedAt
+
+  question EventQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, userId])
+  @@index([userId])
 }
