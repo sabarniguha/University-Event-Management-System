@@ -176,6 +176,7 @@ model Event {
   payments      Payment[]
   teams         EventTeam[]
   questions     EventQuestion[]
+  assets        EventAsset[]
 
   @@index([status, startsAt])
   @@index([organizerId])
@@ -485,4 +486,21 @@ model EventAnswer {
 
   @@unique([questionId, userId])
   @@index([userId])
+}
+
+// Event photos (gallery) and sponsor logos. Managed by the event's organiser or an admin.
+model EventAsset {
+  id           Int      @id @default(autoincrement())
+  eventId      Int
+  kind         String   @default("PHOTO")
+  url          String
+  title        String?
+  link         String?
+  position     Int      @default(0)
+  uploadedById Int?
+  createdAt    DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, kind])
 }
