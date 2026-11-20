@@ -344,6 +344,7 @@ export default function EventDetail() {
               <Link to={`/organizer/events/${event.id}/feedback`} className="btn-outline w-full">Feedback</Link>
               <Link to={`/organizer/events/${event.id}/survey`} className="btn-outline w-full">Survey questions</Link>
               <Link to={`/organizer/events/${event.id}/gallery`} className="btn-outline w-full">Photos and sponsors</Link>
+              <Link to={`${user?.role === 'ADMIN' ? '/admin' : '/organizer'}/reports/event/${event.id}`} className="btn-outline w-full">Event report (PDF)</Link>
             </div>
           )}
 

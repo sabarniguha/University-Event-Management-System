@@ -26,6 +26,8 @@ const VerifyCertificate = page(() => import('./pages/public/VerifyCertificate.js
 const VerifyTicket = page(() => import('./pages/public/VerifyTicket.jsx'));
 const ScanTickets = page(() => import('./pages/organizer/ScanTickets.jsx'));
 const StudentPayments = page(() => import('./pages/student/Payments.jsx'));
+const ReportsPage = page(() => import('./pages/reports/ReportsPage.jsx'));
+const EventReportPage = page(() => import('./pages/reports/EventReportPage.jsx'));
 const EventGallery = page(() => import('./pages/organizer/EventGallery.jsx'));
 const EventSurvey = page(() => import('./pages/organizer/EventSurvey.jsx'));
 const EventTeams = page(() => import('./pages/organizer/EventTeams.jsx'));
@@ -137,6 +139,8 @@ export default function App() {
               <Route path="/organizer/certificates" element={<OrganizerCertificates />} />
               <Route path="/organizer/certificates/view/:certificateId" element={<CertificateView />} />
               <Route path="/organizer/analytics" element={<OrganizerAnalytics />} />
+              <Route path="/organizer/reports" element={<ReportsPage />} />
+              <Route path="/organizer/reports/event/:id" element={<EventReportPage />} />
             </Route>
 
             <Route element={<RoleProtectedRoute roles={['ADMIN']} />}>
@@ -152,6 +156,8 @@ export default function App() {
               <Route path="/admin/certificates" element={<AdminCertificates />} />
               <Route path="/admin/certificates/view/:certificateId" element={<CertificateView />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/reports" element={<ReportsPage />} />
+              <Route path="/admin/reports/event/:id" element={<EventReportPage />} />
               <Route path="/admin/notifications" element={<SystemNotifications />} />
               <Route path="/admin/audit-logs" element={<AuditLogs />} />
               <Route path="/admin/payments" element={<Payments />} />

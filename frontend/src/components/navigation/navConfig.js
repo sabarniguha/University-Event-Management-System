@@ -1,7 +1,6 @@
 import {
   Award, BarChart3, Bell, CalendarDays, CheckCircle2, ClipboardList, History, LayoutDashboard,
-  Megaphone, PlusCircle, QrCode, ScanLine, ScrollText, Search, Settings, ShieldCheck, Tag, Ticket, Trophy, User, UserCheck, UserCog, Users, Wallet,
-} from 'lucide-react';
+  Megaphone, PlusCircle, QrCode, ScanLine, ScrollText, Search, Settings, ShieldCheck, Tag, Ticket, Trophy, User, UserCheck, UserCog, Users, Wallet, FileText } from 'lucide-react';
 
 // One list per role. Every entry points at a real page (see App.jsx).
 export const NAV = {
@@ -30,6 +29,7 @@ export const NAV = {
     { to: '/organizer/scan', label: 'Scan Tickets (Camera)', icon: QrCode },
     { to: '/organizer/certificates', label: 'Certificates', icon: Award },
     { to: '/organizer/analytics', label: 'Analytics', icon: BarChart3 },
+    { to: '/organizer/reports', label: 'Reports (PDF)', icon: FileText },
     { to: '/announcements', label: 'Announcements', icon: Megaphone },
     { to: '/notifications', label: 'Notifications', icon: Bell },
     { to: '/profile', label: 'Profile', icon: User },
@@ -47,6 +47,7 @@ export const NAV = {
     { to: '/admin/scan', label: 'Scan Tickets', icon: QrCode },
     { to: '/admin/certificates', label: 'Certificates', icon: Award },
     { to: '/admin/analytics', label: 'Reports & Analytics', icon: BarChart3 },
+    { to: '/admin/reports', label: 'Reports (PDF)', icon: FileText },
     { to: '/announcements', label: 'Announcements', icon: Megaphone },
     { to: '/admin/notifications', label: 'System Notifications', icon: Bell },
     { to: '/admin/payments', label: 'Payments', icon: Wallet },

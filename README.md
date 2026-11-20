@@ -201,6 +201,15 @@ UniEvents is an installable web app. On Android/Chrome/Edge use **Install the ap
 - 2FA secrets are stored encrypted. Set `TWO_FACTOR_KEY` (any long random string) if you ever plan to rotate `JWT_SECRET`, otherwise rotating it makes enrolled admins use `admin:reset-2fa`.
 - Nothing changes for any account that has not turned 2FA on, apart from the lockout.
 
+## Reports and PDF export
+
+**Reports (PDF)** is in the Admin and Organiser menus. Pick **Monthly** or **Yearly**, a month and a year, then **Download PDF** and choose **Save as PDF** in the print window (it prints on A4 with colours, charts and images).
+
+- **Organisers** get a report for their own events only: key figures with change against the previous period, day-by-day or month-by-month charts, registrations by category and student department, most popular and best rated events, an all-events table, and (optionally) each event's full description. The server always limits an organiser to their own events, whatever the request says.
+- **Admins** get the whole platform, or one organiser from the Organiser drop-down, and in addition an organiser performance table, new and active accounts, and the approval pipeline.
+- **Event report** (button on every event for its organiser and for admins) is one event in full: banner, description, agenda, speakers, FAQ, registrations by status, who registered when, attendance and check-ins by hour, payments, certificates, teams, feedback (comments without names), sponsors, photos and the list of confirmed attendees.
+- Numbers are worked out from the live database and explained at the end of each report; a figure that cannot be calculated (for example attendance for an event that has not finished) shows a dash. Months and days are cut at Indian time (UTC+05:30); set `REPORT_TZ_OFFSET_MIN` to change that.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.
