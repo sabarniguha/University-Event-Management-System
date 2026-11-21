@@ -1,3 +1,4 @@
+import { QRCodeSVG } from 'qrcode.react';
 import { mediaUrl } from '../../services/api.js';
 
 // Small, print-safe building blocks for the reports. Plain SVG and CSS (no animation, no hover) so the
@@ -130,7 +131,8 @@ export function Table({ head, children, className = '' }) {
   );
 }
 
-export function Cover({ kicker, title, subtitle, lines }) {
+// seal: { code } - the report ID. The QR code opens the public check page for that ID.
+export function Cover({ kicker, title, subtitle, lines, seal }) {
   return (
     <header className="flex items-start justify-between gap-4 border-b-4 border-brand-600 pb-4">
       <div>
@@ -141,7 +143,20 @@ export function Cover({ kicker, title, subtitle, lines }) {
       <div className="shrink-0 text-right text-xs text-slate-500">
         <p className="text-base font-extrabold text-slate-900">UniEvents</p>
         {lines.map((l) => <p key={l}>{l}</p>)}
+        {seal?.code && (
+          <div className="mt-2 flex items-center justify-end gap-2">
+            <div><p className="font-semibold text-slate-700">Report ID</p><p className="font-mono text-[11px] text-slate-900">{seal.code}</p><p className="text-[10px]">Check it at /verify-report</p></div>
+            <QRCodeSVG value={`${window.location.origin}/verify-report?code=${seal.code}`} size={56} level="M" />
+          </div>
+        )}
       </div>
     </header>
   );
 }
+
+// A small heading used inside a section, for a block that sits beside another one.
+export function SubHead({ children }) {
+  return <h3 className="mb-2 border-b-2 border-brand-600 pb-1 text-sm font-bold uppercase tracking-wide text-slate-900">{children}</h3>;
+}
+
+export const Empty = ({ children = 'Nothing to show.' }) => <p className="rounded-lg bg-slate-50 p-4 text-center text-sm text-slate-400">{children}</p>;

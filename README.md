@@ -227,6 +227,18 @@ Privacy: the server always uses the signed-in student's own id (`GET /api/report
 
 Migration `20261121000000_gallery_student_photos` only adds two columns; existing photos stay approved.
 
+### Report extras (all three reports)
+
+**Everyone:** a **Custom range** (any from and to date, up to 5 years; compared with the equal-length period before it), **Download CSV** next to Download PDF (built in the browser from what is on screen), and a **Report ID with a QR code** on every cover. Anyone can check an ID at `/verify-report` (linked in the footer); it shows who the report was for, what it covered, when it was first issued, and the headline figures at that time. The ID is a keyed hash of those figures (`REPORT_SEAL_KEY`, falling back to `JWT_SECRET`), so a report with edited numbers matches no ID. Only headline numbers are stored (`ReportSeal` table), never student lists.
+
+**Admin and organiser reports** (organisers see only their own events) gain: students by department, cancellations and no-shows by category, full events and waitlists, busiest days and times, returning students, when students registered, feedback themes and lowest-rated events with reasons, certificates issued vs attended, and photo counts per event. Admin-only: revenue and refunds by organiser, event approval turnaround, and student accounts not used for 90 days.
+
+**Event report:** comparison with the organiser's earlier events, returning vs new attendees, registration timing, feedback words, certificates still to issue. Organisers and admins can edit photo captions in *Photos and sponsors*.
+
+**Student report:** goal tracker (points to the next level, nearest badges), month streaks and best month, skills and interests, suggested upcoming events, hours at events. A new **Activity Transcript** page (`/student/transcript`) gives a formal one-document list of attended events, hours and certificate IDs with a verifiable Report ID.
+
+Nothing is estimated: a figure that cannot be worked out shows a dash. Migration `20261122000000_report_seals` adds one table.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.

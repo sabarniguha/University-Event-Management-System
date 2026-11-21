@@ -25,6 +25,10 @@ export default function EventGallery() {
   const approve = async (assetId) => {
     try { await api.patch(`/gallery/${assetId}/approve`); reload(); toast.success('Photo approved'); } catch (e) { toast.error(errMsg(e)); }
   };
+  const saveCaption = async (assetId, title, old) => {
+    if ((title || '') === (old || '')) return;
+    try { await api.patch(`/gallery/${assetId}/caption`, { title }); toast.success('Caption saved'); reload(); } catch (e) { toast.error(errMsg(e)); }
+  };
   const remove = async (assetId) => {
     try { await api.delete(`/gallery/${assetId}`); reload(); } catch (e) { toast.error(errMsg(e)); }
   };
@@ -40,11 +44,14 @@ export default function EventGallery() {
             <ImageUpload label="New photo" value={photo} onChange={(v) => { setPhoto(v); if (v) add({ kind: 'PHOTO', url: v }, () => setPhoto('')); }} />
             <div className="grid grid-cols-3 gap-2">
               {(data?.photos || []).map((p) => (
-                <div key={p.id} className="relative">
-                  <img src={mediaUrl(p.url)} alt="" className="h-24 w-full rounded-lg object-cover" />
-                  {p.by && <span className="absolute bottom-1 left-1 rounded bg-slate-900/70 px-1.5 py-0.5 text-[10px] text-white">{p.by}</span>}
-                  {!p.approved && <button type="button" className="absolute left-1 top-1 flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white" onClick={() => approve(p.id)} aria-label="Approve photo"><Check className="h-3 w-3" /> Approve</button>}
-                  <button type="button" className="absolute right-1 top-1 rounded-full bg-slate-900/70 p-1 text-white" onClick={() => remove(p.id)} aria-label="Delete photo"><Trash2 className="h-3.5 w-3.5" /></button>
+                <div key={p.id}>
+                  <div className="relative">
+                    <img src={mediaUrl(p.url)} alt="" className="h-24 w-full rounded-lg object-cover" />
+                    {p.by && <span className="absolute bottom-1 left-1 rounded bg-slate-900/70 px-1.5 py-0.5 text-[10px] text-white">{p.by}</span>}
+                    {!p.approved && <button type="button" className="absolute left-1 top-1 flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white" onClick={() => approve(p.id)} aria-label="Approve photo"><Check className="h-3 w-3" /> Approve</button>}
+                    <button type="button" className="absolute right-1 top-1 rounded-full bg-slate-900/70 p-1 text-white" onClick={() => remove(p.id)} aria-label="Delete photo"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                  <input className="input mt-1 !py-1 text-xs" defaultValue={p.title || ''} maxLength={100} placeholder="Add a caption" aria-label="Photo caption" onBlur={(e) => saveCaption(p.id, e.target.value, p.title)} />
                 </div>
               ))}
             </div>

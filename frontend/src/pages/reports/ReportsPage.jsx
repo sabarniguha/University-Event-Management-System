@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Printer } from 'lucide-react';
+import { Download, Printer } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ErrorBox, Loader, PageHeader } from '../../components/common/Ui.jsx';
+import ReportInsights, { summaryCsvBlocks } from '../../components/reports/ReportInsights.jsx';
+import { downloadCsv } from '../../utils/csvDownload.js';
 import PhotoGrid from '../../components/reports/PhotoGrid.jsx';
 import usePrintPage from '../../components/reports/usePrintPage.js';
 import { Banner, BarList, ColumnChart, Cover, Donut, Figure, Section, Table, num, pc, rupees, stars } from '../../components/reports/ReportParts.jsx';
@@ -35,25 +37,29 @@ export default function ReportsPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [organizerId, setOrganizerId] = useState('');
   const [details, setDetails] = useState(true);
+  const [from, setFrom] = useState(`${now.getFullYear()}-01-01`);
+  const [to, setTo] = useState(now.toISOString().slice(0, 10));
 
-  const params = useMemo(() => ({ type, year, month, ...(isAdmin && organizerId ? { organizerId } : {}), details: details ? '1' : '0' }), [type, year, month, organizerId, details, isAdmin]);
+  const params = useMemo(() => ({ type, year, month, ...(type === 'range' ? { from, to } : {}), ...(isAdmin && organizerId ? { organizerId } : {}), details: details ? '1' : '0' }), [type, year, month, from, to, organizerId, details, isAdmin]);
   const { data: d, loading, error } = useFetch('/reports/summary', params);
-  const fileName = `UniEvents-${isAdmin ? 'Platform' : 'Organiser'}-Report-${type === 'year' ? year : `${year}-${String(month).padStart(2, '0')}`}`;
+  const fileName = `UniEvents-${isAdmin ? 'Platform' : 'Organiser'}-Report-${type === 'range' ? `${from}_to_${to}` : type === 'year' ? year : `${year}-${String(month).padStart(2, '0')}`}`;
   const print = usePrintPage(fileName);
   const years = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i);
 
   const toolbar = (
     <div className="card flex flex-wrap items-end gap-3 print:hidden">
-      <div><label className="label" htmlFor="rp-type">Report</label><select id="rp-type" className="input" value={type} onChange={(e) => setType(e.target.value)}><option value="month">Monthly</option><option value="year">Yearly</option></select></div>
+      <div><label className="label" htmlFor="rp-type">Report</label><select id="rp-type" className="input" value={type} onChange={(e) => setType(e.target.value)}><option value="month">Monthly</option><option value="year">Yearly</option><option value="range">Custom range</option></select></div>
       {type === 'month' && <div><label className="label" htmlFor="rp-m">Month</label><select id="rp-m" className="input" value={month} onChange={(e) => setMonth(Number(e.target.value))}>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select></div>}
-      <div><label className="label" htmlFor="rp-y">Year</label><select id="rp-y" className="input" value={year} onChange={(e) => setYear(Number(e.target.value))}>{years.map((y) => <option key={y}>{y}</option>)}</select></div>
+      {type !== 'range' && <div><label className="label" htmlFor="rp-y">Year</label><select id="rp-y" className="input" value={year} onChange={(e) => setYear(Number(e.target.value))}>{years.map((y) => <option key={y}>{y}</option>)}</select></div>}
+      {type === 'range' && <><div><label className="label" htmlFor="rp-f">From</label><input id="rp-f" type="date" className="input" value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} /></div><div><label className="label" htmlFor="rp-t">To</label><input id="rp-t" type="date" className="input" value={to} min={from} onChange={(e) => e.target.value && setTo(e.target.value)} /></div></>}
       {isAdmin && d?.organiserOptions && (
         <div><label className="label" htmlFor="rp-o">Organiser</label>
           <select id="rp-o" className="input" value={organizerId} onChange={(e) => setOrganizerId(e.target.value)}><option value="">All (whole platform)</option>{d.organiserOptions.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
         </div>
       )}
       <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} /> Include event descriptions</label>
-      <button className="btn-primary ml-auto" onClick={print} disabled={!d}><Printer className="h-4 w-4" /> Download PDF</button>
+      <button className="btn-outline ml-auto" onClick={() => downloadCsv(fileName, summaryCsvBlocks(d, isAdmin))} disabled={!d}><Download className="h-4 w-4" /> Download CSV</button>
+      <button className="btn-primary" onClick={print} disabled={!d}><Printer className="h-4 w-4" /> Download PDF</button>
       <p className="basis-full text-xs text-slate-500">Click Download PDF, then choose <b>Save as PDF</b> as the destination in the print window.</p>
     </div>
   );
@@ -71,6 +77,7 @@ export default function ReportsPage() {
 function Document({ d, isAdmin }) {
   const { kpis: k, meta, previous: p } = d;
   const yearly = meta.period.type === 'year';
+  const ranged = meta.period.type === 'range';
   const ch = (key) => p[key]?.change;
   const scopeLine = meta.scope === 'platform' ? 'Platform-wide report' : `Organiser: ${meta.organiserName}`;
   const showOrganiser = isAdmin && meta.scope === 'platform';
@@ -79,10 +86,11 @@ function Document({ d, isAdmin }) {
   return (
     <article className="report-doc card mx-auto w-full max-w-[210mm] bg-white p-6 sm:p-8">
       <Cover
-        kicker={yearly ? 'Annual event report' : 'Monthly event report'}
+        kicker={yearly ? 'Annual event report' : ranged ? 'Event report for a date range' : 'Monthly event report'}
         title={meta.period.label}
         subtitle={scopeLine}
         lines={[`Generated ${fmtDate(meta.generatedAt)}`, `By ${meta.generatedBy.name} (${ROLE[meta.generatedBy.role]})`, `Times shown in ${meta.timezone}`]}
+        seal={d.seal}
       />
 
       <Section title="Summary">
@@ -103,7 +111,7 @@ function Document({ d, isAdmin }) {
         </div>
       </Section>
 
-      <Section title={yearly ? 'Month by month' : 'Day by day'} note="Registrations and attendance are counted on the day or month the event started.">
+      <Section title={yearly ? 'Month by month' : ranged ? 'Over the period' : 'Day by day'} note="Registrations and attendance are counted on the day or month the event started.">
         <ColumnChart data={d.timeline} series={[{ key: 'registrations', name: 'Confirmed registrations' }, { key: 'attended', name: 'Attended' }]} />
         {yearly && (
           <Table head={['Month', 'Events', 'Registrations', 'Attended', 'Revenue']} className="mt-3">
@@ -144,10 +152,10 @@ function Document({ d, isAdmin }) {
 
       <Section title="All events" note={`${num(d.events.length)} published event(s) that started in ${meta.period.label}.`}>
         {d.events.length === 0 ? <p className="rounded-lg bg-slate-50 p-4 text-center text-sm text-slate-400">No events in this period.</p> : (
-          <Table head={['Date', 'Event', 'Category', ...(showOrganiser ? ['Organiser'] : []), 'Seats', 'Reg.', 'Wait', 'Att.', 'Att. %', 'Rating', 'Revenue']}>
+          <Table head={['Date', 'Event', 'Category', ...(showOrganiser ? ['Organiser'] : []), 'Seats', 'Reg.', 'Wait', 'Att.', 'Att. %', 'Rating', 'Revenue', 'Photos']}>
             {d.events.map((e) => (
               <tr key={e.id}><td className="whitespace-nowrap">{new Date(e.startsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</td><td className="font-medium text-slate-900">{e.title}</td><td>{e.category}</td>{showOrganiser && <td>{e.organizer}</td>}
-                <td>{num(e.capacity)}</td><td>{num(e.registered)}</td><td>{num(e.waitlisted)}</td><td>{num(e.attended)}</td><td>{pc(e.attendanceRate)}</td><td>{e.rating ?? '-'}</td><td>{e.revenue > 0 ? rupees(e.revenue) : e.fee > 0 ? '₹0' : 'Free'}</td></tr>
+                <td>{num(e.capacity)}</td><td>{num(e.registered)}</td><td>{num(e.waitlisted)}</td><td>{num(e.attended)}</td><td>{pc(e.attendanceRate)}</td><td>{e.rating ?? '-'}</td><td>{e.revenue > 0 ? rupees(e.revenue) : e.fee > 0 ? '₹0' : 'Free'}</td><td>{num(e.photos)}</td></tr>
             ))}
           </Table>
         )}
@@ -175,6 +183,8 @@ function Document({ d, isAdmin }) {
           <PhotoGrid items={d.gallery.items} />
         </Section>
       )}
+
+      <ReportInsights d={d} isAdmin={isAdmin} />
 
       <Section title="Event pipeline" note="All events that start in this period, whatever their status.">
         <Table head={['Published', 'Pending approval', 'Draft', 'Rejected', 'Cancelled']}>
