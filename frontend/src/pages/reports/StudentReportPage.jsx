@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Printer } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
 import { ErrorBox, Loader, PageHeader } from '../../components/common/Ui.jsx';
+import PhotoGrid from '../../components/reports/PhotoGrid.jsx';
 import usePrintPage from '../../components/reports/usePrintPage.js';
 import { BarList, ColumnChart, Cover, Donut, Figure, Section, Table, num, pc, rupees, stars } from '../../components/reports/ReportParts.jsx';
 import { MODE_LABEL, fmtDate } from '../../utils/format.js';
@@ -127,6 +128,13 @@ function Document({ d }) {
           </Table>
         )}
       </Section>
+
+      {(d.gallery.mine.length > 0 || d.gallery.items.length > 0) && (
+        <Section title="Photos" note="Photos from events you attended, and the ones you added yourself.">
+          {d.gallery.mine.length > 0 && <><h3 className="mb-1 text-xs font-semibold text-slate-700">Added by you</h3><PhotoGrid items={d.gallery.mine.map((p) => ({ ...p, by: 'you' }))} /></>}
+          {d.gallery.items.length > 0 && <><h3 className="mb-1 mt-3 text-xs font-semibold text-slate-700">From events you attended</h3><PhotoGrid items={d.gallery.items} /></>}
+        </Section>
+      )}
 
       {certs.length > 0 && (
         <Section title="Certificates" note="Each can be verified by anyone on the Verify page using its ID.">

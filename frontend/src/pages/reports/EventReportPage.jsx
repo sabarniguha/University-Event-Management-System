@@ -3,6 +3,7 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ErrorBox, Loader, PageHeader } from '../../components/common/Ui.jsx';
+import PhotoGrid from '../../components/reports/PhotoGrid.jsx';
 import usePrintPage from '../../components/reports/usePrintPage.js';
 import { Banner, BarList, ColumnChart, Cover, Donut, Figure, Section, Table, num, pc, rupees, stars } from '../../components/reports/ReportParts.jsx';
 import { mediaUrl } from '../../services/api.js';
@@ -124,7 +125,7 @@ function Document({ d }) {
         <Section title="Sponsors"><div className="flex flex-wrap items-center gap-6">{d.sponsors.map((s) => <img key={s.url} src={mediaUrl(s.url)} alt={s.title} title={s.title} className="h-10 max-w-[8rem] object-contain" />)}</div></Section>
       )}
       {d.photos.length > 0 && (
-        <Section title="Photos"><div className="grid grid-cols-3 gap-2 print:grid-cols-3">{d.photos.map((p) => <img key={p.url} src={mediaUrl(p.url)} alt={p.title || ''} className="report-block h-28 w-full rounded-lg object-cover" />)}</div></Section>
+        <Section title="Photos" note={`${num(d.photoCounts.approved)} approved photo(s)${d.photoCounts.pending ? `; ${num(d.photoCounts.pending)} more waiting for approval are not shown` : ''}.`}><PhotoGrid items={d.photos} /></Section>
       )}
 
       <Section title="Confirmed attendees" className="report-break" note={d.attendeesTotal > d.attendees.length ? `Showing the first ${d.attendees.length} of ${d.attendeesTotal}.` : `${num(d.attendeesTotal)} student(s).`}>

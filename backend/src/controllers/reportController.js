@@ -80,6 +80,7 @@ const summary = asyncHandler(async (req, res) => {
     ...out,
     previous: m.compare(out.kpis, prev.kpis),
     pipeline: Object.fromEntries(pipeline.map((p) => [p.status, p._count._all])),
+    gallery: await galleryFor({ status: 'PUBLISHED', startsAt: { gte: from, lt: to }, ...scope }),
   };
 
   if (isAdmin) {
@@ -98,6 +99,19 @@ const summary = asyncHandler(async (req, res) => {
   }
   res.json(result);
 });
+
+// Approved photos of the events in view, for the picture page of a report.
+async function galleryFor(eventWhere, extra = {}) {
+  const rows = await prisma.eventAsset.findMany({
+    where: { kind: 'PHOTO', approved: true, event: eventWhere, ...extra }, orderBy: { id: 'desc' }, take: 200,
+    select: { url: true, uploaderRole: true, event: { select: { id: true, title: true } } },
+  });
+  const label = (role) => (role === 'STUDENT' ? 'Student' : role === 'ADMIN' ? 'Admin' : 'Organiser');
+  const perEvent = new Map();
+  const items = [];
+  rows.forEach((p) => { const n = perEvent.get(p.event.id) || 0; if (n < 3 && items.length < 12) { perEvent.set(p.event.id, n + 1); items.push({ url: p.url, event: p.event.title, by: label(p.uploaderRole) }); } });
+  return { total: rows.length, byStudents: rows.filter((p) => p.uploaderRole === 'STUDENT').length, items };
+}
 
 // GET /api/reports/event/:id - everything about one event. Admin: any event. Organiser: their own only.
 const eventReport = asyncHandler(async (req, res) => {
@@ -166,7 +180,8 @@ const eventReport = asyncHandler(async (req, res) => {
     },
     departments: [...dept.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count).slice(0, 10),
     registrationTrend, checkInByHour,
-    photos: assets.filter((a) => a.kind === 'PHOTO').slice(0, 12).map((a) => ({ url: a.url, title: a.title })),
+    photos: assets.filter((a) => a.kind === 'PHOTO' && a.approved).slice(0, 12).map((a) => ({ url: a.url, title: a.title, by: a.uploaderRole === 'STUDENT' ? 'Student' : a.uploaderRole === 'ADMIN' ? 'Admin' : 'Organiser' })),
+    photoCounts: { approved: assets.filter((a) => a.kind === 'PHOTO' && a.approved).length, pending: assets.filter((a) => a.kind === 'PHOTO' && !a.approved).length },
     sponsors: assets.filter((a) => a.kind === 'SPONSOR').map((a) => ({ url: a.url, title: a.title })),
     attendees: confirmed.slice(0, 500).map((r) => ({ name: r.user.name, studentId: r.user.studentId, department: r.user.department, attended: r.attendance?.status === 'PRESENT' ? 'Present' : r.attendance?.status === 'ABSENT' ? 'Absent' : (ended ? 'Not marked' : '') })),
     attendeesTotal: confirmed.length,
@@ -206,6 +221,16 @@ async function loadStudentPeriod(userId, period) {
 }
 
 // GET /api/reports/student?type=month|year|all - a student's own performance. Only ever their own records.
+// Photos from events the student attended, plus the photos they uploaded themselves (pending ones are labelled).
+async function studentGallery(userId, range) {
+  const where = { status: 'PUBLISHED', ...range };
+  const [shared, mine] = await Promise.all([
+    galleryFor({ ...where, registrations: { some: { userId, status: 'REGISTERED', attendance: { is: { status: 'PRESENT' } } } } }),
+    prisma.eventAsset.findMany({ where: { kind: 'PHOTO', uploadedById: userId, uploaderRole: 'STUDENT', event: where }, orderBy: { id: 'desc' }, take: 20, select: { url: true, approved: true, event: { select: { title: true } } } }),
+  ]);
+  return { items: shared.items, mine: mine.map((p) => ({ url: p.url, event: p.event.title, approved: p.approved })) };
+}
+
 const studentReport = asyncHandler(async (req, res) => {
   const q = studentQuery.parse(req.query);
   const nowLocal = m.local(new Date(), m.tzOffset());
@@ -240,6 +265,7 @@ const studentReport = asyncHandler(async (req, res) => {
     student: { name: profile.name, email: profile.email, studentId: profile.studentId, department: profile.department, memberSince: profile.createdAt },
     ...out, previous,
     campus: { attendanceRate: m.pct(campusPresent, campusFinished) },
+    gallery: await studentGallery(req.user.id, q.type === 'all' ? {} : (({ from, to }) => ({ startsAt: { gte: from, lt: to } }))(m.periodRange(period))),
     standing: { points, level: levelOf(points), rank: points > 0 ? ahead + 1 : null, ranked: [...tally.values()].filter((s) => pointsOf(s) > 0).length, stats: mine, badges: badgesOf(mine) },
   });
 });
