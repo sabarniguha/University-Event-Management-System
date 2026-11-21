@@ -1,15 +1,27 @@
 import { useState } from 'react';
-import { Heart, X } from 'lucide-react';
+import { Heart, Trash2, X } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
-import { mediaUrl } from '../../services/api.js';
+import api, { mediaUrl } from '../../services/api.js';
+import { useToast } from '../../context/ToastContext.jsx';
+import ImageUpload from '../forms/ImageUpload.jsx';
+import { errMsg } from '../../utils/format.js';
 
 // Sponsors strip and photo gallery for an event page. Renders nothing when the organiser added none.
 export default function GalleryStrip({ eventId }) {
-  const { data } = useFetch(`/gallery/event/${eventId}`);
+  const { data, reload } = useFetch(`/gallery/event/${eventId}`);
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const up = data?.upload;
+  const addMine = async (url) => {
+    if (!url) return;
+    setBusy(true);
+    try { await api.post(`/gallery/event/${eventId}/mine`, { url }); toast.success('Thanks! Your photo will appear once the organiser approves it.'); reload(); } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
+  };
+  const removeMine = async (id) => { try { await api.delete(`/gallery/mine/${id}`); reload(); } catch (e) { toast.error(errMsg(e)); } };
   const [open, setOpen] = useState(null);
   const sponsors = data?.sponsors || [];
   const photos = data?.photos || [];
-  if (sponsors.length === 0 && photos.length === 0) return null;
+  if (sponsors.length === 0 && photos.length === 0 && !up?.allowed) return null;
 
   return (
     <>
@@ -24,16 +36,27 @@ export default function GalleryStrip({ eventId }) {
           </ul>
         </section>
       )}
-      {photos.length > 0 && (
+      {(photos.length > 0 || up?.allowed) && (
         <section className="card">
           <h2 className="mb-3 font-semibold text-slate-900">Photos</h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {photos.map((p) => (
-              <button key={p.id} type="button" onClick={() => setOpen(p)} className="overflow-hidden rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500">
-                <img src={mediaUrl(p.url)} alt={p.title || 'Event photo'} className="h-32 w-full object-cover transition hover:scale-105" loading="lazy" />
-              </button>
+              <div key={p.id} className="relative">
+                <button type="button" onClick={() => setOpen(p)} className="block w-full overflow-hidden rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500">
+                  <img src={mediaUrl(p.url)} alt={p.title || 'Event photo'} className="h-32 w-full object-cover transition hover:scale-105" loading="lazy" />
+                </button>
+                {p.by === 'Student' && <span className="absolute bottom-1 left-1 rounded bg-slate-900/70 px-1.5 py-0.5 text-[10px] text-white">Student photo</span>}
+                {!p.approved && <span className="absolute left-1 top-1 rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-medium text-white">Waiting for approval</span>}
+                {p.mine && <button type="button" className="absolute right-1 top-1 rounded-full bg-slate-900/70 p-1 text-white" onClick={() => removeMine(p.id)} aria-label="Delete my photo"><Trash2 className="h-3.5 w-3.5" /></button>}
+              </div>
             ))}
           </div>
+          {up?.allowed && (
+            <div className="mt-4 border-t border-slate-100 pt-3">
+              <p className="mb-2 text-xs text-slate-500">You were at this event. Add a photo ({up.used} of {up.limit} used). The organiser approves it before everyone sees it.</p>
+              {!busy && <ImageUpload label="Add your photo" value="" onChange={addMine} />}
+            </div>
+          )}
         </section>
       )}
       {open && (

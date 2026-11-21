@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
+import { Check, Trash2 } from 'lucide-react';
 import api, { mediaUrl } from '../../services/api.js';
 import useFetch from '../../hooks/useFetch.js';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -22,6 +22,9 @@ export default function EventGallery() {
     setBusy(true);
     try { await api.post(`/gallery/event/${id}`, body); done(); reload(); toast.success('Added'); } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
   };
+  const approve = async (assetId) => {
+    try { await api.patch(`/gallery/${assetId}/approve`); reload(); toast.success('Photo approved'); } catch (e) { toast.error(errMsg(e)); }
+  };
   const remove = async (assetId) => {
     try { await api.delete(`/gallery/${assetId}`); reload(); } catch (e) { toast.error(errMsg(e)); }
   };
@@ -33,12 +36,14 @@ export default function EventGallery() {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="card space-y-3">
             <h2 className="font-semibold text-slate-900">Photos</h2>
-            <p className="text-xs text-slate-500">Upload photos from the event, up to 40.</p>
+            <p className="text-xs text-slate-500">Upload photos from the event, up to 40. Photos added by students show a green Approve button and stay hidden from the public until you approve them. Use the bin to reject one.</p>
             <ImageUpload label="New photo" value={photo} onChange={(v) => { setPhoto(v); if (v) add({ kind: 'PHOTO', url: v }, () => setPhoto('')); }} />
             <div className="grid grid-cols-3 gap-2">
               {(data?.photos || []).map((p) => (
                 <div key={p.id} className="relative">
                   <img src={mediaUrl(p.url)} alt="" className="h-24 w-full rounded-lg object-cover" />
+                  {p.by && <span className="absolute bottom-1 left-1 rounded bg-slate-900/70 px-1.5 py-0.5 text-[10px] text-white">{p.by}</span>}
+                  {!p.approved && <button type="button" className="absolute left-1 top-1 flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white" onClick={() => approve(p.id)} aria-label="Approve photo"><Check className="h-3 w-3" /> Approve</button>}
                   <button type="button" className="absolute right-1 top-1 rounded-full bg-slate-900/70 p-1 text-white" onClick={() => remove(p.id)} aria-label="Delete photo"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               ))}

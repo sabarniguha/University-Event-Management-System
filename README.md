@@ -218,6 +218,15 @@ It shows events joined and attended, attendance rate next to the campus average,
 
 Privacy: the server always uses the signed-in student's own id (`GET /api/reports/student`, STUDENT role only), so nobody else's data can be requested. The campus average is one aggregate number and names no one.
 
+### Event photos from students, organisers and admins
+
+- **Students** who were marked present at a finished event see an **Add your photo** box under the event's Photos (up to 5 each). Their photos are hidden from everyone else until the organiser (or an admin) clicks **Approve** in *Photos and sponsors*; the organiser can also reject one with the bin. Students can delete their own photos.
+- **Organisers and admins** upload as before and their photos are public at once.
+- Photos are credited by role only (Student, Organiser, Admin), never by name.
+- **In the PDF reports:** the event report shows approved photos with the event's sponsors; the monthly/yearly admin and organiser reports get an *Event photos* page (up to three per event); the student report shows the student's own uploads and photos from events they attended. Unapproved photos never appear in the admin or organiser PDFs.
+
+Migration `20261121000000_gallery_student_photos` only adds two columns; existing photos stay approved.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.

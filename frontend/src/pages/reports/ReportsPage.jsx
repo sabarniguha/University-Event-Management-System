@@ -4,6 +4,7 @@ import { Printer } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ErrorBox, Loader, PageHeader } from '../../components/common/Ui.jsx';
+import PhotoGrid from '../../components/reports/PhotoGrid.jsx';
 import usePrintPage from '../../components/reports/usePrintPage.js';
 import { Banner, BarList, ColumnChart, Cover, Donut, Figure, Section, Table, num, pc, rupees, stars } from '../../components/reports/ReportParts.jsx';
 import { MODE_LABEL, fmtDay, fmtDate } from '../../utils/format.js';
@@ -166,6 +167,12 @@ function Document({ d, isAdmin }) {
             <tr><td>New accounts in {meta.period.label}</td><td>{num(d.platform.newUsers.STUDENT || 0)}</td><td>{num(d.platform.newUsers.ORGANIZER || 0)}</td><td>{num(d.platform.newUsers.ADMIN || 0)}</td></tr>
             <tr><td>Active accounts today</td><td>{num(d.platform.activeUsers.STUDENT || 0)}</td><td>{num(d.platform.activeUsers.ORGANIZER || 0)}</td><td>{num(d.platform.activeUsers.ADMIN || 0)}</td></tr>
           </Table>
+        </Section>
+      )}
+
+      {d.gallery?.items.length > 0 && (
+        <Section title="Event photos" note={`${num(d.gallery.total)} approved photo(s) from these events, ${num(d.gallery.byStudents)} added by students. Up to three per event are shown.`}>
+          <PhotoGrid items={d.gallery.items} />
         </Section>
       )}
 

@@ -505,6 +505,9 @@ model EventAsset {
   link         String?
   position     Int      @default(0)
   uploadedById Int?
+  // Student photos start unapproved; organiser/admin photos are approved at once.
+  approved     Boolean  @default(true)
+  uploaderRole String?
   createdAt    DateTime @default(now())
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
