@@ -1,44 +1,224 @@
 # UniEvents - campus event platform
 
 **Discover. Connect. Experience Campus Life.**
-One repository, one deployable app: an **Express + Prisma (PostgreSQL)** REST API and a **React (Vite + Tailwind)** UI with
-framer-motion animations, Lucide icons and Recharts analytics. In production Express also serves the built React app, so you deploy a single service
-(or put the frontend on Vercel and the API on Render - see below).
 
-No paid service or API key is needed to run it. Email is optional.
+UniEvents is a complete college event-management web app. Students find and join events and keep QR tickets and certificates. Organisers create events, take attendance and see how they did. Admins approve events, manage people and see the whole platform. Everyone gets exportable PDF reports and, optionally, an AI assistant.
 
-## What is in it
+One repository, one deployable app: an **Express 4 + Prisma 5 (PostgreSQL)** REST API and a **React 18 (Vite + Tailwind 3)** interface. In production Express also serves the built React app, so you deploy a single service (or put the frontend on Vercel and the API on Render).
 
-| Area | Features |
+Live demo: https://university-event-management-system-3.onrender.com/
+
+**No paid service or API key is needed to launch it.** Email, online payments, image hosting and the AI assistant each switch on only when their keys are set.
+
+---
+
+## Contents
+
+1. [Features at a glance](#features-at-a-glance)
+2. [Features in detail](#features-in-detail)
+3. [Reports and PDF export](#reports-and-pdf-export)
+4. [AI assistant](#ai-assistant-optional-groq)
+5. [Tech stack and architecture](#tech-stack-and-architecture)
+6. [Folder structure](#folder-structure)
+7. [Data model and migrations](#data-model-and-migrations)
+8. [Run locally](#run-locally)
+9. [Environment variables](#environment-variables)
+10. [Deploy on Render](#deploy-on-render-single-service-recommended)
+11. [Deploy the frontend on Vercel](#deploy-the-frontend-on-vercel-optional)
+12. [API overview](#api-overview)
+13. [Security and privacy](#security-and-privacy)
+14. [Testing](#testing)
+15. [Before you go live](#before-you-go-live)
+16. [Troubleshooting](#troubleshooting)
+17. [Limits and honest notes](#limits-and-honest-notes)
+
+---
+
+## Features at a glance
+
+| Area | What is in it |
 |---|---|
-| Public site | Home (live stats, featured / upcoming / popular / recent events, categories, FAQ, newsletter), Explore (search, category / date / department / type / online-offline / free-paid filters, sorting, pagination), Categories, Event detail (agenda, speakers, team, eligibility, FAQs, related events), About, Contact, certificate verification |
-| Auth | Student sign-up, role-specific logins (`/login/student`, `/login/organizer`, `/login/admin`), JWT, session restore, forgot / reset password, email-verification flow, change password, profile with photo upload, organiser-access requests approved by admins |
-| Student | Overview, Discover, My Registrations (cancel, waitlist, pending), My Tickets (QR), Attendance History, Certificates (view, download PDF), Notifications, Profile, Settings (theme, reminders) |
-| Organiser | Overview, My Events (draft / pending / published / completed / rejected), Create/Edit Event (cover image, mode, meeting link, deadline, capacity, fee, eligibility, department restriction, agenda, speakers, team, FAQs, terms), Manage Registrations (search, filter, approve / decline, CSV), Attendee Management, **QR attendance scanner** (camera / USB scanner / paste, duplicate scans rejected), Certificates (templates, bulk issue, revoke), Analytics |
-| Admin | Overview, User / Student / Organiser management (activate, role, password reset, delete), Event management (feature, edit, delete), **Event approvals** (approve / reject with reason), Category CRUD, Attendance monitoring, Certificates, Reports & analytics (+ CSV), System notifications (broadcast), Audit logs, Platform settings, contact inbox |
-| Platform | Light / dark mode, responsive layout, skeleton loaders, empty states, toasts, confirm dialogs, animated page transitions, rate limiting, zod validation, helmet, CORS, 24-hour reminder job |
+| Public site | Home (live stats, featured / upcoming / popular / recent events, categories, FAQ, newsletter), Explore (search; category, date, department, type, online/offline and free/paid filters; sorting; pagination), Categories, Event detail (agenda, speakers, team, eligibility, FAQs, related events, photos, sponsors), About, Contact, certificate / ticket / report verification |
+| Accounts | Student sign-up, separate logins (`/login/student`, `/login/organizer`, `/login/admin`), JWT sessions, forgot / reset password, email verification, change password, profile photo, organiser-access requests approved by admins |
+| Student | Overview with recommendations, Discover, My Registrations (cancel, waitlist, pending), My Tickets (QR, works offline), Attendance History, My Payments, Certificates (PDF), Points and Badges, My Report (PDF), Activity Transcript, Notifications, Profile, Settings |
+| Organiser | Overview, My Events (draft / pending / published / completed / rejected), Create / Edit Event, Manage Registrations, Attendee Management, QR scanner (camera, USB or paste), Payments, Certificates, Analytics, Reports (PDF), per-event Teams, Survey, Photos and sponsors |
+| Admin | Overview, User / Student / Organiser management, Event management, Event Approvals, Categories, Attendance monitoring, Certificates, Reports and Analytics, Reports (PDF), Announcements, System notifications, Payments, Audit logs, Platform settings (two-factor sign-in, bulk import), contact inbox |
+| Platform | Light / dark mode, responsive layout, skeleton loaders, toasts, confirm dialogs, installable PWA, rate limiting, zod validation, Helmet, CORS, 24-hour reminder job |
+
+---
+
+## Features in detail
+
+### Events and registration
+- Organisers create events with cover image, mode (in person / online / hybrid), meeting link, deadline, capacity, fee, eligibility, department restriction, agenda, speakers, FAQs and terms. Events go to an admin for approval before they are published.
+- **Registration link and strict deadline:** organisers can paste a Google Form link. The event page shows the exact deadline with a live countdown; once it passes, the button disappears and the server refuses in-app registration. A deadline is required whenever a link is added.
+- **Waitlist:** a full event puts students on a waitlist; a freed seat is offered automatically.
+- **Approval plus payment:** for a paid event with manual approval, the student requests (PENDING), the organiser approves (AWAITING_PAYMENT, student notified), the student pays and becomes REGISTERED with a QR ticket. A late approval can still be paid after the deadline; if the event filled meanwhile the payment is refunded automatically.
+- **Add to calendar:** every published event has an `.ics` download (Google, Apple, Outlook).
+
+### Tickets, attendance and certificates
+- **QR tickets** for every confirmed registration. Anyone can verify a ticket code at `/verify-ticket` (shows the event, status and an abbreviated holder name only).
+- **Attendance:** QR scanner (camera, USB scanner or paste), per-event attendance pages, bulk marking. One attendance record per registration (database unique constraint), so duplicate scans are rejected. Camera scanning is at `/organizer/scan` and `/admin/scan` and needs HTTPS and camera permission (built-in detector where available, `jsqr` elsewhere).
+- **Certificates:** organisers and admins open an event's Certificates page and generate them (to students marked present, or everyone who registered). Each has a unique ID, appears in the student's Certificates page, notifications and email, and can be verified by anyone at `/verify`. Certificates can be revoked.
+- Certificate and ticket pages show a clearly marked **sample** so people see what they will get; samples never verify as real.
+
+### Teams
+Organisers set **Minimum / Maximum members** (both 1 = a normal solo event). A student registers, then creates a team or joins one with its 6-character code. Each member registers (and pays) separately; one team per student per event; the leader can remove members or disband. Organisers and admins see all teams under Registrations -> Teams and can download a CSV.
+
+### Surveys
+On any event, organisers and admins add their own questions (short answer, multiple choice, yes/no, 1-5 rating), asked **after registering** (t-shirt size, diet) or **after the event** (feedback). Students answer in a "Questions from the organiser" box and can edit answers. Export answers as CSV, one row per student. Registration questions never block registering.
+
+### Recommended for you
+The student dashboard shows up to three upcoming events they have not joined, ranked by department, the categories they registered for or attended, how full the event is and how soon it starts. Each card says why it was suggested. Computed on request from real data; nothing is stored.
+
+### Gallery, sponsors and student photos
+- Organisers and admins upload gallery photos (up to 40) and sponsor logos with an optional website (up to 12) under **Photos and sponsors**. They appear on the public event page as a photo grid with a full-size viewer and an "Our sponsors" strip. Photo captions are editable.
+- **Students** who were marked present at a finished event see an **Add your photo** box under the event's Photos (up to 5 each). Their photos stay hidden from everyone else until the organiser or an admin clicks **Approve**; the organiser can reject one with the bin, and students can delete their own.
+- Photos are credited by role only (Student, Organiser, Admin), never by name. Uploads share the banner image storage (Cloudinary if set, otherwise the database), 1.5 MB each.
+
+### Points, badges and leaderboard
+10 points per attended event, 5 per feedback, 3 for joining a team. Six badges (First Step, Regular, Campus Champion, Explorer, Voice of the Campus, Team Player) unlock automatically; levels are Bronze 10, Silver 60, Gold 150. Everything is calculated live from real records. The leaderboard shows the top ten with shortened names (for example "Asha R.").
+
+### Bulk CSV import
+- **Admin -> Students -> Import CSV** creates up to 500 students from a CSV (`name,email` required; `department,studentId,phone` optional). Each is emailed a link to choose their own password and verify their address. Without SMTP nothing is sent (use Reset password).
+- **Organiser / Admin -> Attendance -> Import CSV** marks people present from a CSV with an `email` or `studentId` column. Only confirmed registrations match; unmatched rows are listed.
+
+### Sharing and search
+- Event links show a proper preview (title, date, venue, banner) in WhatsApp, Telegram, LinkedIn and similar apps, because the server adds the tags to each event page. **Share on WhatsApp** is on every event page.
+- `/sitemap.xml` lists every published event and `/robots.txt` points search engines to it (private dashboards excluded). Submit the sitemap in Google Search Console.
+- Set `APP_URL` so previews and the sitemap use the right domain (Render sets `RENDER_EXTERNAL_URL` automatically). Previews come from the Express server, so share the Render link; a separate Vercel frontend cannot add them.
+
+### Install as an app and offline tickets
+UniEvents is an installable PWA (Android Chrome / Edge: **Install the app**; iPhone: Safari -> Share -> Add to Home Screen).
+- The app shell opens with no signal (a service worker caches the page shell and built files; it never stores anything from `/api`).
+- Each time a student opens **My Tickets** online, their confirmed tickets (QR, title, date, venue) are saved on that phone. Offline, **Show my saved tickets** (`/offline-tickets`) works even without a session. Saved tickets are removed on sign-out and expire after the event.
+- Opening the app offline no longer signs you out; only a server answer saying the session is invalid does. Check-in itself still needs the organiser's scanner online.
+
+### Accounts, roles and sign-up
+- Public sign-up always creates **students**. The Register page has Student, Organiser and Admin tabs: the Organiser tab creates a student account plus an organiser request that an admin approves; the Admin tab explains that admin accounts are created by an existing admin.
+- **Email verification** (when SMTP is configured): every new account gets a link; until confirmed, a student cannot register and an organiser cannot create events (admins are never locked out). Admins can mark a placeholder address as verified. Without SMTP nothing is blocked.
+- **Demo accounts (optional):** `ENABLE_DEMO_ACCOUNTS=true` plus `DEMO_PASSWORD` creates a demo student and organiser shown with their password on the login pages. A read-only demo admin exists only with the extra `ENABLE_DEMO_ADMIN=true`; it can browse every admin page but any change is refused (asking the AI assistant is allowed). Never enable the demo admin on a site with real students, and remove these variables for real use.
+- **Featured events** (starred by admins) show on the home page and dashboards; until any are starred the soonest upcoming events are shown.
+
+### Admin two-factor sign-in and login lockout
+- **Two-factor (optional, admins only):** Settings -> Two-factor sign-in -> Set up. Scan the QR with Google Authenticator, Authy or Microsoft Authenticator, enter the 6-digit code and save the 8 one-time backup codes (shown once). Secrets are stored encrypted (set `TWO_FACTOR_KEY` before ever rotating `JWT_SECRET`).
+- **Locked out?** Another admin can click the shield icon on the user's row to remove their 2FA and lockout, or run `npm run admin:reset-2fa -- admin@example.com` in the backend (Render shell).
+- **Lockout (all real accounts):** 5 wrong passwords or codes in a row lock the account for 15 minutes (`LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES`). A successful sign-in or an emailed password reset clears it. Demo accounts are exempt.
+
+### Payments
+Razorpay checkout shows UPI first (QR, Google Pay, PhonePe, Paytm), then cards, netbanking and wallets. Students see receipts under My Payments; organisers see who paid for their events; admins see all payments, mark refunds, and get a Razorpay setup guide while keys are missing. A webhook (`payment.captured`) registers students who pay but close the tab. Without keys, fees are collected in person.
+
+### Reminders
+A 24-hour reminder job notifies registered students. On a free Render service use the `keep-awake.yml` workflow (see [Optional services](#optional-services)) so reminders go out on time.
+
+---
+
+## Reports and PDF export
+
+**Reports (PDF)** is in the Admin and Organiser menus; students have **My Report (PDF)** and **Activity Transcript**. Choose Monthly, Yearly or Custom range (students also have All time), then **Download PDF** and choose **Save as PDF** in the print window (A4, with colours, charts and images). **Download CSV** is next to it.
+
+### Admin and organiser reports
+- **Organisers** get only their own events (the server enforces this whatever the request says). **Admins** get the whole platform or one organiser from the drop-down.
+- Key figures with change against the previous period; day-by-day or month-by-month charts; registrations by category and department; most popular and best rated events; an all-events table (with photo counts); optional full event descriptions; an Event photos page (up to three per event, approved photos only).
+- **Deeper analysis:** students by department, cancellations and no-shows by category, full events and waitlists, busiest days and times, returning students, when students registered, feedback themes and lowest-rated events with the reasons given, certificates issued vs attended.
+- **Admin only:** organiser performance, revenue and refunds by organiser, event approval turnaround, new and active accounts, approval pipeline, student accounts unused for 90 days.
+
+### Event report
+One event in full, for its organiser and admins: banner, description, agenda, speakers, FAQ, registrations by status, who registered when, check-ins by hour, payments, certificates, teams, feedback (comments without names), sponsors, photos with credits, confirmed attendees, plus a comparison with the organiser's earlier events, returning vs new attendees, registration timing and certificates still to issue.
+
+### Student report and transcript
+- **My Report:** events joined and attended, attendance rate next to the campus average, certificates, feedback given, categories explored, amount paid and hours at events, points / level / rank / badges, goal tracker (points to the next level, nearest badges), month streaks and best month, skills and interests, an events table, upcoming events, suggested events, photos, and plain "things to note".
+- **Activity Transcript** (`/student/transcript`): a formal one-document list of attended events, hours and certificate IDs.
+- The server always uses the signed-in student's own id (`GET /api/reports/student`, STUDENT role only). The campus average is a single aggregate that names no one.
+
+### Report ID and verification
+Every report cover carries a **Report ID with a QR code**. Anyone can check it at `/verify-report` (footer link): it shows who the report was for, what it covered, when it was first issued and the headline figures at that time. The ID is a keyed hash of those figures (`REPORT_SEAL_KEY`, falling back to `JWT_SECRET`), so an edited report matches no ID. Only headline numbers are stored (`ReportSeal` table), never student lists. Rotating the key invalidates IDs already printed.
+
+### How the numbers work
+Everything is worked out from the live database and explained at the end of each report. A figure that cannot be calculated (for example attendance for an event that has not finished) shows a dash; nothing is estimated. Days and months are cut at Indian time (UTC+05:30); set `REPORT_TZ_OFFSET_MIN` to change that. Custom ranges may be up to 5 years and are compared with the equal-length period before.
+
+---
+
+## AI assistant (optional, Groq)
+
+A chat button (**Ask AI**) appears for students, organisers and admins once `GROQ_API_KEY` is set in the server environment. Without it the button is hidden and nothing else changes.
+
+- **Read and explain only.** It cannot register anyone or change data; for actions it names the menu item to open.
+- **Scoped by role.** Each question gets fresh data for that signed-in person only: a student's own registrations, certificates and open events; an organiser's own events and approvals waiting; an admin's platform counts and pending approvals. No emails, passwords or other people's details are sent to the model, and event text is treated as data, not instructions.
+- **Protected.** The key never reaches the browser; provider errors are not passed on (only a status goes to the server log); 20 questions per user per 10 minutes; `ASSISTANT_DAILY_LIMIT` (default 1000) caps the day; the conversation lives only on screen.
+- **Models.** Default `openai/gpt-oss-120b`, with `openai/gpt-oss-20b` as an automatic fallback if the first is refused. Groq retires models over time (`llama-3.3-70b-versatile` was shut down on 16 August 2026), so override with `GROQ_MODEL` if needed.
+- Questions and a small data summary are sent to Groq to produce the answer; mention this in your privacy policy.
+
+How to turn it on: create a key at console.groq.com -> API Keys, add `GROQ_API_KEY` in Render -> Environment, save, wait for the redeploy.
+
+---
+
+## Tech stack and architecture
+
+- **Backend:** Node 20+, Express 4, Prisma 5 with PostgreSQL, JWT, bcryptjs, zod validation, Helmet (CSP), express-rate-limit, nodemailer (optional), a small built-in PDF writer for certificates.
+- **Frontend:** React 18, Vite, Tailwind 3 (CSS-variable colours, dark mode), react-router-dom 6, axios, lucide-react, recharts, framer-motion, qrcode.react, jsqr. Report charts are custom SVG/CSS so they print exactly as on screen.
+- **Single-service deploy:** Express serves the built `frontend/dist` and the API under `/api`.
+- **Roles:** always enforced by the API from the database, never from anything stored in the browser.
+- **Reports:** pure math in `utils/reportMath.js`, `studentReportMath.js` and `reportInsights.js` (unit tested); role scoping happens in the controller. PDF export is the browser's print-to-PDF with `@page A4` print CSS.
+- **Time:** reports and "this month" boundaries use IST (UTC+05:30) unless `REPORT_TZ_OFFSET_MIN` is set.
+
+---
 
 ## Folder structure
 
 ```
 backend/
-  prisma/            schema.prisma, migrations/ (baseline + two additive upgrades), seed.js, seedStartup.js
+  prisma/            schema.prisma, migrations/ (see below), seed.js, seedStartup.js
   src/
     app.js server.js
     controllers/     auth, event, registration, attendance, certificate, category, analytics, admin, notification,
-                     announcement, feedback, public, media
-    routes/          one file per controller
+                     announcement, feedback, public, media, payment, team, bulkImport, survey, recommendation,
+                     gallery, rewards, twoFactor, report, assistant
+    routes/          one file per controller (plus calendar, cron, seo, ticket)
     middleware/      authMiddleware, roleMiddleware, errorHandler
-    utils/           validators (zod), settings, audit, mailer, authTokens, notify, waitlist, reminders, ...
+    utils/           validators (zod), settings, audit, mailer, authTokens, notify, waitlist, reminders,
+                     totp, loginGuard, rewards, seo, reportMath, studentReportMath, reportInsights,
+                     reportSeal, assistantContext, demo, ...
+  test/              node:test suites (maths, scoping, security, integrations)
 frontend/
   vercel.json        SPA rewrite for Vercel
+  public/            manifest.webmanifest, sw.js, icons
   src/
-    components/      common, layout, navigation, events, dashboard, charts, forms, notifications, tickets
-    pages/           public, student, organizer, admin, shared
+    components/      common, layout, navigation, events, dashboard, charts, forms, notifications, tickets,
+                     reports, security, assistant
+    pages/           public, student, organizer, admin, shared, reports
     context/         Auth, Theme, Toast
     services/        api.js (axios, uploads, downloads)
     hooks/ utils/
+.github/workflows/   ci.yml (tests + frontend build), keep-awake.yml
 ```
+
+---
+
+## Data model and migrations
+
+Main tables: `User`, `Event`, `Registration`, `Attendance`, `Certificate`, `Feedback`, `Announcement`, `Notification`, `EventCategory`, `OrganizerProfile`, `Payment`, `AuditLog`, `PlatformSetting`, `NewsletterSubscriber`, `ContactMessage`, `AuthToken`, `MediaFile`, `EventTeam`, `EventTeamMember`, `EventQuestion`, `EventAnswer`, `EventAsset` (photos and sponsors), `ReportSeal`.
+
+Migrations are additive and run on start (`prisma migrate deploy`); existing users, events and registrations are kept:
+
+| Migration | Adds |
+|---|---|
+| `20261101000000_init` | baseline |
+| `20261109000000_advanced_features` | advanced event features |
+| `20261113000000_unievents_platform` | platform tables and settings |
+| `20261114000000_payments` | payments |
+| `20261115000000_registration_links` | registration link and deadline |
+| `20261116000000_approve_then_pay` | approval-then-payment flow |
+| `20261117000000_teams` | team events |
+| `20261118000000_surveys` | event questions and answers |
+| `20261119000000_gallery_sponsors` | photos and sponsors |
+| `20261120000000_two_factor_lockout` | admin 2FA and login lockout |
+| `20261121000000_gallery_student_photos` | student photo approval (existing photos stay approved) |
+| `20261122000000_report_seals` | report IDs |
+
+Points, badges, recommendations and all report figures are calculated live from these records; nothing derived is stored.
+
+---
 
 ## Run locally
 
@@ -52,7 +232,7 @@ npm run dev:backend        # http://localhost:5000
 npm run dev:frontend       # http://localhost:5173  (proxies /api to :5000)
 ```
 
-### Demo accounts (created only by `npm run seed`, never by default)
+### Seeded demo accounts (only by `npm run seed`, never by default)
 
 | Role | Email | Password |
 |---|---|---|
@@ -62,24 +242,46 @@ npm run dev:frontend       # http://localhost:5173  (proxies /api to :5000)
 
 These passwords are public. `npm run seed` **refuses to run when `NODE_ENV=production`** unless `ALLOW_DEMO_SEED=true`.
 
+---
+
 ## Environment variables
 
-| Variable | Where | Purpose |
-|---|---|---|
-| `DATABASE_URL` | backend | PostgreSQL connection string (required) |
-| `JWT_SECRET` | backend | Long random string (required). `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
-| `NODE_ENV` | backend | `production` on a live host |
-| `PORT` | backend | Set by Render / most hosts |
-| `CLIENT_ORIGIN` | backend | Only when the frontend is on a different domain (Vercel). Comma-separated origins |
-| `APP_URL` | backend | Public site URL for links in emails (auto-detected on Render) |
-| `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASS` `MAIL_FROM` | backend | Optional email. Gmail: host `smtp.gmail.com`, port `587`, user = your Gmail address, pass = a 16-character [app password](https://myaccount.google.com/apppasswords) (needs 2-step verification), `MAIL_FROM` = `UniEvents <you@gmail.com>` |
-| `RAZORPAY_KEY_ID` `RAZORPAY_KEY_SECRET` | backend | Optional online payment of event fees (use test keys first) |
-| `RAZORPAY_WEBHOOK_SECRET` | backend | Optional. In the Razorpay dashboard add a webhook to `https://<your-app>/api/payments/webhook` for `payment.captured` with this secret; it registers students who pay but close the tab |
-| `CLOUDINARY_CLOUD_NAME` `CLOUDINARY_API_KEY` `CLOUDINARY_API_SECRET` | backend | Optional image hosting (`CLOUDINARY_FOLDER` optional) |
-| `SEED_ON_START`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_EMAIL` | backend | First-deploy bootstrap (see below) |
-| `VITE_API_URL` | frontend | Only when the API is on another domain, e.g. `https://your-api.onrender.com/api` |
+Never commit `.env` files. On Render set these in the dashboard under **Environment**.
 
-Never commit `.env` files.
+| Variable | Needed? | Purpose |
+|---|---|---|
+| `DATABASE_URL` | required | PostgreSQL connection string |
+| `JWT_SECRET` | required | Long random string: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
+| `NODE_ENV` | required in production | `production` |
+| `PORT` | host sets it | |
+| `CLIENT_ORIGIN` | only with a separate frontend | Comma-separated allowed origins (Vercel) |
+| `APP_URL` | optional | Public URL for links in emails, previews and the sitemap (auto on Render) |
+| `SEED_ON_START`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_EMAIL` | first deploy only | Creates the admin and sample events. **Delete after the first sign-in** |
+| `ENABLE_DEMO_ACCOUNTS`, `DEMO_PASSWORD`, `ENABLE_DEMO_ADMIN` | demo sites only | Public demo logins; remove for real use |
+| `SMTP_HOST` `SMTP_PORT` `SMTP_SECURE` `SMTP_USER` `SMTP_PASS` `MAIL_FROM` | optional | Email. Gmail: host `smtp.gmail.com`, port `587`, user = address, pass = a 16-character [app password](https://myaccount.google.com/apppasswords), `MAIL_FROM` = `UniEvents <you@gmail.com>` |
+| `RAZORPAY_KEY_ID` `RAZORPAY_KEY_SECRET` `RAZORPAY_WEBHOOK_SECRET` | optional | Online fee payments (use `rzp_test_...` first). Webhook: `https://<app>/api/payments/webhook` for `payment.captured` |
+| `CLOUDINARY_CLOUD_NAME` `CLOUDINARY_API_KEY` `CLOUDINARY_API_SECRET` `CLOUDINARY_FOLDER` | optional | Image hosting (falls back to the database) |
+| `GROQ_API_KEY` | optional | Turns on the AI assistant |
+| `GROQ_MODEL`, `ASSISTANT_DAILY_LIMIT` | optional | Override the model; cap questions per day (default 1000) |
+| `TWO_FACTOR_KEY` | optional | Encrypts 2FA secrets; set before rotating `JWT_SECRET` |
+| `REPORT_SEAL_KEY` | optional | Key for report IDs (falls back to `JWT_SECRET`) |
+| `REPORT_TZ_OFFSET_MIN` | optional | Report time zone offset in minutes (default 330, India) |
+| `LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES` | optional | Lockout rules (5 and 15) |
+| `ALLOW_DEMO_SEED` | local only | Lets `npm run seed` run in production |
+| `CRON_SECRET` | optional | Lets the keep-awake workflow trigger reminders |
+| `LOG_EMAIL_LINKS` | optional | Also print email links in production logs (they contain secrets) |
+| `VITE_API_URL` | frontend only | API address when the API is on another domain, e.g. `https://your-api.onrender.com/api` |
+
+### Optional services
+
+Nothing below is needed to launch. Each turns on when its keys are set.
+- **Email:** password resets, verification links, registration confirmations and decisions, approval or rejection notices, certificates. Users can switch email off in Settings.
+- **Payments:** see Payments above.
+- **Image hosting:** uploads go to Cloudinary and fall back to PostgreSQL if it is unreachable.
+- **Always-on reminders:** set `CRON_SECRET` on Render, plus the repository variable `APP_URL` and secret `CRON_SECRET` on GitHub; `.github/workflows/keep-awake.yml` then pings the site every 10 minutes so a free Render service stays awake.
+- **AI assistant:** see above.
+
+---
 
 ## Deploy on Render (single service, recommended)
 
@@ -88,207 +290,96 @@ Never commit `.env` files.
    - Build command: `npm run build`
    - Start command: `npm start` (runs `prisma migrate deploy`, the optional seed, then the server)
 3. Environment: `NODE_ENV=production`, `DATABASE_URL`, `JWT_SECRET`.
-4. **First deploy only**: add `SEED_ON_START=true` and `SEED_ADMIN_PASSWORD=<strong password>`. This creates the admin account (`admin@uni.edu`, or set `SEED_ADMIN_EMAIL`) and a few sample UEM events if there are none. No demo students/organisers are created. After you can sign in at `/login/admin`, **delete both variables**.
+4. **First deploy only:** add `SEED_ON_START=true` and `SEED_ADMIN_PASSWORD=<strong password>`. This creates the admin (`admin@uni.edu`, or set `SEED_ADMIN_EMAIL`) and a few sample events if there are none. After you can sign in at `/login/admin`, **delete both variables**.
 5. Default categories are created automatically on every start.
 
-The upgrade migrations are additive: existing users, events and registrations are kept.
+The free Render Postgres expires after 30 days; move to a paid or external database before then.
 
 ## Deploy the frontend on Vercel (optional)
 
 1. Deploy the API on Render as above and note its URL.
 2. On Render set `CLIENT_ORIGIN=https://<your-vercel-app>.vercel.app`.
-3. Vercel: Import the repo, **Root Directory = `frontend`**, framework Vite. Environment variable `VITE_API_URL=https://<your-render-app>.onrender.com/api`.
-4. `frontend/vercel.json` already contains the SPA rewrite, so deep links like `/events/3` work.
+3. Vercel: import the repo, **Root Directory = `frontend`**, framework Vite, environment variable `VITE_API_URL=https://<your-render-app>.onrender.com/api`.
+4. `frontend/vercel.json` already has the SPA rewrite, so deep links like `/events/3` work.
+
+---
 
 ## API overview
 
-All routes are under `/api`. Bearer JWT in `Authorization`.
+All routes are under `/api` with a Bearer JWT in `Authorization`.
 
 | Area | Endpoints |
 |---|---|
-| Auth | `POST /auth/register` (students only), `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email`, `/auth/resend-verification`, `/auth/change-password`; `GET/PATCH /auth/me`; `GET/POST /auth/organizer-request` |
-| Events | `GET /events` (`q category date department eventType mode price sort page limit featured scope`), `GET /events/:id`, `GET /events/mine`, `GET /events/pending` (admin), `POST /events`, `PATCH /events/:id`, `PATCH /events/:id/approve` and `/reject` (admin), `POST /events/:id/duplicate`, `DELETE /events/:id` |
-| Registrations | `POST/DELETE /registrations/:eventId`, `GET /registrations/my` (alias `/me`), `GET /registrations/event/:eventId` (+ `/export`), `PATCH /registrations/:id/decision` |
-| Attendance | `POST /attendance/check-in` (alias `/checkin`), `POST /attendance`, `POST /attendance/bulk`, `GET /attendance/my` (alias `/me`), `/attendance/overview`, `/attendance/event/:id` (+ `/export`) |
-| Certificates | `POST /certificates/generate`, `GET /certificates/my`, `/certificates/event/:id`, `/certificates/:id`, `PATCH /certificates/:id/revoke`, `GET /certificates/verify/:id` (public), `GET /certificates` (admin) |
+| Auth | `POST /auth/register` (students only), `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/verify-email`, `/auth/resend-verification`, `/auth/change-password`; `GET/PATCH /auth/me`; `GET/POST /auth/organizer-request`; two-factor under `/auth/2fa/*` |
+| Events | `GET /events` (`q category date department eventType mode price sort page limit featured scope`), `GET /events/:id`, `/events/mine`, `/events/pending` (admin), `POST /events`, `PATCH /events/:id`, `PATCH /events/:id/approve` and `/reject` (admin), `POST /events/:id/duplicate`, `DELETE /events/:id` |
+| Registrations | `POST/DELETE /registrations/:eventId`, `GET /registrations/my`, `/registrations/event/:eventId` (+ `/export`), `PATCH /registrations/:id/decision` |
+| Attendance | `POST /attendance/check-in`, `/attendance`, `/attendance/bulk`; `GET /attendance/my`, `/overview`, `/event/:id` (+ `/export`) |
+| Certificates | `POST /certificates/generate`, `GET /certificates/my`, `/event/:id`, `/:id`, `PATCH /:id/revoke`, `GET /certificates/verify/:id` (public), `GET /certificates` (admin) |
 | Categories | `GET /categories` (public), `POST/PATCH/DELETE /categories/:id` (admin) |
-| Notifications | `GET /notifications`, `POST /notifications/read-all`, `PATCH /notifications/:id/read`, `DELETE /notifications/:id`; admin broadcast `POST /admin/notifications` |
-| Analytics | `GET /analytics/student`, `/analytics/organizer`, `/analytics/admin` |
-| Admin | `/admin/stats users students organizers events organizer-requests audit-logs settings messages reports/:type` |
-| Public | `GET /public/stats`, `/public/highlights`, `/public/settings` (alias `/settings/public`), `POST /public/newsletter`, `/public/contact` |
-| Calendar | `GET /calendar/:id` (public, downloads an `.ics` file for a published event) |
-| Payments | `GET /payments` and `PATCH /payments/:id/refunded` (admin), `GET /payments/config`, `POST /payments/:eventId/order`, `POST /payments/verify` (students), `POST /payments/webhook` (Razorpay) |
-| Media | `POST /media` (raw image body, max 1.5 MB, type checked by file signature), `GET /media/:id` |
+| Notifications | `GET /notifications`, `POST /read-all`, `PATCH /:id/read`, `DELETE /:id`; admin broadcast `POST /admin/notifications` |
+| Analytics | `GET /analytics/student`, `/organizer`, `/admin` |
+| Admin | `/admin/stats users students organizers events organizer-requests audit-logs settings messages reports/:type`, bulk student import (`POST /admin/users/import`), `POST /admin/users/:id/reset-2fa` |
+| Teams, surveys | `/teams/*`, `/surveys/*` |
+| Recommendations, rewards | `GET /recommendations`, `GET /rewards/me`, `/rewards/leaderboard` |
+| Gallery | `GET /gallery/event/:id`; `POST /gallery/event/:id` (organiser/admin), `POST /gallery/event/:id/mine` (attending student); `PATCH /gallery/:id/approve`, `/caption`; `DELETE /gallery/:id`, `/gallery/mine/:id` |
+| Reports | `GET /reports/summary` (admin/organiser), `/reports/event/:id`, `/reports/student` (student), `/reports/verify/:code` (public) |
+| Assistant | `GET /assistant/status`, `POST /assistant/chat` |
+| Public | `GET /public/stats`, `/highlights`, `/settings`; `POST /public/newsletter`, `/public/contact` |
+| Calendar, SEO | `GET /calendar/:id` (`.ics`), `/sitemap.xml`, `/robots.txt` |
+| Payments | `GET /payments`, `PATCH /payments/:id/refunded` (admin), `GET /payments/config`, `POST /payments/:eventId/order`, `/payments/verify`, `/payments/webhook` |
+| Media | `POST /media` (raw image, max 1.5 MB, type checked by file signature), `GET /media/:id` |
+| Health | `GET /api/health` |
 
-## Security notes
+---
 
-- Public sign-up always creates **students**. Organiser access is requested by a student and approved by an admin.
-- Passwords: bcrypt. Reset / verification tokens are random, single-use, expire, and only their SHA-256 hash is stored.
-- Roles are always enforced by the API using the database, never by anything stored in the browser. Deactivated accounts are rejected on every request.
-- Check-in is validated server-side; one attendance record per registration (database unique constraint), so duplicate scans are rejected.
-- Uploads are limited to PNG / JPEG / WebP / GIF, checked by file signature, size-limited and rate-limited.
-- Rate limits on the API, login, forms, password reset and uploads. Helmet and CORS are enabled.
+## Security and privacy
 
-## Extras
+- Public sign-up creates **students only**. Organiser access is requested and approved by an admin.
+- Passwords: bcrypt. Reset and verification tokens are random, single-use, expire, and only their SHA-256 hash is stored.
+- Roles are enforced by the API using the database; deactivated accounts are rejected on every request. `localStorage` is never the source of truth for roles.
+- Account lockout, optional admin 2FA (encrypted secrets, hashed single-use backup codes), rate limits on the API, login, forms, password reset, uploads, report checks and the assistant. Helmet and CORS are enabled.
+- Uploads: PNG / JPEG / WebP / GIF only, checked by file signature, size-limited.
+- No secrets are returned by the API (no hashes, tokens or keys); `.env` files are never committed; default credentials are never created in production.
+- Reports and the assistant are role-scoped on the server: organisers only see their own events, students only their own data. Leaderboards, feedback and report photos use shortened names or roles only.
+- The assistant sends the signed-in person's own summary data and question to Groq; list this in your privacy policy.
 
-- **Add to calendar**: every published event has an `.ics` download (Google, Apple and Outlook calendars).
-- **Payments page** (admin): lists online payments and lets admins mark refunded ones after refunding in Razorpay.
-- **CI**: `.github/workflows/ci.yml` runs the backend tests and the frontend build on every push and pull request.
+---
 
-- **Registration link and strict deadline**: organisers (and admins) can paste a Google Form link on an event. The event page shows the exact deadline with a live countdown, the form button disappears and the page says "closed" once the deadline passes, and the server refuses in-app registration after it. A deadline is required whenever a link is added, and the event form asks for one. Event cards show a "Closes in..." badge. The link is a plain https URL typed by the organiser; no sample events include a form link.
+## Testing
 
-## Sign-up and demo accounts
+```bash
+cd backend && npm test        # node:test, no database needed
+```
 
-- **Register page** has Student, Organiser and Admin tabs. The Organiser tab creates a normal student account plus an organiser request that an administrator approves under Organizer Requests. The Admin tab explains that admin accounts are created by an existing admin, so nobody can make themselves one (the demo admin above is the only exception, and it is read-only).
-- **Demo accounts (optional)**: set `ENABLE_DEMO_ACCOUNTS=true` and `DEMO_PASSWORD=<8+ characters>` on the server. A demo student (`demo.student@uni.edu`) and demo organiser (`demo.organizer@uni.edu`) are created and shown, with the password, on their login pages. A read-only demo admin (`demo.admin@uni.edu`) is created only with the extra `ENABLE_DEMO_ADMIN=true`: it can browse every admin page but any change is refused. It can see all user details, so never enable it on a site with real students. The password is public, so use this only for a demo site and remove the two variables for real use.
+Covers validators, TOTP and 2FA, rewards, recommendations, calendar and SEO output, report maths (periods, ranges, insights), report scoping by role, student photo rules, report IDs, and the assistant (key handling, input checks, scoped context, error handling). CI (`.github/workflows/ci.yml`) runs the backend tests and the frontend build on every push and pull request.
 
-## Samples, verification and featured events
-
-- Certificate and ticket pages show a clearly marked **sample certificate** and **sample ticket**, so people see what they will get after an event. Samples never verify as real.
-- Anyone can verify a **certificate ID** at `/verify` and a **ticket code** at `/verify-ticket` (no sign-in; linked from the footer and from every role's certificate pages). Ticket checks show only the event, status and an abbreviated holder name.
-- **Featured events** appear on the home page and on the student, organiser and admin dashboards. Admins star events in Event Management; until any are starred, the soonest upcoming events are shown instead.
-
-## Email verification (all roles)
-
-When SMTP is configured, every new account gets a verification link at its own address: students and organisers who sign up, and any account an admin creates (student, organiser or admin). A yellow banner with a "Resend link" button shows until the address is confirmed. Until then a student cannot register for events and an organiser cannot create them; admins are never locked out. Admins can click the mail-check icon in User Management to mark a placeholder address (for example `organizer@uni.edu`) as verified. Without SMTP nothing can be sent, so nothing is blocked.
-
-## Team events
-
-Organisers set **Minimum / Maximum members** on the event form (both 1 means a normal solo event). For a team event, a student registers first, then creates a team or joins one with its 6-character code on the event page. Each member registers (and pays, if there is a fee) on their own, one team per student per event, and the leader can remove members or disband. Organisers and admins see every team under **Registrations -> Teams** and can download a CSV.
-
-## Bulk CSV import
-
-- **Admin -> Students -> Import CSV** creates up to 500 student accounts at once from a CSV (`name,email` required; `department,studentId,phone` optional). Each student is emailed a link to choose their own password and verify their email; no passwords are shown or stored in plain text. Without SMTP set up nothing is emailed (use Reset password instead).
-- **Organiser/Admin -> Attendance -> Import CSV** marks people present from a CSV with an `email` or `studentId` column. Only confirmed registrations are matched, and unmatched rows are listed.
-
-## Event surveys
-
-On any event, organisers and admins open **Survey questions** to add their own questions (short answer, multiple choice, yes/no, 1-5 rating), either **after registering** (t-shirt size, diet) or **after the event** (feedback). Students answer them in a "Questions from the organiser" box on the event page once registered; answers can be edited. **Export answers** downloads one CSV row per student. Registration questions do not block registering; they are asked right after.
-
-## Recommended for you
-
-The student dashboard shows up to three upcoming events they have not joined, ranked by their department, the categories of events they registered for or attended before, how full the event is and how soon it starts. Each card says why it was suggested. It is calculated from real data on request; nothing is stored.
-
-## Event photos and sponsors
-
-Organisers and admins open **Photos and sponsors** on an event to upload gallery photos (up to 40) and sponsor logos with an optional website (up to 12). They appear on the public event page as a "Our sponsors" strip and a photo grid with a full-size viewer. Uploads use the same image storage as event banners (Cloudinary if configured, otherwise the database), 1.5 MB each.
-
-## Points, badges and leaderboard
-
-Students earn 10 points per attended event, 5 per feedback given and 3 for joining a team. Six badges unlock automatically (First Step, Regular, Campus Champion, Explorer, Voice of the Campus, Team Player) and levels run Bronze 10, Silver 60, Gold 150. Everything is calculated from real attendance, feedback and team records on request, so nothing is invented and nothing extra is stored. The leaderboard shows the top ten with shortened names (for example "Asha R."). See **Points and Badges** in the student menu.
-
-## Sharing and search
-
-- Event links get a proper preview (title, date and venue, banner image) when pasted into WhatsApp, Telegram, LinkedIn and similar apps, because the server adds the tags to each event page. **Share on WhatsApp** is on every event page.
-- `/sitemap.xml` lists every published event and `/robots.txt` points search engines to it (the private dashboards are excluded). Submit `https://your-site/sitemap.xml` in Google Search Console.
-- Set `APP_URL` to your public address (Render sets `RENDER_EXTERNAL_URL` automatically) so previews and the sitemap use the right domain.
-- Previews and the sitemap come from the Express server, so share the Render link. A frontend hosted separately on Vercel cannot add them.
-
-## Install the app and offline tickets
-
-UniEvents is an installable web app. On Android/Chrome/Edge use **Install the app** (footer or Settings); on iPhone use Safari, Share, **Add to Home Screen**. Once installed it opens full-screen with its own icon, and shortcuts for My Tickets and Discover Events.
-
-- The app itself still opens with no signal (a service worker keeps the page shell and built files; it never stores anything from `/api`).
-- Each time a student opens **My Tickets** while online, their current confirmed tickets (QR code, title, date, venue) are saved on that phone. With no signal, an **offline** bar appears with **Show my saved tickets** (`/offline-tickets`), which works even if the phone has been signed out of the session because it is offline. Saved tickets are removed when the student signs out and expire after the event ends.
-- Staying signed in: opening the app offline no longer signs you out; only an answer from the server saying the session is invalid does.
-- Check-in still needs the organiser's scanner to be online.
-
-## Admin two-factor sign-in and login lockout
-
-- **Two-factor (optional, admins only):** Settings -> **Two-factor sign-in** -> Set up. Scan the QR code with Google Authenticator, Authy or Microsoft Authenticator, enter the 6-digit code, and save the 8 one-time backup codes (shown once). After that, signing in needs the password and a code. Codes work once. Turn it off or make new backup codes from the same card (needs password and a code).
-- **If an admin is locked out:** another admin can click the shield icon on their row in Users to remove their 2FA and lockout. If there is no other admin, run `npm run admin:reset-2fa -- admin@example.com` in the backend (Render shell).
-- **Lockout (all real accounts):** 5 wrong passwords or codes in a row lock that account for 15 minutes (`LOGIN_MAX_ATTEMPTS`, `LOGIN_LOCK_MINUTES`). A successful sign-in or a password reset by email clears it. The shared **demo accounts are exempt**, and the demo admin never uses 2FA, so demo mode behaves exactly as before.
-- 2FA secrets are stored encrypted. Set `TWO_FACTOR_KEY` (any long random string) if you ever plan to rotate `JWT_SECRET`, otherwise rotating it makes enrolled admins use `admin:reset-2fa`.
-- Nothing changes for any account that has not turned 2FA on, apart from the lockout.
-
-## Reports and PDF export
-
-**Reports (PDF)** is in the Admin and Organiser menus. Pick **Monthly** or **Yearly**, a month and a year, then **Download PDF** and choose **Save as PDF** in the print window (it prints on A4 with colours, charts and images).
-
-- **Organisers** get a report for their own events only: key figures with change against the previous period, day-by-day or month-by-month charts, registrations by category and student department, most popular and best rated events, an all-events table, and (optionally) each event's full description. The server always limits an organiser to their own events, whatever the request says.
-- **Admins** get the whole platform, or one organiser from the Organiser drop-down, and in addition an organiser performance table, new and active accounts, and the approval pipeline.
-- **Event report** (button on every event for its organiser and for admins) is one event in full: banner, description, agenda, speakers, FAQ, registrations by status, who registered when, attendance and check-ins by hour, payments, certificates, teams, feedback (comments without names), sponsors, photos and the list of confirmed attendees.
-- Numbers are worked out from the live database and explained at the end of each report; a figure that cannot be calculated (for example attendance for an event that has not finished) shows a dash. Months and days are cut at Indian time (UTC+05:30); set `REPORT_TZ_OFFSET_MIN` to change that.
-
-### Student report
-
-Students get their own report under **My Report (PDF)** in the student menu. Pick **Monthly**, **Yearly** or **All time**, then **Download PDF** and choose **Save as PDF**.
-
-It shows events joined and attended, attendance rate next to the campus average, certificates (with IDs), feedback given, categories explored, amount paid, points, level, rank and badges, an events table, upcoming events, and plain "things to note" (for example feedback still pending). Changes are compared with the previous period.
-
-Privacy: the server always uses the signed-in student's own id (`GET /api/reports/student`, STUDENT role only), so nobody else's data can be requested. The campus average is one aggregate number and names no one.
-
-### Event photos from students, organisers and admins
-
-- **Students** who were marked present at a finished event see an **Add your photo** box under the event's Photos (up to 5 each). Their photos are hidden from everyone else until the organiser (or an admin) clicks **Approve** in *Photos and sponsors*; the organiser can also reject one with the bin. Students can delete their own photos.
-- **Organisers and admins** upload as before and their photos are public at once.
-- Photos are credited by role only (Student, Organiser, Admin), never by name.
-- **In the PDF reports:** the event report shows approved photos with the event's sponsors; the monthly/yearly admin and organiser reports get an *Event photos* page (up to three per event); the student report shows the student's own uploads and photos from events they attended. Unapproved photos never appear in the admin or organiser PDFs.
-
-Migration `20261121000000_gallery_student_photos` only adds two columns; existing photos stay approved.
-
-### Report extras (all three reports)
-
-**Everyone:** a **Custom range** (any from and to date, up to 5 years; compared with the equal-length period before it), **Download CSV** next to Download PDF (built in the browser from what is on screen), and a **Report ID with a QR code** on every cover. Anyone can check an ID at `/verify-report` (linked in the footer); it shows who the report was for, what it covered, when it was first issued, and the headline figures at that time. The ID is a keyed hash of those figures (`REPORT_SEAL_KEY`, falling back to `JWT_SECRET`), so a report with edited numbers matches no ID. Only headline numbers are stored (`ReportSeal` table), never student lists.
-
-**Admin and organiser reports** (organisers see only their own events) gain: students by department, cancellations and no-shows by category, full events and waitlists, busiest days and times, returning students, when students registered, feedback themes and lowest-rated events with reasons, certificates issued vs attended, and photo counts per event. Admin-only: revenue and refunds by organiser, event approval turnaround, and student accounts not used for 90 days.
-
-**Event report:** comparison with the organiser's earlier events, returning vs new attendees, registration timing, feedback words, certificates still to issue. Organisers and admins can edit photo captions in *Photos and sponsors*.
-
-**Student report:** goal tracker (points to the next level, nearest badges), month streaks and best month, skills and interests, suggested upcoming events, hours at events. A new **Activity Transcript** page (`/student/transcript`) gives a formal one-document list of attended events, hours and certificate IDs with a verifiable Report ID.
-
-Nothing is estimated: a figure that cannot be worked out shows a dash. Migration `20261122000000_report_seals` adds one table.
-
-### AI assistant (optional, Groq)
-
-A chat button (**Ask AI**) appears for students, organisers and admins once `GROQ_API_KEY` is set in the Render environment. Without the key the app works as before and the button is hidden, so no key is needed to launch.
-
-- **Read and explain only.** It cannot register anyone or change data. For actions it names the menu item to open.
-- **Scoped by role.** Each question gets fresh data for that signed-in person only: a student's own registrations, certificates and open events; an organiser's own events and approvals waiting; an admin's platform counts and pending approvals. No emails, passwords or other people's details are sent to the model. Event text is treated as data, not instructions.
-- **Protected.** The key never reaches the browser, provider errors are not passed on, 20 questions per user per 10 minutes, and `ASSISTANT_DAILY_LIMIT` (default 1000) caps the day. The conversation is kept only on screen.
-- **Settings:** `GROQ_API_KEY` (required to enable), `GROQ_MODEL` (default `openai/gpt-oss-120b`), `ASSISTANT_DAILY_LIMIT`. Questions and the data summary are sent to Groq to produce the answer, so mention this in your privacy policy.
-
-## Camera ticket scanning
-
-Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.
-
-## Approval plus payment
-
-For an event with a fee and manual approval: the student requests to join (status PENDING), the organiser approves (status AWAITING_PAYMENT, the student is notified and emailed), the student pays online and becomes REGISTERED with a QR ticket. A late approval can still be paid after the registration deadline. If the event fills up in the meantime, the payment is refunded automatically.
-
-## Issuing certificates
-
-Organisers (and admins, from **Certificates, Issue certificates**) open an event's Certificates page and click **Generate certificates**. By default they go to students marked present; tick "Also certify registered students who were not scanned" to include everyone who registered. Each certificate gets a unique ID, appears in the student's Certificates page and notifications (and email, if set up), and can be verified by anyone at `/verify`. Organisers (for their own events) and admins can both issue at any time, including before an event starts.
-
-## Seeing who paid
-
-- **Students**: My Payments lists their receipts (amount, date, Razorpay payment ID).
-- **Organisers**: Payments lists who paid for *their* events, with student name, email, student ID and payment ID, plus totals collected.
-- **Admins**: the same for every event, plus the refund controls and a step-by-step Razorpay setup guide while keys are missing.
-- At checkout, students see UPI first (QR code, Google Pay, PhonePe, Paytm), then cards, netbanking and wallets, whichever are enabled on your Razorpay account.
-
-## Optional services (switch on with environment variables)
-
-Nothing below is needed to launch the app. Each feature turns on when its keys are set.
-
-- **Email** (`SMTP_*`): password resets, verification links, registration confirmations and decisions, event approval or rejection, and certificates. Users can switch email off in Settings.
-- **Online payments** (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, optional `RAZORPAY_WEBHOOK_SECRET`): students pay event fees in Razorpay checkout. If someone pays but the event filled meanwhile, the payment is refunded automatically; if that fails, admins get a "Refund now" button on the Payments page. Events that need organiser approval work in two steps when payments are on: the organiser approves, then the student gets a **Pay now** button and is registered once the payment succeeds (without Razorpay keys the fee is collected in person). Try it with test keys (`rzp_test_...`) first.
-- **Image hosting** (`CLOUDINARY_*`): uploads go to Cloudinary, and fall back to PostgreSQL if Cloudinary is unreachable.
-- **Always-on reminders** (`CRON_SECRET` on Render, plus repository variable `APP_URL` and secret `CRON_SECRET` on GitHub): the workflow `.github/workflows/keep-awake.yml` pings the site every 10 minutes so a free Render service stays awake and event reminders go out on time.
+---
 
 ## Before you go live
 
-- The first Render/Vercel build is the first real build of this code; watch its log.
-- Remove `SEED_ON_START` and `SEED_ADMIN_PASSWORD` after the first sign-in, and rotate any secret that was ever committed.
+- Watch the first Render / Vercel build log: it is the first real build of new code.
+- Remove `SEED_ON_START` and `SEED_ADMIN_PASSWORD` after the first admin sign-in.
+- Rotate `JWT_SECRET` (set `TWO_FACTOR_KEY` first if admins use 2FA); rotate any secret that was ever committed or pasted in chat.
+- Delete the demo variables (`ENABLE_DEMO_ACCOUNTS`, `DEMO_PASSWORD`, `ENABLE_DEMO_ADMIN`) before real students use it.
+- Set Razorpay, SMTP, Cloudinary and Groq keys only for the services you want.
+- Plan for the free Render database's 30-day limit.
 
-## If the Vercel site shows "-" and no events
+---
 
-The page is not reaching the API. Vite bakes `VITE_API_URL` in at build time, so after setting it you must **redeploy** on Vercel.
+## Troubleshooting
 
-1. Vercel, Project, Settings, Environment Variables: `VITE_API_URL` = `https://<your-render-app>.onrender.com/api` (ends with `/api`), then Deployments, Redeploy.
-2. Render, Environment: `CLIENT_ORIGIN` = your Vercel address (e.g. `https://frontend-six-tan-80.vercel.app`, no trailing slash).
-3. Open `https://<your-render-app>.onrender.com/api/health`. It should answer `{"status":"ok"}`. A free Render service sleeps and takes about a minute to wake.
+- **Vercel site shows "-" and no events:** it is not reaching the API. Set `VITE_API_URL` (ending in `/api`) in Vercel and redeploy (Vite bakes it in at build time); set `CLIENT_ORIGIN` on Render to the Vercel address with no trailing slash; open `https://<render-app>/api/health`, which should return `{"status":"ok"}`. A free Render service sleeps and takes about a minute to wake. The Render address serves the whole app by itself, so Vercel is optional.
+- **Admin cannot sign in from another device:** check for an enabled 2FA code, a 15-minute lockout after 5 failures, or (for the demo admin) a missing `ENABLE_DEMO_ADMIN=true`.
+- **"The assistant could not answer right now":** open Render -> Logs, ask again, and look for `[assistant] Groq answered <status>`. 401 = wrong key, 429 = Groq's limit, 400/404 = the model; set `GROQ_MODEL` to a current Groq model.
+- **No Ask AI button:** `GROQ_API_KEY` is missing or the deploy has not finished; hard refresh (Ctrl+Shift+R).
+- **No "Add your photo" box:** the event must have ended and the student must have been marked present, with fewer than 5 photos already added.
+- **Emails not arriving:** without `SMTP_HOST` nothing is sent; links print to the server log in development only.
 
-The Render address serves the whole app by itself, so Vercel is optional. The site now shows a clear red message when it cannot reach the API.
+---
 
-https://university-event-management-system-3.onrender.com/ is the link
+## Limits and honest notes
+
+- Live Razorpay, SMTP, Cloudinary and Groq behaviour depends on your keys and those services; the automated tests stub them.
+- The Render build is the real build test for the frontend; report layouts were checked in test renders to PDF, so look at the first real PDFs you export.
+- Report IDs prove a report was issued by this site with those headline figures; they do not stop someone sharing a genuine PDF.
+- Attendance, certificates and points depend on organisers marking attendance; reports show what was recorded, nothing more.
