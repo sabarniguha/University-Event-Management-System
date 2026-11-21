@@ -68,3 +68,13 @@ test('a good answer is returned and the key is sent only to Groq', async () => {
   assert.strictEqual(seen.opts.headers.Authorization, 'Bearer k-1');
   assert.ok(!JSON.stringify(out).includes('k-1'));
 });
+
+test('a retired model is skipped and the next one is tried', async () => {
+  process.env.GROQ_API_KEY = 'k-2'; delete process.env.GROQ_MODEL;
+  const real = global.fetch; const tried = [];
+  global.fetch = async (url, opts) => { const m = JSON.parse(opts.body).model; tried.push(m); return m === 'openai/gpt-oss-120b' ? { ok: false, status: 400, json: async () => ({ error: { code: 'model_decommissioned' } }) } : { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'ok' } }] }) }; };
+  const { out } = await run(c.chat, { user: student, body: msg('hi') });
+  global.fetch = real;
+  assert.deepStrictEqual(tried, ['openai/gpt-oss-120b', 'openai/gpt-oss-20b']);
+  assert.strictEqual(out.reply, 'ok');
+});
