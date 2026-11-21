@@ -8,6 +8,7 @@ import Sidebar from '../navigation/Sidebar.jsx';
 import NotificationBell from '../notifications/NotificationBell.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 import VerifyEmailBanner from './VerifyEmailBanner.jsx';
+import AssistantWidget from '../assistant/AssistantWidget.jsx';
 
 // Sidebar + top bar + animated page area for every signed-in role.
 export default function DashboardLayout() {
@@ -77,6 +78,7 @@ export default function DashboardLayout() {
           </motion.div>
         </AnimatePresence>
       </main>
+      <AssistantWidget />
     </div>
   );
 }
