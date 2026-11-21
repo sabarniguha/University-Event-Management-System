@@ -13,6 +13,7 @@ export const NAV = {
     { to: '/student/payments', label: 'My Payments', icon: Wallet },
     { to: '/student/certificates', label: 'Certificates', icon: Award },
     { to: '/student/rewards', label: 'Points and Badges', icon: Trophy },
+    { to: '/student/reports', label: 'My Report (PDF)', icon: FileText },
     { to: '/notifications', label: 'Notifications', icon: Bell },
     { to: '/profile', label: 'My Profile', icon: User },
     { to: '/settings', label: 'Settings', icon: Settings },

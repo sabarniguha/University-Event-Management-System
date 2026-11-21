@@ -50,4 +50,4 @@ const leaderboard = asyncHandler(async (req, res) => {
   res.json({ leaderboard: top, rules: POINTS });
 });
 
-module.exports = { me, leaderboard };
+module.exports = { me, leaderboard, tally };

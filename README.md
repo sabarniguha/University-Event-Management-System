@@ -210,6 +210,14 @@ UniEvents is an installable web app. On Android/Chrome/Edge use **Install the ap
 - **Event report** (button on every event for its organiser and for admins) is one event in full: banner, description, agenda, speakers, FAQ, registrations by status, who registered when, attendance and check-ins by hour, payments, certificates, teams, feedback (comments without names), sponsors, photos and the list of confirmed attendees.
 - Numbers are worked out from the live database and explained at the end of each report; a figure that cannot be calculated (for example attendance for an event that has not finished) shows a dash. Months and days are cut at Indian time (UTC+05:30); set `REPORT_TZ_OFFSET_MIN` to change that.
 
+### Student report
+
+Students get their own report under **My Report (PDF)** in the student menu. Pick **Monthly**, **Yearly** or **All time**, then **Download PDF** and choose **Save as PDF**.
+
+It shows events joined and attended, attendance rate next to the campus average, certificates (with IDs), feedback given, categories explored, amount paid, points, level, rank and badges, an events table, upcoming events, and plain "things to note" (for example feedback still pending). Changes are compared with the previous period.
+
+Privacy: the server always uses the signed-in student's own id (`GET /api/reports/student`, STUDENT role only), so nobody else's data can be requested. The campus average is one aggregate number and names no one.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.

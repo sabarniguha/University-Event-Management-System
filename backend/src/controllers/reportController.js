@@ -5,6 +5,9 @@ const asyncHandler = require('../utils/asyncHandler');
 const { loadManagedEvent } = require('../utils/access');
 const { parseId } = require('../utils/validators');
 const m = require('../utils/reportMath');
+const sm = require('../utils/studentReportMath');
+const rewards = require('./rewardsController');
+const { empty: emptyStats, pointsOf, badgesOf, levelOf } = require('../utils/rewards');
 
 const MAX_EVENTS = 1000;
 
@@ -170,4 +173,75 @@ const eventReport = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { summary, eventReport };
+// ---------------------------------------------------------------- student
+
+const studentQuery = z.object({
+  type: z.enum(['month', 'year', 'all']).default('year'),
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+  month: z.coerce.number().int().min(1).max(12).optional(),
+});
+
+async function loadStudentPeriod(userId, period) {
+  const range = period.type === 'all' ? {} : (({ from, to }) => ({ startsAt: { gte: from, lt: to } }))(m.periodRange(period));
+  const regs = await prisma.registration.findMany({
+    where: { userId, event: { status: 'PUBLISHED', ...range } }, orderBy: { createdAt: 'desc' }, take: 1000,
+    select: {
+      status: true, attendance: { select: { status: true } }, certificate: { select: { certificateId: true, revokedAt: true } },
+      event: { select: { id: true, title: true, category: true, mode: true, venue: true, bannerUrl: true, startsAt: true, endsAt: true, fee: true } },
+    },
+  });
+  const ids = regs.map((r) => r.event.id);
+  const [feedback, payments] = ids.length ? await Promise.all([
+    prisma.feedback.findMany({ where: { userId, eventId: { in: ids } }, select: { eventId: true, rating: true } }),
+    prisma.payment.findMany({ where: { userId, eventId: { in: ids }, status: 'PAID' }, select: { eventId: true, amount: true } }),
+  ]) : [[], []];
+  const rating = new Map(feedback.map((f) => [f.eventId, f.rating]));
+  const paid = new Map();
+  payments.forEach((p) => paid.set(p.eventId, (paid.get(p.eventId) || 0) + p.amount / 100));
+  return regs.map((r) => ({
+    status: r.status, attendance: r.attendance?.status || null,
+    certificateId: r.certificate && !r.certificate.revokedAt ? r.certificate.certificateId : null,
+    paid: paid.get(r.event.id) || 0, rating: rating.get(r.event.id) ?? null, event: r.event,
+  }));
+}
+
+// GET /api/reports/student?type=month|year|all - a student's own performance. Only ever their own records.
+const studentReport = asyncHandler(async (req, res) => {
+  const q = studentQuery.parse(req.query);
+  const nowLocal = m.local(new Date(), m.tzOffset());
+  const period = { type: q.type, year: q.year ?? nowLocal.getUTCFullYear(), month: q.month ?? nowLocal.getUTCMonth() + 1 };
+  const label = q.type === 'all' ? 'All time' : m.periodLabel(period);
+  const now = new Date();
+
+  const out = sm.summarizeStudent({ regs: await loadStudentPeriod(req.user.id, period), period, now });
+  let previous = null;
+  let previousLabel = null;
+  if (q.type !== 'all') {
+    const prev = m.previousPeriod(period);
+    previousLabel = m.periodLabel(prev);
+    previous = sm.compareStudent(out.kpis, sm.summarizeStudent({ regs: await loadStudentPeriod(req.user.id, prev), period: prev, now }).kpis);
+  }
+
+  // Everyone on campus, for the same period: one overall figure, no individuals.
+  const range = q.type === 'all' ? {} : (({ from, to }) => ({ startsAt: { gte: from, lt: to } }))(m.periodRange(period));
+  const finishedWhere = { status: 'REGISTERED', event: { status: 'PUBLISHED', endsAt: { lte: now }, ...range } };
+  const [campusFinished, campusPresent, profile, tally] = await Promise.all([
+    prisma.registration.count({ where: finishedWhere }),
+    prisma.registration.count({ where: { ...finishedWhere, attendance: { is: { status: 'PRESENT' } } } }),
+    prisma.user.findUnique({ where: { id: req.user.id }, select: { name: true, email: true, studentId: true, department: true, createdAt: true } }),
+    rewards.tally(),
+  ]);
+  const mine = tally.get(req.user.id) || emptyStats();
+  const points = pointsOf(mine);
+  const ahead = [...tally.values()].filter((s) => pointsOf(s) > points).length;
+
+  res.json({
+    meta: { period: { ...period, label }, previousLabel, generatedAt: new Date(), timezone: `UTC${m.tzOffset() >= 0 ? '+' : '-'}${String(Math.floor(Math.abs(m.tzOffset()) / 60)).padStart(2, '0')}:${String(Math.abs(m.tzOffset()) % 60).padStart(2, '0')}` },
+    student: { name: profile.name, email: profile.email, studentId: profile.studentId, department: profile.department, memberSince: profile.createdAt },
+    ...out, previous,
+    campus: { attendanceRate: m.pct(campusPresent, campusFinished) },
+    standing: { points, level: levelOf(points), rank: points > 0 ? ahead + 1 : null, ranked: [...tally.values()].filter((s) => pointsOf(s) > 0).length, stats: mine, badges: badgesOf(mine) },
+  });
+});
+
+module.exports = { summary, eventReport, studentReport };
