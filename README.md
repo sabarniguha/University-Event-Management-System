@@ -239,6 +239,15 @@ Migration `20261121000000_gallery_student_photos` only adds two columns; existin
 
 Nothing is estimated: a figure that cannot be worked out shows a dash. Migration `20261122000000_report_seals` adds one table.
 
+### AI assistant (optional, Groq)
+
+A chat button (**Ask AI**) appears for students, organisers and admins once `GROQ_API_KEY` is set in the Render environment. Without the key the app works as before and the button is hidden, so no key is needed to launch.
+
+- **Read and explain only.** It cannot register anyone or change data. For actions it names the menu item to open.
+- **Scoped by role.** Each question gets fresh data for that signed-in person only: a student's own registrations, certificates and open events; an organiser's own events and approvals waiting; an admin's platform counts and pending approvals. No emails, passwords or other people's details are sent to the model. Event text is treated as data, not instructions.
+- **Protected.** The key never reaches the browser, provider errors are not passed on, 20 questions per user per 10 minutes, and `ASSISTANT_DAILY_LIMIT` (default 1000) caps the day. The conversation is kept only on screen.
+- **Settings:** `GROQ_API_KEY` (required to enable), `GROQ_MODEL` (default `llama-3.3-70b-versatile`), `ASSISTANT_DAILY_LIMIT`. Questions and the data summary are sent to Groq to produce the answer, so mention this in your privacy policy.
+
 ## Camera ticket scanning
 
 Organisers and admins have a **Scan Tickets** page (`/organizer/scan`, `/admin/scan`): pick an event, start the camera, point it at a student's QR ticket and they are marked present. It works in every modern browser (the built-in detector where available, the `jsqr` library elsewhere) and needs HTTPS and camera permission. The ticket ID can also be typed in, and every result shows the ticket ID. The older per-event attendance pages are unchanged.

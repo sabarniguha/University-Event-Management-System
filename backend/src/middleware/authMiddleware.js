@@ -47,7 +47,9 @@ const authenticate = asyncHandler(async (req, res, next) => {
   if (!user) throw new HttpError(401, 'Account no longer exists');
   if (!user.isActive) throw new HttpError(403, 'This account has been deactivated. Contact an administrator.');
 
-  if (isReadOnlyDemoAdmin(user) && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+  // Asking the assistant only reads data, so the read-only demo admin may do it.
+  const readOnlyPost = req.method === 'POST' && req.originalUrl.split('?')[0] === '/api/assistant/chat';
+  if (isReadOnlyDemoAdmin(user) && !readOnlyPost && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     throw new HttpError(403, 'The demo admin is read-only. You can look around but not change anything.');
   }
 
