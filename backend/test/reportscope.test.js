@@ -37,3 +37,20 @@ test('an admin sees the whole platform, or one organiser when chosen', async () 
   assert.ok(seenWhere.every((w) => w.organizerId === 3));
   assert.strictEqual(one.meta.organiserName, 'Org Three');
 });
+
+test('a student report is always about the signed-in student only', async () => {
+  const seen = [];
+  prisma.registration = { findMany: async ({ where }) => { seen.push(where); return []; }, count: async () => 0 };
+  prisma.user.findUnique = async () => ({ name: 'S', email: 's@x.io', studentId: 'CS1', department: 'CSE', createdAt: new Date() });
+  prisma.eventTeamMember = { groupBy: async () => [] };
+  prisma.feedback.groupBy = async () => [];
+  prisma.$queryRaw = async () => [];
+  const { studentReport } = require(R('controllers/reportController.js'));
+  let out; let err;
+  await studentReport({ user: { id: 42, role: 'STUDENT' }, query: { type: 'month', year: '2026', month: '11', userId: '1' } }, { json: (x) => { out = x; } }, (e) => { err = e; });
+  if (err) throw err;
+  assert.ok(seen.length >= 2 && seen.every((w) => w.userId === 42), 'only the signed-in student');
+  assert.strictEqual(out.student.name, 'S');
+  assert.strictEqual(out.kpis.confirmed, 0);
+  assert.strictEqual(out.campus.attendanceRate, null);
+});
