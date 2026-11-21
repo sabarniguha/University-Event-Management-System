@@ -105,4 +105,15 @@ const approve = asyncHandler(async (req, res) => {
   res.json({ ok: true });
 });
 
-module.exports = { list, add, remove, addMine, removeMine, approve };
+// PATCH /api/gallery/:id/caption  (organiser of the event / admin). Photos only; an empty caption clears it.
+const caption = asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id);
+  const { title } = z.object({ title: z.string().trim().max(100).optional().transform((v) => v || null) }).parse(req.body);
+  const asset = await prisma.eventAsset.findUnique({ where: { id }, include: { event: true } });
+  if (!asset || asset.kind !== 'PHOTO') throw new HttpError(404, 'Not found');
+  if (!canManageEvent(req.user, asset.event)) throw new HttpError(403, 'You do not manage this event');
+  await prisma.eventAsset.update({ where: { id }, data: { title } });
+  res.json({ ok: true, title });
+});
+
+module.exports = { list, add, remove, addMine, removeMine, approve, caption };

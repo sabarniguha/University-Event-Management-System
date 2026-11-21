@@ -9,11 +9,14 @@ const sm = require('../utils/studentReportMath');
 const rewards = require('./rewardsController');
 const { empty: emptyStats, pointsOf, badgesOf, levelOf } = require('../utils/rewards');
 
+const seals = require('../utils/reportSeal');
+const ins = require('../utils/reportInsights');
+
 const MAX_EVENTS = 1000;
 
 const eventSelect = {
   id: true, title: true, category: true, eventType: true, mode: true, venue: true, bannerUrl: true, startsAt: true, endsAt: true,
-  capacity: true, fee: true, organizerId: true, organizer: { select: { name: true } },
+  capacity: true, fee: true, organizerId: true, registrationDeadline: true, organizer: { select: { name: true } },
 };
 
 // Loads everything the summary needs for the events that start inside [from, to).
@@ -27,32 +30,46 @@ async function loadPeriod(period, scope) {
   const ids = list.map((e) => e.id);
   const inIds = { in: ids };
   const [regs, feedback, payments, certificates] = ids.length ? await Promise.all([
-    prisma.registration.findMany({ where: { eventId: inIds }, select: { eventId: true, userId: true, status: true, user: { select: { department: true } }, attendance: { select: { status: true } } } }),
-    prisma.feedback.findMany({ where: { eventId: inIds }, select: { eventId: true, rating: true } }),
+    prisma.registration.findMany({ where: { eventId: inIds }, select: { eventId: true, userId: true, status: true, createdAt: true, user: { select: { department: true, name: true, studentId: true } }, attendance: { select: { status: true } } } }),
+    prisma.feedback.findMany({ where: { eventId: inIds }, select: { eventId: true, rating: true, comment: true } }),
     prisma.payment.findMany({ where: { eventId: inIds, status: { in: ['PAID', 'REFUNDED'] } }, select: { eventId: true, amount: true, status: true } }),
     prisma.certificate.findMany({ where: { eventId: inIds, revokedAt: null }, select: { eventId: true } }),
   ]) : [[], [], [], []];
   return {
     events: list, truncated, feedback, payments, certificates,
-    regs: regs.map((r) => ({ eventId: r.eventId, userId: r.userId, status: r.status, department: r.user?.department, attended: r.attendance?.status === 'PRESENT' })),
+    regs: regs.map((r) => ({ eventId: r.eventId, userId: r.userId, status: r.status, department: r.user?.department, name: r.user?.name, studentId: r.user?.studentId, createdAt: r.createdAt, attended: r.attendance?.status === 'PRESENT' })),
   };
 }
 
+const dayStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((v) => !Number.isNaN(Date.parse(v)), 'Invalid date');
+// A custom range needs both dates, in order, and may not be longer than 5 years.
+const checkRange = (q, ctx) => {
+  if (q.type !== 'range') return;
+  if (!q.from || !q.to) return ctx.addIssue({ code: 'custom', message: 'Choose both a from and a to date' });
+  const days = (Date.parse(q.to) - Date.parse(q.from)) / 86400000;
+  if (days < 0) ctx.addIssue({ code: 'custom', message: 'The from date must not be after the to date' });
+  if (days > 366 * 5) ctx.addIssue({ code: 'custom', message: 'A range can be at most 5 years' });
+};
+const periodOf = (q, nowLocal) => (q.type === 'range' ? { type: 'range', fromDate: q.from, toDate: q.to } : { type: q.type, year: q.year ?? nowLocal.getUTCFullYear(), month: q.month ?? nowLocal.getUTCMonth() + 1 });
+
 const query = z.object({
-  type: z.enum(['month', 'year']).default('month'),
+  type: z.enum(['month', 'year', 'range']).default('month'),
+  from: dayStr.optional(), to: dayStr.optional(),
   year: z.coerce.number().int().min(2000).max(2100).optional(),
   month: z.coerce.number().int().min(1).max(12).optional(),
   organizerId: z.coerce.number().int().positive().optional(),
   details: z.enum(['0', '1']).optional(),
-});
+}).superRefine(checkRange);
 const DETAIL_LIMIT = 60;
+
+const sealFigures = (k) => [['Events', k.events], ['Confirmed registrations', k.registrations], ['Attended', k.attended], ['Attendance rate', k.attendanceRate === null ? '-' : `${k.attendanceRate}%`]];
 
 // GET /api/reports/summary?type=month|year&year=2026&month=11[&organizerId=3 (admin only)]
 // Admin: the whole platform (or one organiser). Organiser: only their own events, whatever is asked.
 const summary = asyncHandler(async (req, res) => {
   const q = query.parse(req.query);
   const nowLocal = m.local(new Date(), m.tzOffset());
-  const period = { type: q.type, year: q.year ?? nowLocal.getUTCFullYear(), month: q.month ?? nowLocal.getUTCMonth() + 1 };
+  const period = periodOf(q, nowLocal);
   const isAdmin = req.user.role === 'ADMIN';
   const scope = isAdmin ? (q.organizerId ? { organizerId: q.organizerId } : {}) : { organizerId: req.user.id };
 
@@ -82,6 +99,28 @@ const summary = asyncHandler(async (req, res) => {
     pipeline: Object.fromEntries(pipeline.map((p) => [p.status, p._count._all])),
     gallery: await galleryFor({ status: 'PUBLISHED', startsAt: { gte: from, lt: to }, ...scope }),
   };
+
+  result.insights = ins.insights({ rows: out.events, regs: data.regs, feedback: data.feedback, events: data.events });
+  if (!isAdmin) delete result.insights.money;
+  const photoCounts = out.events.length ? await prisma.eventAsset.groupBy({ by: ['eventId'], where: { kind: 'PHOTO', approved: true, eventId: { in: out.events.map((e) => e.id) } }, _count: { _all: true } }) : [];
+  const photosBy = new Map(photoCounts.map((p) => [p.eventId, p._count._all]));
+  out.events.forEach((e) => { e.photos = photosBy.get(e.id) || 0; });
+
+  if (isAdmin) {
+    const dormantBefore = new Date(Date.now() - 90 * 86400000);
+    const [reviewed, pendingNow, dormant, neverIn] = await Promise.all([
+      prisma.event.findMany({ where: { reviewedAt: { gte: from, lt: to }, ...scope }, select: { createdAt: true, reviewedAt: true }, take: 2000 }),
+      prisma.event.count({ where: { status: 'PENDING_APPROVAL', ...scope } }),
+      q.organizerId ? 0 : prisma.user.count({ where: { role: 'STUDENT', isActive: true, lastLoginAt: { lt: dormantBefore } } }),
+      q.organizerId ? 0 : prisma.user.count({ where: { role: 'STUDENT', isActive: true, lastLoginAt: null } }),
+    ]);
+    result.insights.approvals = { ...ins.turnaround(reviewed), pendingNow };
+    if (!q.organizerId) result.insights.dormant = { inactive90Days: dormant, neverSignedIn: neverIn };
+  }
+
+  const subject = isAdmin && !q.organizerId ? 'UniEvents platform' : (isAdmin ? null : req.user.name);
+  if (isAdmin && q.organizerId) { const t = await prisma.user.findUnique({ where: { id: q.organizerId }, select: { name: true } }); result.seal = await seals.issue({ kind: 'ORGANISER', userId: q.organizerId, subject: t?.name || 'Organiser', periodLabel: m.periodLabel(period), periodKey: m.periodLabel(period), figures: sealFigures(out.kpis) }); }
+  else result.seal = await seals.issue({ kind: isAdmin ? 'PLATFORM' : 'ORGANISER', userId: isAdmin ? null : req.user.id, subject, periodLabel: m.periodLabel(period), periodKey: m.periodLabel(period), figures: sealFigures(out.kpis) });
 
   if (isAdmin) {
     const [created, totals, organisers, target] = await Promise.all([
@@ -113,6 +152,44 @@ async function galleryFor(eventWhere, extra = {}) {
   return { total: rows.length, byStudents: rows.filter((p) => p.uploaderRole === 'STUDENT').length, items };
 }
 
+// GET /api/reports/verify/:code - public. Says whether a report ID was issued by this site and what it covered.
+const verify = asyncHandler(async (req, res) => {
+  const found = await seals.check(req.params.code);
+  if (!found) return res.json({ valid: false });
+  res.json({ valid: true, ...found, userId: undefined });
+});
+
+// How this event compares with the same organiser's earlier events, who came back, when people registered, what feedback says.
+async function eventExtras(event, confirmed, present, feedback) {
+  const others = await prisma.event.findMany({
+    where: { organizerId: event.organizerId, status: 'PUBLISHED', id: { not: event.id }, startsAt: { lt: event.startsAt } }, orderBy: { startsAt: 'desc' }, take: 50, select: eventSelect,
+  });
+  const ids = others.map((e) => e.id);
+  const [oRegs, oFb] = ids.length ? await Promise.all([
+    prisma.registration.findMany({ where: { eventId: { in: ids } }, select: { eventId: true, userId: true, status: true, attendance: { select: { status: true } } } }),
+    prisma.feedback.findMany({ where: { eventId: { in: ids } }, select: { eventId: true, rating: true } }),
+  ]) : [[], []];
+  const past = m.summarize({
+    events: others.map((e) => ({ ...e, organizerName: e.organizer?.name })), period: { type: 'year', year: new Date().getUTCFullYear() }, feedback: oFb,
+    regs: oRegs.map((r) => ({ eventId: r.eventId, userId: r.userId, status: r.status, attended: r.attendance?.status === 'PRESENT' })),
+  });
+  const ended = past.events.filter((e) => e.ended);
+  const avg = {
+    registrations: m.mean(past.events.map((e) => e.registered)),
+    fillRate: m.mean(past.events.map((e) => e.fillRate).filter((v) => v !== null)),
+    attendanceRate: m.mean(ended.map((e) => e.attendanceRate).filter((v) => v !== null)),
+    rating: m.mean(past.events.filter((e) => e.ratingCount > 0).map((e) => e.rating)),
+  };
+  const priorAttendees = new Set(oRegs.filter((r) => r.attendance?.status === 'PRESENT').map((r) => r.userId));
+  const comments = feedback.filter((f) => f.comment && f.comment.trim()).map((f) => f.comment);
+  return {
+    compare: { pastEvents: others.length, average: others.length ? avg : null },
+    returning: { attended: present.length, returning: present.filter((r) => priorAttendees.has(r.userId)).length, newcomers: present.filter((r) => !priorAttendees.has(r.userId)).length, hasHistory: others.length > 0 },
+    timing: ins.timing([event], confirmed.map((r) => ({ eventId: event.id, status: r.status, createdAt: r.createdAt }))),
+    themes: ins.themes(comments),
+  };
+}
+
 // GET /api/reports/event/:id - everything about one event. Admin: any event. Organiser: their own only.
 const eventReport = asyncHandler(async (req, res) => {
   const id = parseId(req.params.id, 'event id');
@@ -122,13 +199,13 @@ const eventReport = asyncHandler(async (req, res) => {
     prisma.event.findUnique({ where: { id }, include: { organizer: { select: { name: true, department: true } } } }),
     prisma.registration.findMany({
       where: { eventId: id }, orderBy: { createdAt: 'asc' },
-      select: { status: true, createdAt: true, user: { select: { name: true, studentId: true, department: true } }, attendance: { select: { status: true, checkedInAt: true } } },
+      select: { status: true, createdAt: true, userId: true, user: { select: { name: true, studentId: true, department: true } }, attendance: { select: { status: true, checkedInAt: true } } },
     }),
     prisma.feedback.findMany({ where: { eventId: id }, orderBy: { createdAt: 'desc' }, select: { rating: true, comment: true, createdAt: true } }),
     prisma.payment.findMany({ where: { eventId: id }, select: { amount: true, status: true } }),
     prisma.certificate.count({ where: { eventId: id, revokedAt: null } }),
     prisma.eventTeam.findMany({ where: { eventId: id }, select: { _count: { select: { members: true } } } }),
-    prisma.eventAsset.findMany({ where: { eventId: id }, orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { kind: true, url: true, title: true } }),
+    prisma.eventAsset.findMany({ where: { eventId: id }, orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { kind: true, url: true, title: true, approved: true, uploaderRole: true } }),
   ]);
 
   const byStatus = {};
@@ -137,6 +214,7 @@ const eventReport = asyncHandler(async (req, res) => {
   const present = confirmed.filter((r) => r.attendance?.status === 'PRESENT');
   const absent = confirmed.filter((r) => r.attendance?.status === 'ABSENT');
   const ended = event.endsAt <= new Date();
+  const extras = await eventExtras(event, confirmed, present, feedback);
 
   const dayLabel = (d) => { const l = m.local(d, off); return `${l.getUTCDate()} ${m.MONTHS[l.getUTCMonth()]}`; };
   const dayCounts = new Map();
@@ -169,7 +247,7 @@ const eventReport = asyncHandler(async (req, res) => {
       fillRate: m.pct(confirmed.length, event.capacity),
       present: present.length, absent: absent.length, notMarked: confirmed.length - present.length - absent.length,
       attendanceRate: ended ? m.pct(present.length, confirmed.length) : null,
-      certificates: certCount,
+      certificates: certCount, pendingCertificates: ended ? Math.max(0, present.length - certCount) : null,
       teams: event.teamMax > 1 ? { count: teams.length, avgSize: m.mean(teams.map((t) => t._count.members)) } : null,
     },
     payments: { paidCount: paid.length, revenue: sumRupees(paid), refunded: sumRupees(payments.filter((p) => p.status === 'REFUNDED')), pending: payments.filter((p) => p.status === 'CREATED').length },
@@ -185,16 +263,20 @@ const eventReport = asyncHandler(async (req, res) => {
     sponsors: assets.filter((a) => a.kind === 'SPONSOR').map((a) => ({ url: a.url, title: a.title })),
     attendees: confirmed.slice(0, 500).map((r) => ({ name: r.user.name, studentId: r.user.studentId, department: r.user.department, attended: r.attendance?.status === 'PRESENT' ? 'Present' : r.attendance?.status === 'ABSENT' ? 'Absent' : (ended ? 'Not marked' : '') })),
     attendeesTotal: confirmed.length,
+    ...extras,
+    seal: await seals.issue({ kind: 'EVENT', userId: event.id, subject: event.title, periodLabel: m.local(event.startsAt, m.tzOffset()).toISOString().slice(0, 10), periodKey: String(event.id), figures: [['Confirmed', confirmed.length], ['Attended', present.length], ['Rating', m.mean(feedback.map((f) => f.rating)) ?? '-'], ['Certificates', certCount]] }),
   });
 });
 
 // ---------------------------------------------------------------- student
 
 const studentQuery = z.object({
-  type: z.enum(['month', 'year', 'all']).default('year'),
+  type: z.enum(['month', 'year', 'all', 'range']).default('year'),
+  from: dayStr.optional(), to: dayStr.optional(),
+  form: z.enum(['report', 'transcript']).default('report'),
   year: z.coerce.number().int().min(2000).max(2100).optional(),
   month: z.coerce.number().int().min(1).max(12).optional(),
-});
+}).superRefine(checkRange);
 
 async function loadStudentPeriod(userId, period) {
   const range = period.type === 'all' ? {} : (({ from, to }) => ({ startsAt: { gte: from, lt: to } }))(m.periodRange(period));
@@ -221,6 +303,26 @@ async function loadStudentPeriod(userId, period) {
 }
 
 // GET /api/reports/student?type=month|year|all - a student's own performance. Only ever their own records.
+// Goals, skills, streaks and suggestions. Everything here is the student's own data, plus public upcoming events.
+async function studentExtras(userId, out, stats, points, now) {
+  const history = await prisma.registration.findMany({
+    where: { userId, status: 'REGISTERED', attendance: { is: { status: 'PRESENT' } }, event: { status: 'PUBLISHED' } },
+    select: { event: { select: { startsAt: true, category: true } } }, take: 2000,
+  });
+  const favourite = [...history.reduce((mp, h) => mp.set(h.event.category, (mp.get(h.event.category) || 0) + 1), new Map()).entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c]) => c);
+  const suggestions = favourite.length ? await prisma.event.findMany({
+    where: { status: 'PUBLISHED', startsAt: { gt: now }, category: { in: favourite }, OR: [{ registrationDeadline: null }, { registrationDeadline: { gt: now } }], registrations: { none: { userId, status: { in: ['REGISTERED', 'WAITLISTED', 'PENDING', 'AWAITING_PAYMENT'] } } } },
+    orderBy: { startsAt: 'asc' }, take: 3, select: { id: true, title: true, category: true, startsAt: true, venue: true, fee: true },
+  }) : [];
+  return {
+    goals: sm.goals(stats, points, badgesOf(stats)),
+    skills: sm.skills(out.events),
+    streaks: sm.streaks(history.map((h) => h.event.startsAt), now),
+    activityHours: sm.hoursAttended(out.events),
+    suggestions,
+  };
+}
+
 // Photos from events the student attended, plus the photos they uploaded themselves (pending ones are labelled).
 async function studentGallery(userId, range) {
   const where = { status: 'PUBLISHED', ...range };
@@ -234,7 +336,7 @@ async function studentGallery(userId, range) {
 const studentReport = asyncHandler(async (req, res) => {
   const q = studentQuery.parse(req.query);
   const nowLocal = m.local(new Date(), m.tzOffset());
-  const period = { type: q.type, year: q.year ?? nowLocal.getUTCFullYear(), month: q.month ?? nowLocal.getUTCMonth() + 1 };
+  const period = periodOf(q, nowLocal);
   const label = q.type === 'all' ? 'All time' : m.periodLabel(period);
   const now = new Date();
 
@@ -265,9 +367,14 @@ const studentReport = asyncHandler(async (req, res) => {
     student: { name: profile.name, email: profile.email, studentId: profile.studentId, department: profile.department, memberSince: profile.createdAt },
     ...out, previous,
     campus: { attendanceRate: m.pct(campusPresent, campusFinished) },
+    ...(await studentExtras(req.user.id, out, mine, points, now)),
     gallery: await studentGallery(req.user.id, q.type === 'all' ? {} : (({ from, to }) => ({ startsAt: { gte: from, lt: to } }))(m.periodRange(period))),
+    seal: await seals.issue({
+      kind: q.form === 'transcript' ? 'TRANSCRIPT' : 'STUDENT', userId: req.user.id, subject: profile.name, periodLabel: label, periodKey: label,
+      figures: q.form === 'transcript' ? [['Events attended', out.kpis.attended], ['Hours at events', sm.hoursAttended(out.events)], ['Certificates', out.kpis.certificates]] : [['Events attended', out.kpis.attended], ['Attendance rate', out.kpis.attendanceRate === null ? '-' : `${out.kpis.attendanceRate}%`], ['Certificates', out.kpis.certificates], ['Points', points]],
+    }),
     standing: { points, level: levelOf(points), rank: points > 0 ? ahead + 1 : null, ranked: [...tally.values()].filter((s) => pointsOf(s) > 0).length, stats: mine, badges: badgesOf(mine) },
   });
 });
 
-module.exports = { summary, eventReport, studentReport };
+module.exports = { summary, eventReport, studentReport, verify };

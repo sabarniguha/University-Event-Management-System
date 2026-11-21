@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Printer } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Download, FileCheck2, Printer } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
 import { ErrorBox, Loader, PageHeader } from '../../components/common/Ui.jsx';
+import { downloadCsv } from '../../utils/csvDownload.js';
 import PhotoGrid from '../../components/reports/PhotoGrid.jsx';
 import usePrintPage from '../../components/reports/usePrintPage.js';
-import { BarList, ColumnChart, Cover, Donut, Figure, Section, Table, num, pc, rupees, stars } from '../../components/reports/ReportParts.jsx';
+import { BarList, ColumnChart, Cover, Donut, Figure, Section, SubHead, Table, num, pc, rupees, stars } from '../../components/reports/ReportParts.jsx';
 import { MODE_LABEL, fmtDate } from '../../utils/format.js';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -30,6 +32,14 @@ function story(d) {
   return bits.join(' ');
 }
 
+function csvBlocks(d) {
+  return [
+    { title: `${d.student.name} - ${d.meta.period.label} (Report ID ${d.seal?.code || '-'})`, head: ['Events joined', 'Attended', 'Attendance %', 'Campus average %', 'Certificates', 'Feedback given', 'Average rating given', 'Hours at events', 'Amount paid (INR)', 'Points', 'Level'], rows: [[d.kpis.confirmed, d.kpis.attended, d.kpis.attendanceRate ?? '', d.campus.attendanceRate ?? '', d.kpis.certificates, d.kpis.feedbackGiven, d.kpis.avgRatingGiven ?? '', d.activityHours, d.kpis.spent, d.standing.points, d.standing.level]] },
+    { title: 'My events', head: ['Date', 'Event', 'Category', 'Status', 'Attendance', 'Certificate ID', 'Paid (INR)', 'My rating'], rows: d.events.map((e) => [new Date(e.startsAt).toISOString().slice(0, 10), e.title, e.category, STATUS[e.status] || e.status, attendanceLabel(e), e.certificateId || '', e.paid, e.rating ?? '']) },
+    { title: 'Skills and interests', head: ['Area', 'Events attended', 'Categories'], rows: d.skills.map((s) => [s.label, s.count, s.categories.join('; ')]) },
+  ];
+}
+
 function notes(d) {
   const { kpis: k, events } = d;
   const out = [];
@@ -47,19 +57,25 @@ export default function StudentReportPage() {
   const [type, setType] = useState('year');
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const params = useMemo(() => ({ type, year, month }), [type, year, month]);
+  const [from, setFrom] = useState(`${now.getFullYear()}-01-01`);
+  const [to, setTo] = useState(now.toISOString().slice(0, 10));
+  const params = useMemo(() => ({ type, year, month, ...(type === 'range' ? { from, to } : {}) }), [type, year, month, from, to]);
   const { data: d, loading, error } = useFetch('/reports/student', params);
-  const print = usePrintPage(`UniEvents-My-Report-${type === 'all' ? 'AllTime' : type === 'year' ? year : `${year}-${String(month).padStart(2, '0')}`}`);
+  const fileName = `UniEvents-My-Report-${type === 'all' ? 'AllTime' : type === 'range' ? `${from}_to_${to}` : type === 'year' ? year : `${year}-${String(month).padStart(2, '0')}`}`;
+  const print = usePrintPage(fileName);
   const years = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i);
 
   return (
     <div className="space-y-6">
       <div className="print:hidden"><PageHeader title="My report" subtitle="Your attendance, certificates, points and activity in one document." /></div>
       <div className="card flex flex-wrap items-end gap-3 print:hidden">
-        <div><label className="label" htmlFor="sr-type">Report</label><select id="sr-type" className="input" value={type} onChange={(e) => setType(e.target.value)}><option value="month">Monthly</option><option value="year">Yearly</option><option value="all">All time</option></select></div>
+        <div><label className="label" htmlFor="sr-type">Report</label><select id="sr-type" className="input" value={type} onChange={(e) => setType(e.target.value)}><option value="month">Monthly</option><option value="year">Yearly</option><option value="all">All time</option><option value="range">Custom range</option></select></div>
         {type === 'month' && <div><label className="label" htmlFor="sr-m">Month</label><select id="sr-m" className="input" value={month} onChange={(e) => setMonth(Number(e.target.value))}>{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select></div>}
-        {type !== 'all' && <div><label className="label" htmlFor="sr-y">Year</label><select id="sr-y" className="input" value={year} onChange={(e) => setYear(Number(e.target.value))}>{years.map((y) => <option key={y}>{y}</option>)}</select></div>}
-        <button className="btn-primary ml-auto" onClick={print} disabled={!d}><Printer className="h-4 w-4" /> Download PDF</button>
+        {type === 'range' && <><div><label className="label" htmlFor="sr-f">From</label><input id="sr-f" type="date" className="input" value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} /></div><div><label className="label" htmlFor="sr-t">To</label><input id="sr-t" type="date" className="input" value={to} min={from} onChange={(e) => e.target.value && setTo(e.target.value)} /></div></>}
+        {(type === 'month' || type === 'year') && <div><label className="label" htmlFor="sr-y">Year</label><select id="sr-y" className="input" value={year} onChange={(e) => setYear(Number(e.target.value))}>{years.map((y) => <option key={y}>{y}</option>)}</select></div>}
+        <Link to="/student/transcript" className="btn-outline ml-auto"><FileCheck2 className="h-4 w-4" /> Activity transcript</Link>
+        <button className="btn-outline" onClick={() => downloadCsv(fileName, csvBlocks(d))} disabled={!d}><Download className="h-4 w-4" /> Download CSV</button>
+        <button className="btn-primary" onClick={print} disabled={!d}><Printer className="h-4 w-4" /> Download PDF</button>
         <p className="basis-full text-xs text-slate-500">Click Download PDF, then choose <b>Save as PDF</b> as the destination in the print window.</p>
       </div>
       <ErrorBox message={error} />
@@ -82,6 +98,7 @@ function Document({ d }) {
         kicker="Student performance report"
         title={s.name}
         subtitle={[s.studentId, s.department].filter(Boolean).join(' · ') || 'UniEvents student'}
+        seal={d.seal}
         lines={[meta.period.label, `Generated ${fmtDate(meta.generatedAt)}`, `Student since ${new Date(s.memberSince).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}`, `Times shown in ${meta.timezone}`]}
       />
 
@@ -95,7 +112,7 @@ function Document({ d }) {
           <Figure label="Certificates earned" value={num(k.certificates)} change={ch('certificates')} />
           <Figure label="Feedback given" value={num(k.feedbackGiven)} change={ch('feedbackGiven')} sub={k.avgRatingGiven !== null ? `You rated ${stars(k.avgRatingGiven)} on average` : undefined} />
           <Figure label="Categories explored" value={num(k.categoriesExplored)} sub={k.topCategory ? `Most often: ${k.topCategory}` : undefined} />
-          <Figure label="Amount paid" value={rupees(k.spent)} sub="for paid events" />
+          <Figure label="Amount paid" value={rupees(k.spent)} sub={`${num(d.activityHours)} hours at events`} />
           <Figure label="Not attended" value={num(k.notAttended)} sub="finished events you joined" />
         </div>
       </Section>
@@ -109,6 +126,28 @@ function Document({ d }) {
         <p className="mt-3 text-xs text-slate-700"><b>Badges earned ({earned.length} of {st.badges.length}):</b> {earned.length ? earned.map((b) => b.name).join(', ') : 'none yet'}.</p>
         <p className="mt-1 text-[11px] text-slate-500">Still to earn: {st.badges.filter((b) => !b.earned).map((b) => `${b.name} (${b.description.toLowerCase()})`).join('; ') || 'nothing, you have them all'}.</p>
       </Section>
+
+      <Section title="Goals and consistency">
+        <div className="grid grid-cols-3 gap-3 print:grid-cols-3">
+          <Figure label="Month streak" value={`${num(d.streaks.current)}`} sub={d.streaks.current === 1 ? 'month in a row with an event' : 'months in a row with an event'} />
+          <Figure label="Longest streak" value={`${num(d.streaks.longest)}`} sub={`${num(d.streaks.activeMonths)} active month(s) in total`} />
+          <Figure label="Best month" value={d.streaks.best ? d.streaks.best.label : '-'} sub={d.streaks.best ? `${d.streaks.best.count} event(s) attended` : 'attend an event to start'} />
+        </div>
+        <ul className="mt-3 list-disc space-y-1 pl-4 text-xs text-slate-700">
+          {d.goals.nextLevel ? <li><b>{num(d.goals.nextLevel.pointsNeeded)} more point(s)</b> to reach {d.goals.nextLevel.name} (you have {num(st.points)}).</li> : <li>You have reached the top level, Gold.</li>}
+          {d.goals.badges.map((b) => <li key={b.key}><b>{b.name}</b>: {b.have} of {b.target} done. {b.description}.</li>)}
+        </ul>
+        <p className="mt-1 text-[11px] text-slate-500">Streaks count the months you were marked present at an event, over all time.</p>
+      </Section>
+
+      {d.skills.length > 0 && (
+        <Section title="Skills and interests" note="The kinds of events you attended in this period, grouped by what their category names suggest.">
+          <div className="report-block grid gap-5 sm:grid-cols-2 print:grid-cols-2">
+            <div><SubHead>Areas</SubHead><BarList rows={d.skills.map((s) => ({ label: s.label, count: s.count }))} unit=" attended" /></div>
+            <div><SubHead>Categories</SubHead><ul className="space-y-1 text-xs text-slate-700">{d.skills.map((s) => <li key={s.label}><b>{s.label}:</b> {s.categories.join(', ')}</li>)}</ul></div>
+          </div>
+        </Section>
+      )}
 
       <Section title={meta.period.type === 'month' ? 'Day by day' : meta.period.type === 'year' ? 'Month by month' : 'Last 12 months'} note="Counted on the day or month each event started.">
         <ColumnChart data={d.timeline} series={[{ key: 'registered', name: 'Events joined' }, { key: 'attended', name: 'Attended' }]} />
@@ -144,6 +183,12 @@ function Document({ d }) {
 
       {upcoming.length > 0 && (
         <Section title="Coming up"><Table head={['Date', 'Event', 'Venue']}>{upcoming.map((e) => <tr key={e.eventId}><td className="whitespace-nowrap">{fmtDate(e.startsAt)}</td><td className="font-medium text-slate-900">{e.title}</td><td>{e.venue}</td></tr>)}</Table></Section>
+      )}
+
+      {d.suggestions.length > 0 && (
+        <Section title="Suggested for you" note="Upcoming events in the categories you attend most, which you have not registered for.">
+          <Table head={['Date', 'Event', 'Category', 'Venue', 'Fee']}>{d.suggestions.map((e) => <tr key={e.id}><td className="whitespace-nowrap">{fmtDate(e.startsAt)}</td><td className="font-medium text-slate-900">{e.title}</td><td>{e.category}</td><td>{e.venue}</td><td>{e.fee > 0 ? rupees(e.fee) : 'Free'}</td></tr>)}</Table>
+        </Section>
       )}
 
       {tips.length > 0 && (

@@ -7,10 +7,10 @@ const stub = (p, exports) => { const f = require.resolve(R(p)); require.cache[f]
 
 const seenWhere = [];
 const prisma = {
-  event: { findMany: async ({ where }) => { seenWhere.push(where); return []; }, groupBy: async () => [] },
-  eventAsset: { findMany: async () => [] },
+  event: { findMany: async ({ where }) => { seenWhere.push(where); return []; }, groupBy: async () => [], count: async () => 0 },
+  eventAsset: { findMany: async () => [], groupBy: async () => [] }, reportSeal: { upsert: async ({ create }) => ({ issuedAt: new Date(), ...create }) },
   registration: { findMany: async () => [] }, feedback: { findMany: async () => [] }, payment: { findMany: async () => [] }, certificate: { findMany: async () => [] },
-  user: { groupBy: async () => [], findMany: async () => [{ id: 3, name: 'Org Three' }], findUnique: async () => ({ name: 'Org Three' }) },
+  user: { count: async () => 0, groupBy: async () => [], findMany: async () => [{ id: 3, name: 'Org Three' }], findUnique: async () => ({ name: 'Org Three' }) },
 };
 stub('utils/prismaClient.js', prisma);
 stub('utils/access.js', { loadManagedEvent: async () => ({}) });

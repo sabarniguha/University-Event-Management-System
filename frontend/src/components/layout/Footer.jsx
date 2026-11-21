@@ -24,6 +24,7 @@ export default function Footer() {
             <li><Link className={col} to="/categories">Categories</Link></li>
             <li><Link className={col} to="/verify">Verify a certificate</Link></li>
             <li><Link className={col} to="/verify-ticket">Verify a ticket</Link></li>
+            <li><Link className={col} to="/verify-report">Verify a report</Link></li>
           </ul>
         </div>
         <div>

@@ -514,3 +514,15 @@ model EventAsset {
 
   @@index([eventId, kind])
 }
+
+// Printed on exported reports so the figures can be checked later. Holds only headline numbers, never student lists.
+model ReportSeal {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  kind        String
+  subject     String
+  periodLabel String
+  figures     Json
+  userId      Int?
+  issuedAt    DateTime @default(now())
+}

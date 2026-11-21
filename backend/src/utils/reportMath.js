@@ -8,21 +8,43 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const tzOffset = () => (Number.isFinite(Number(process.env.REPORT_TZ_OFFSET_MIN)) && process.env.REPORT_TZ_OFFSET_MIN !== undefined && process.env.REPORT_TZ_OFFSET_MIN !== '' ? Number(process.env.REPORT_TZ_OFFSET_MIN) : 330);
 const local = (d, off) => new Date(new Date(d).getTime() + off * 60000); // read with getUTC* to get local parts
 
-function periodRange({ type, year, month }, off = tzOffset()) {
+const parseDay = (s) => { const [y, mo, d] = String(s).split('-').map(Number); return Date.UTC(y, mo - 1, d); };
+const DAY = 86400000;
+const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function periodRange(period, off = tzOffset()) {
+  const { type, year, month } = period;
+  // A custom range runs from local midnight on fromDate to local midnight after toDate (both days included).
+  if (type === 'range') return { from: new Date(parseDay(period.fromDate) - off * 60000), to: new Date(parseDay(period.toDate) + DAY - off * 60000) };
   const start = type === 'year' ? Date.UTC(year, 0, 1) : Date.UTC(year, month - 1, 1);
   const end = type === 'year' ? Date.UTC(year + 1, 0, 1) : Date.UTC(year, month, 1);
   return { from: new Date(start - off * 60000), to: new Date(end - off * 60000) };
 }
 
-const previousPeriod = (p) => (p.type === 'year' ? { type: 'year', year: p.year - 1 } : p.month === 1 ? { type: 'month', year: p.year - 1, month: 12 } : { type: 'month', year: p.year, month: p.month - 1 });
+const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
+const previousPeriod = (p) => (p.type === 'range' ? (() => { const len = Math.round((parseDay(p.toDate) - parseDay(p.fromDate)) / DAY) + 1; return { type: 'range', fromDate: iso(parseDay(p.fromDate) - len * DAY), toDate: iso(parseDay(p.fromDate) - DAY) }; })() : p.type === 'year' ? { type: 'year', year: p.year - 1 } : p.month === 1 ? { type: 'month', year: p.year - 1, month: 12 } : { type: 'month', year: p.year, month: p.month - 1 });
 
-const periodLabel = (p) => (p.type === 'year' ? `Year ${p.year}` : `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][p.month - 1]} ${p.year}`);
+const dayLabel = (s) => { const ms = parseDay(s); const d = new Date(ms); return `${d.getUTCDate()} ${SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
+const periodLabel = (p) => (p.type === 'range' ? `${dayLabel(p.fromDate)} to ${dayLabel(p.toDate)}` : p.type === 'year' ? `Year ${p.year}` : `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][p.month - 1]} ${p.year}`);
 
 const tally = (rows, keyFn) => {
   const map = new Map();
   rows.forEach((r) => { const k = keyFn(r) || 'Unspecified'; map.set(k, [...(map.get(k) || []), r]); });
   return map;
 };
+
+// Buckets for a custom range: one per day up to 62 days, otherwise one per month. idx(date) gives the bucket of a moment.
+function rangeBuckets(period, off = tzOffset()) {
+  const start = parseDay(period.fromDate);
+  const days = Math.round((parseDay(period.toDate) - start) / DAY) + 1;
+  if (days <= 62) {
+    return { labels: Array.from({ length: days }, (_, i) => { const d = new Date(start + i * DAY); return `${d.getUTCDate()} ${SHORT[d.getUTCMonth()]}`; }), idx: (date) => { const l = local(date, off); return Math.floor((Date.UTC(l.getUTCFullYear(), l.getUTCMonth(), l.getUTCDate()) - start) / DAY); } };
+  }
+  const s = new Date(start);
+  const first = s.getUTCFullYear() * 12 + s.getUTCMonth();
+  const last = new Date(parseDay(period.toDate)); const count = last.getUTCFullYear() * 12 + last.getUTCMonth() - first + 1;
+  return { labels: Array.from({ length: count }, (_, i) => `${SHORT[(first + i) % 12]} ${String(Math.floor((first + i) / 12)).slice(2)}`), idx: (date) => { const l = local(date, off); return l.getUTCFullYear() * 12 + l.getUTCMonth() - first; } };
+}
 
 // events: published events in the period. regs: every registration for them (with userId, status, department, attended).
 function summarize({ events, regs, feedback = [], payments = [], certificates = [], period, now = new Date(), off = tzOffset(), withOrganisers = false }) {
@@ -97,6 +119,11 @@ function summarize({ events, regs, feedback = [], payments = [], certificates = 
     timeline = MONTHS.map((label) => ({ label, events: 0, registrations: 0, attended: 0, revenue: 0 }));
     rows.forEach((r) => { const t = timeline[local(r.startsAt, off).getUTCMonth()]; t.events += 1; t.registrations += r.registered; t.attended += r.attended; t.revenue += r.revenue; });
     timeline.forEach((t) => { t.revenue = Math.round(t.revenue * 100) / 100; });
+  } else if (period.type === 'range') {
+    const { labels, idx } = rangeBuckets(period, off);
+    timeline = labels.map((label) => ({ label, events: 0, registrations: 0, attended: 0, revenue: 0 }));
+    rows.forEach((r) => { const t = timeline[idx(r.startsAt)]; if (t) { t.events += 1; t.registrations += r.registered; t.attended += r.attended; t.revenue += r.revenue; } });
+    timeline.forEach((t) => { t.revenue = Math.round(t.revenue * 100) / 100; });
   } else {
     const days = new Date(Date.UTC(period.year, period.month, 0)).getUTCDate();
     timeline = Array.from({ length: days }, (_, i) => ({ label: String(i + 1), events: 0, registrations: 0, attended: 0, revenue: 0 }));
@@ -140,4 +167,4 @@ function compare(current, previous) {
   return Object.fromEntries(keys.map((k) => [k, { previous: previous[k], change: previous[k] > 0 ? Math.round(((current[k] - previous[k]) / previous[k]) * 1000) / 10 : null }]));
 }
 
-module.exports = { pct, mean, tzOffset, local, periodRange, previousPeriod, periodLabel, summarize, compare, MONTHS };
+module.exports = { pct, mean, tzOffset, local, periodRange, previousPeriod, periodLabel, rangeBuckets, summarize, compare, MONTHS };

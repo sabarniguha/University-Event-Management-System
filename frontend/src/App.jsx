@@ -23,10 +23,12 @@ const ForgotPassword = page(() => import('./pages/public/ForgotPassword.jsx'));
 const ResetPassword = page(() => import('./pages/public/ResetPassword.jsx'));
 const VerifyEmail = page(() => import('./pages/public/VerifyEmail.jsx'));
 const VerifyCertificate = page(() => import('./pages/public/VerifyCertificate.jsx'));
+const VerifyReport = page(() => import('./pages/public/VerifyReport.jsx'));
 const VerifyTicket = page(() => import('./pages/public/VerifyTicket.jsx'));
 const ScanTickets = page(() => import('./pages/organizer/ScanTickets.jsx'));
 const StudentPayments = page(() => import('./pages/student/Payments.jsx'));
 const StudentReportPage = page(() => import('./pages/reports/StudentReportPage.jsx'));
+const StudentTranscriptPage = page(() => import('./pages/reports/StudentTranscriptPage.jsx'));
 const ReportsPage = page(() => import('./pages/reports/ReportsPage.jsx'));
 const EventReportPage = page(() => import('./pages/reports/EventReportPage.jsx'));
 const EventGallery = page(() => import('./pages/organizer/EventGallery.jsx'));
@@ -93,6 +95,7 @@ export default function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/verify" element={<VerifyCertificate />} />
           <Route path="/verify/:code" element={<VerifyCertificate />} />
+          <Route path="/verify-report" element={<VerifyReport />} />
           <Route path="/verify-ticket" element={<VerifyTicket />} />
           <Route path="/offline-tickets" element={<OfflineTickets />} />
           <Route path="/verify-ticket/:code" element={<VerifyTicket />} />
@@ -116,6 +119,7 @@ export default function App() {
               <Route path="/student/certificates" element={<StudentCertificates />} />
               <Route path="/student/rewards" element={<Rewards />} />
               <Route path="/student/reports" element={<StudentReportPage />} />
+              <Route path="/student/transcript" element={<StudentTranscriptPage />} />
               <Route path="/student/certificates/:certificateId" element={<CertificateView />} />
             </Route>
 
