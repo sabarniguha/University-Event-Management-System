@@ -31,6 +31,14 @@ const THEMES = {
   classic: { border: '#b45309', accent: '#92400e', bg: '#fffbeb', double: true },
   modern: { border: '#4f46e5', accent: '#4338ca', bg: '#ffffff', band: true },
   minimal: { border: '#64748b', accent: '#334155', bg: '#ffffff' },
+  royal: { border: '#1e3a8a', accent: '#1e3a8a', bg: '#fffdf7', double: true },
+};
+
+// Colours for the result badge: gold, silver and bronze.
+const MEDALS = {
+  WINNER: { fill: '#fef3c7', line: '#d97706', ink: '#92400e' },
+  FIRST_RUNNER_UP: { fill: '#f1f5f9', line: '#94a3b8', ink: '#334155' },
+  SECOND_RUNNER_UP: { fill: '#ffedd5', line: '#ea580c', ink: '#9a3412' },
 };
 
 // cert: { templateKey, title, studentName, department, eventTitle, venue, dateText, issuedText,
@@ -53,12 +61,23 @@ function certificatePdf(cert) {
   const cx = W / 2;
   text('UNIEVENTS', cx, H - (t.band ? 50 : 90), 12, { bold: true, color: t.band ? '#ffffff' : t.accent, align: 'center' });
   text(cert.title, cx, H - 150, 34, { bold: true, color: t.accent, align: 'center' });
-  text('This is proudly presented to', cx, H - 205, 14, { color: '#475569', align: 'center' });
-  text(cert.studentName, cx, H - 255, 30, { bold: true, align: 'center' });
-  let y = H - 280;
+  // A winner or runner-up gets a medal-coloured badge under the heading, so the rest moves down a little.
+  const medal = cert.position && cert.positionLabel ? MEDALS[cert.position] : null;
+  const dy = medal ? 22 : 0;
+  if (medal) {
+    const label = cert.positionLabel.toUpperCase();
+    const bw = textWidth(label, 13, true) + 44;
+    rect(cx - bw / 2, H - 190, bw, 24, medal.fill, true);
+    rect(cx - bw / 2, H - 190, bw, 24, medal.line, false);
+    text(label, cx, H - 183, 13, { bold: true, color: medal.ink, align: 'center' });
+  }
+  text('This is proudly presented to', cx, H - 205 - dy, 14, { color: '#475569', align: 'center' });
+  text(cert.studentName, cx, H - 255 - dy, 30, { bold: true, align: 'center' });
+  ops.push(`${hex(t.border)} RG 1 w ${cx - 150} ${H - 264 - dy} m ${cx + 150} ${H - 264 - dy} l S`);
+  let y = H - 280 - dy;
   if (cert.department) { text(cert.department, cx, y, 12, { color: '#64748b', align: 'center' }); y -= 10; }
   y -= 24;
-  wrap(`for attending ${cert.eventTitle}, held on ${cert.dateText} at ${cert.venue}.`, 15, 560).forEach((line) => {
+  wrap(`${medal ? `for securing ${cert.positionPhrase || cert.positionLabel} in` : 'for attending'} ${cert.eventTitle}, held on ${cert.dateText} at ${cert.venue}.`, 15, 560).forEach((line) => {
     text(line, cx, y, 15, { color: '#334155', align: 'center' });
     y -= 22;
   });

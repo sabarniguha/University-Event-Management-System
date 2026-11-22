@@ -199,13 +199,13 @@ const generateCertificatesSchema = z.object({
   registrationIds: z.array(z.coerce.number().int().positive()).max(5000).optional(),
   // Also certify registered students who were not scanned at the door.
   includeRegistered: z.boolean().optional(),
-  templateKey: z.enum(['classic', 'modern', 'minimal']).default('classic'),
+  templateKey: z.enum(['classic', 'modern', 'minimal', 'royal']).default('classic'),
   title: z.string().trim().min(3).max(120).default('Certificate of Participation'),
   signatoryName: optionalText(100),
   signatoryTitle: optionalText(100),
   // Optional per-student name and remark, and a remark for everyone who has none of their own.
   remarks: optionalText(300),
-  recipients: z.array(z.object({ registrationId: z.coerce.number().int().positive(), name: optionalText(100), remarks: optionalText(300) })).max(5000).optional(),
+  recipients: z.array(z.object({ registrationId: z.coerce.number().int().positive(), name: optionalText(100), remarks: optionalText(300), position: z.enum(['WINNER', 'FIRST_RUNNER_UP', 'SECOND_RUNNER_UP']).optional() })).max(5000).optional(),
 });
 
 // ------------------------------------------------------------------ announcements
