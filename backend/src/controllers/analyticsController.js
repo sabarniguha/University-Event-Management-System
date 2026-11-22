@@ -47,15 +47,19 @@ const student = asyncHandler(async (req, res) => {
     },
   });
   const confirmed = regs.filter((r) => r.status === 'REGISTERED');
-  const held = confirmed.filter((r) => r.event.endsAt <= now);
-  const attended = held.filter((r) => r.attendance?.status === 'PRESENT');
+  // A student who has been checked in counts as attended straight away, even if the event has not finished yet
+  // (checked in during the event, or marked early). Before, only finished events were looked at, so a check-in on an
+  // event still running showed nothing on the dashboard while Attendance History already listed it.
+  const isPresent = (r) => r.attendance?.status === 'PRESENT';
+  const held = confirmed.filter((r) => r.event.endsAt <= now || isPresent(r));
+  const attended = held.filter(isPresent);
 
   res.json({
     totals: {
       registered: confirmed.length,
       upcoming: confirmed.filter((r) => r.event.endsAt > now).length,
       attended: attended.length,
-      missed: held.length - attended.length,
+      missed: held.length - attended.length, // held but not attended: only finished events can be missed
       pending: regs.filter((r) => r.status === 'PENDING').length,
       waitlisted: regs.filter((r) => r.status === 'WAITLISTED').length,
       certificates: regs.filter((r) => r.certificate && !r.certificate.revokedAt).length,
