@@ -12,12 +12,21 @@ const { parseId, generateCertificatesSchema } = require('../utils/validators');
 const { certificatePdf } = require('../utils/pdf');
 const { appUrl } = require('../utils/mailer');
 
-const updateSchema = z.object({ name: z.string().max(100).optional(), remarks: z.string().max(300).optional() });
+const POSITIONS = {
+  WINNER: { label: 'Winner', phrase: 'the Winner position' },
+  FIRST_RUNNER_UP: { label: 'First Runner-Up', phrase: 'the First Runner-Up position' },
+  SECOND_RUNNER_UP: { label: 'Second Runner-Up', phrase: 'the Second Runner-Up position' },
+};
+const DEFAULT_TITLE = 'Certificate of Participation';
+// Winners and runners-up get an achievement heading unless the organiser chose a heading of their own.
+const titleFor = (c) => (c.position && POSITIONS[c.position] && c.title === DEFAULT_TITLE ? 'Certificate of Achievement' : c.title);
+const updateSchema = z.object({ name: z.string().max(100).optional(), remarks: z.string().max(300).optional(), position: z.enum(['', 'WINNER', 'FIRST_RUNNER_UP', 'SECOND_RUNNER_UP']).optional() });
 
 const TEMPLATES = [
   { key: 'classic', name: 'Classic', description: 'Serif lettering with a gold border.' },
   { key: 'modern', name: 'Modern', description: 'Clean sans-serif with a coloured header band.' },
   { key: 'minimal', name: 'Minimal', description: 'Plain and print-friendly.' },
+  { key: 'royal', name: 'Royal', description: 'Ivory paper with a navy double border.' },
 ];
 
 const newCertificateId = () => `UNI-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
@@ -34,8 +43,11 @@ const cleanRemark = (s) => String(s || '').replace(/[\u0000-\u0009\u000b-\u001f\
 
 const present = (c) => ({
   certificateId: c.certificateId,
-  title: c.title,
+  title: titleFor(c),
   templateKey: c.templateKey,
+  position: POSITIONS[c.position] ? c.position : null,
+  positionLabel: POSITIONS[c.position]?.label || null,
+  positionPhrase: POSITIONS[c.position]?.phrase || null,
   studentName: c.recipientName || c.user.name,
   accountName: c.user.name,
   nameCustomised: Boolean(c.recipientName),
@@ -92,6 +104,7 @@ const generate = asyncHandler(async (req, res) => {
         signatoryTitle: data.signatoryTitle || null,
         recipientName: nameFor(r.id),
         remarks: remarkFor(r.id),
+        position: custom.get(r.id)?.position || null,
       })),
       skipDuplicates: true,
     });
@@ -135,9 +148,10 @@ const update = asyncHandler(async (req, res) => {
     data.recipientName = n || null;
   }
   if (body.remarks !== undefined) data.remarks = cleanRemark(body.remarks) || null;
+  if (body.position !== undefined) data.position = body.position || null;
   if (Object.keys(data).length === 0) throw new HttpError(400, 'Nothing to change');
   await prisma.certificate.update({ where: { id: c.id }, data });
-  await audit(req, 'certificate.update', 'Certificate', id, { name: 'recipientName' in data, remarks: 'remarks' in data });
+  await audit(req, 'certificate.update', 'Certificate', id, { name: 'recipientName' in data, remarks: 'remarks' in data, position: 'position' in data });
   res.json({ ok: true });
 });
 
@@ -195,6 +209,7 @@ const verify = asyncHandler(async (req, res) => {
     revoked: Boolean(c.revokedAt),
     certificateId: c.certificateId,
     studentName: c.recipientName || c.user.name,
+    achievement: POSITIONS[c.position]?.label || null,
     eventTitle: c.event.title,
     startsAt: c.event.startsAt,
     venue: c.event.venue,

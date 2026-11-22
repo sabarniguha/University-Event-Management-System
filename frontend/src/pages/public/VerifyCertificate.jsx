@@ -44,6 +44,7 @@ export default function VerifyCertificate() {
             </p>
             <dl className="mt-3 space-y-1 text-sm">
               <div><dt className="inline text-slate-500">Awarded to: </dt><dd className="inline font-medium text-slate-900">{state.data.studentName}</dd></div>
+              {state.data.achievement && <div><dt className="inline text-slate-500">Result: </dt><dd className="inline font-medium text-slate-900">{state.data.achievement}</dd></div>}
               <div><dt className="inline text-slate-500">Event: </dt><dd className="inline font-medium text-slate-900">{state.data.eventTitle}</dd></div>
               <div><dt className="inline text-slate-500">Date: </dt><dd className="inline font-medium text-slate-900">{fmtDay(state.data.startsAt)}</dd></div>
               <div><dt className="inline text-slate-500">Organiser: </dt><dd className="inline font-medium text-slate-900">{state.data.organizerName}</dd></div>

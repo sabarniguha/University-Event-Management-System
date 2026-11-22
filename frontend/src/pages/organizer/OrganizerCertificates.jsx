@@ -10,9 +10,10 @@ import EventPicker from '../../components/events/EventPicker.jsx';
 import { Badge, DataTable, EmptyState, ErrorBox, Modal } from '../../components/common/Ui.jsx';
 import CertificateSheet from '../../components/tickets/CertificateSheet.jsx';
 import { errMsg, fmtDay } from '../../utils/format.js';
+import { POSITIONS, headingFor, positionOf } from '../../utils/certificatePositions.js';
 import { SampleCertificate, SampleTicket, VerifyLinks } from '../../components/verify/Samples.jsx';
 
-const TEMPLATES = [['classic', 'Classic'], ['modern', 'Modern'], ['minimal', 'Minimal']];
+const TEMPLATES = [['classic', 'Classic'], ['modern', 'Modern'], ['minimal', 'Minimal'], ['royal', 'Royal']];
 const REMARKS = ['Outstanding performance', 'Excellent participation', 'Active and enthusiastic', 'Showed great teamwork', 'Good effort'];
 
 function EventCertificates({ id }) {
@@ -30,6 +31,7 @@ function EventCertificates({ id }) {
   const [sel, setSel] = useState({});
   const [names, setNames] = useState({});
   const [rem, setRem] = useState({});
+  const [pos, setPos] = useState({});
   const [defaultRemark, setDefaultRemark] = useState('');
   const [edit, setEdit] = useState(null);
   const chosen = students.filter((s) => sel[s.registrationId] !== false);
@@ -37,14 +39,14 @@ function EventCertificates({ id }) {
   const generate = async () => {
     setBusy(true);
     try {
-      const recipients = chosen.map((s) => ({ registrationId: s.registrationId, name: (names[s.registrationId] ?? '').trim() && names[s.registrationId].trim() !== s.name ? names[s.registrationId].trim() : undefined, remarks: (rem[s.registrationId] || '').trim() || undefined }))
-        .filter((r) => r.name || r.remarks);
+      const recipients = chosen.map((s) => ({ registrationId: s.registrationId, name: (names[s.registrationId] ?? '').trim() && names[s.registrationId].trim() !== s.name ? names[s.registrationId].trim() : undefined, remarks: (rem[s.registrationId] || '').trim() || undefined, position: pos[s.registrationId] || undefined }))
+        .filter((r) => r.name || r.remarks || r.position);
       const body = { eventId: Number(id), ...form, includeRegistered, ...(defaultRemark.trim() ? { remarks: defaultRemark.trim() } : {}), ...(recipients.length ? { recipients } : {}) };
       if (chosen.length < students.length) body.registrationIds = chosen.map((s) => s.registrationId);
       const { data: res } = await api.post('/certificates/generate', body);
       toast.success(res.issued ? `Issued ${res.issued} certificate(s).` : res.message);
       setOpen(false);
-      setSel({}); setNames({}); setRem({}); setDefaultRemark('');
+      setSel({}); setNames({}); setRem({}); setPos({}); setDefaultRemark('');
       reload();
       reloadElig();
     } catch (e) {
@@ -56,7 +58,7 @@ function EventCertificates({ id }) {
 
   const saveEdit = async () => {
     try {
-      await api.patch(`/certificates/${edit.certificateId}`, { name: edit.name, remarks: edit.remarks });
+      await api.patch(`/certificates/${edit.certificateId}`, { name: edit.name, remarks: edit.remarks, position: edit.position });
       toast.success('Certificate updated');
       setEdit(null);
       reload();
@@ -71,7 +73,9 @@ function EventCertificates({ id }) {
   const first = chosen[0];
   const preview = {
     ...form, certificateId: 'UNI-PREVIEW00000', studentName: (first && (names[first.registrationId] || '').trim()) || first?.name || 'Student Name',
-    remarks: (first && (rem[first.registrationId] || '').trim()) || defaultRemark.trim() || null, department: 'Department', eventTitle: ev?.event?.title || 'Event title',
+    remarks: (first && (rem[first.registrationId] || '').trim()) || defaultRemark.trim() || null,
+    position: (first && pos[first.registrationId]) || null, positionLabel: positionOf(first && pos[first.registrationId]).label, positionPhrase: positionOf(first && pos[first.registrationId]).phrase,
+    title: headingFor(form.title, first && pos[first.registrationId]), department: 'Department', eventTitle: ev?.event?.title || 'Event title',
     venue: ev?.event?.venue || 'Venue', startsAt: ev?.event?.startsAt || new Date(), issuedAt: new Date(),
     signatoryName: form.signatoryName || 'Organiser', signatoryTitle: form.signatoryTitle || 'Event Organiser',
   };
@@ -92,7 +96,7 @@ function EventCertificates({ id }) {
             <td className="td">{fmtDay(c.issuedAt)}</td>
             <td className="td">{c.revoked ? <Badge tone="red">Revoked</Badge> : <Badge tone="green">Valid</Badge>}</td>
             <td className="td text-right">
-              <button className="btn-ghost btn-sm" onClick={() => setEdit({ certificateId: c.certificateId, name: c.nameCustomised ? c.studentName : '', accountName: c.accountName, remarks: c.remarks || '' })} title="Edit name and remarks"><Pencil className="h-4 w-4" /></button>
+              <button className="btn-ghost btn-sm" onClick={() => setEdit({ certificateId: c.certificateId, name: c.nameCustomised ? c.studentName : '', accountName: c.accountName, remarks: c.remarks || '', position: c.position || '' })} title="Edit name and remarks"><Pencil className="h-4 w-4" /></button>
               <Link to={`/organizer/certificates/view/${c.certificateId}`} className="btn-ghost btn-sm" title="View"><Eye className="h-4 w-4" /></Link>
               <button className="btn-ghost btn-sm" onClick={() => toggle(c)} title={c.revoked ? 'Restore' : 'Revoke'}>{c.revoked ? <Undo2 className="h-4 w-4" /> : <XCircle className="h-4 w-4 text-red-600" />}</button>
             </td>
@@ -114,18 +118,19 @@ function EventCertificates({ id }) {
         </label>
         <div className="mt-4 rounded-xl border border-slate-200 p-3">
           <p className="text-sm font-semibold text-slate-900">Names and remarks (optional)</p>
-          <p className="mb-2 text-xs text-slate-500">The name is what is printed on the certificate (it starts as the student's account name, so fix spellings here). A remark is a short note on how the student did.</p>
+          <p className="mb-2 text-xs text-slate-500">Choose a <b>Result</b> (Winner, First Runner-Up, Second Runner-Up) to give that student an achievement certificate with a medal badge; a suitable remark is filled in for you to edit. The name is what is printed on the certificate (it starts as the student's account name, so fix spellings here). A remark is a short note on how the student did.</p>
           <label className="label" htmlFor="dr">Remark for everyone without their own</label>
           <input id="dr" className="input" maxLength={300} placeholder="e.g. Active participation" value={defaultRemark} onChange={(e) => setDefaultRemark(e.target.value)} />
           <div className="mt-2 flex flex-wrap gap-1.5">{REMARKS.map((r) => <button key={r} type="button" className="rounded-full border border-slate-200 px-2.5 py-0.5 text-xs text-slate-700 hover:bg-slate-50" onClick={() => setDefaultRemark(r)}>{r}</button>)}</div>
           {students.length > 0 && (
             <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-slate-100">
               <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="p-2"><input type="checkbox" aria-label="Select all" checked={chosen.length === students.length} onChange={(e) => setSel(Object.fromEntries(students.map((s) => [s.registrationId, e.target.checked])))} /></th><th className="p-2">Name on certificate</th><th className="p-2">Remark</th></tr></thead>
+                <thead className="sticky top-0 bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="p-2"><input type="checkbox" aria-label="Select all" checked={chosen.length === students.length} onChange={(e) => setSel(Object.fromEntries(students.map((s) => [s.registrationId, e.target.checked])))} /></th><th className="p-2">Name on certificate</th><th className="p-2">Result</th><th className="p-2">Remark</th></tr></thead>
                 <tbody>{students.map((s) => (
                   <tr key={s.registrationId} className="border-t border-slate-100">
                     <td className="p-2 align-top"><input type="checkbox" aria-label={`Include ${s.name}`} checked={sel[s.registrationId] !== false} onChange={(e) => setSel({ ...sel, [s.registrationId]: e.target.checked })} /></td>
                     <td className="p-2 align-top"><input className="input !py-1" aria-label={`Name for ${s.name}`} maxLength={100} value={names[s.registrationId] ?? s.name} onChange={(e) => setNames({ ...names, [s.registrationId]: e.target.value })} /><span className="text-[11px] text-slate-400">{s.studentId || ''}{s.present ? '' : ' - not scanned'}</span></td>
+                    <td className="p-2 align-top"><select className="input !py-1" aria-label={`Result for ${s.name}`} value={pos[s.registrationId] || ''} onChange={(e) => { const v = e.target.value; setPos({ ...pos, [s.registrationId]: v }); if (v && !(rem[s.registrationId] || '').trim()) setRem({ ...rem, [s.registrationId]: positionOf(v).remark }); }}>{POSITIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></td>
                     <td className="p-2 align-top"><input className="input !py-1" aria-label={`Remark for ${s.name}`} maxLength={300} placeholder={defaultRemark || 'Optional'} value={rem[s.registrationId] || ''} onChange={(e) => setRem({ ...rem, [s.registrationId]: e.target.value })} /></td>
                   </tr>))}</tbody>
               </table>
@@ -140,6 +145,7 @@ function EventCertificates({ id }) {
         {edit && (
           <div className="space-y-3">
             <div><label className="label" htmlFor="en">Name on certificate</label><input id="en" className="input" maxLength={100} placeholder={edit.accountName} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /><p className="mt-1 text-xs text-slate-500">Leave empty to use the account name ({edit.accountName}).</p></div>
+            <div><label className="label" htmlFor="ep">Result</label><select id="ep" className="input" value={edit.position} onChange={(e) => setEdit({ ...edit, position: e.target.value, remarks: edit.remarks || positionOf(e.target.value).remark || '' })}>{POSITIONS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select></div>
             <div><label className="label" htmlFor="er">Remarks</label><textarea id="er" className="input" rows={3} maxLength={300} value={edit.remarks} onChange={(e) => setEdit({ ...edit, remarks: e.target.value })} /></div>
           </div>
         )}

@@ -56,3 +56,37 @@ test('the PDF shows the written name and the remarks', () => {
   assert.ok(withRemark.includes('Asha Rao') && withRemark.includes('Remarks: Outstanding performance'));
   assert.ok(!Buffer.from(certificatePdf(base)).toString('latin1').includes('Remarks:'));
 });
+
+test('winner and runner-up positions are saved, and anything else is refused', async () => {
+  await run(c.generate, { user: admin, body: { eventId: 7, recipients: [{ registrationId: 11, position: 'WINNER' }, { registrationId: 12, position: 'FIRST_RUNNER_UP', remarks: 'Great' }] } });
+  const by = Object.fromEntries(created.map((r) => [r.registrationId, r]));
+  assert.deepStrictEqual([by[11].position, by[12].position, by[13].position], ['WINNER', 'FIRST_RUNNER_UP', null]);
+  const bad = await run(c.generate, { user: admin, body: { eventId: 7, recipients: [{ registrationId: 11, position: 'CHAMPION' }] } });
+  assert.ok(bad.err);
+});
+
+test('update can set and clear a position', async () => {
+  cert = { id: 5, event: {} };
+  await run(c.update, { user: admin, params: { certificateId: 'UNI-AAAAAAAAAAAA' }, body: { position: 'SECOND_RUNNER_UP' } });
+  assert.strictEqual(created.data.position, 'SECOND_RUNNER_UP');
+  await run(c.update, { user: admin, params: { certificateId: 'UNI-AAAAAAAAAAAA' }, body: { position: '' } });
+  assert.strictEqual(created.data.position, null);
+});
+
+test('a winner certificate gets the achievement heading unless a custom heading was chosen', async () => {
+  const mk = (over) => ({ certificateId: 'UNI-AAAAAAAAAAAA', title: 'Certificate of Participation', templateKey: 'royal', userId: 1, issuedAt: new Date(), revokedAt: null, user: { name: 'Asha', department: null, studentId: null }, event: { id: 7, title: 'Hack', venue: 'Hall', startsAt: new Date(), endsAt: new Date(), organizer: { name: 'Org' } }, issuedBy: null, ...over });
+  const get = async (over) => { cert = mk(over); return (await run(c.getOne, { user: { id: 1, role: 'STUDENT' }, params: { certificateId: 'UNI-AAAAAAAAAAAA' } })).out.certificate; };
+  const w = await get({ position: 'WINNER' });
+  assert.deepStrictEqual([w.title, w.positionLabel], ['Certificate of Achievement', 'Winner']);
+  assert.strictEqual((await get({ position: 'WINNER', title: 'Hackathon Certificate' })).title, 'Hackathon Certificate');
+  const plain = await get({});
+  assert.deepStrictEqual([plain.title, plain.position, plain.positionLabel], ['Certificate of Participation', null, null]);
+});
+
+test('the PDF shows the position badge and winning wording, and plain certificates are unchanged', () => {
+  const base = { templateKey: 'royal', title: 'Certificate of Achievement', studentName: 'Asha Rao', eventTitle: 'Hack', venue: 'Hall', dateText: '1 Jan 2026', issuedText: '2 Jan 2026', signatoryName: 'Org', signatoryTitle: 'Organiser', certificateId: 'UNI-AAAAAAAAAAAA', verifyUrl: 'https://x/verify/UNI-AAAAAAAAAAAA' };
+  const w = Buffer.from(certificatePdf({ ...base, position: 'FIRST_RUNNER_UP', positionLabel: 'First Runner-Up', positionPhrase: 'the First Runner-Up position', remarks: 'Great' })).toString('latin1');
+  assert.ok(w.includes('FIRST RUNNER-UP') && w.includes('securing the First Runner-Up position'));
+  const p = Buffer.from(certificatePdf({ ...base, title: 'Certificate of Participation' })).toString('latin1');
+  assert.ok(p.includes('for attending') && !p.includes('RUNNER'));
+});

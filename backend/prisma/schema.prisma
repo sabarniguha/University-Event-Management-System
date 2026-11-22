@@ -328,6 +328,8 @@ model Certificate {
   // Name printed on the certificate when it differs from the account name, and a remark on the student's performance.
   recipientName  String?
   remarks        String?
+  // WINNER, FIRST_RUNNER_UP or SECOND_RUNNER_UP. Empty for a plain participation certificate.
+  position       String?
   issuedAt       DateTime  @default(now())
   revokedAt      DateTime?
 
