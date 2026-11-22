@@ -59,7 +59,7 @@ Live demo: https://university-event-management-system-3.onrender.com/
 ### Tickets, attendance and certificates
 - **QR tickets** for every confirmed registration. Anyone can verify a ticket code at `/verify-ticket` (shows the event, status and an abbreviated holder name only).
 - **Attendance:** QR scanner (camera, USB scanner or paste), per-event attendance pages, bulk marking. One attendance record per registration (database unique constraint), so duplicate scans are rejected. Camera scanning is at `/organizer/scan` and `/admin/scan` and needs HTTPS and camera permission (built-in detector where available, `jsqr` elsewhere).
-- **Certificates:** organisers and admins open an event's Certificates page and generate them (to students marked present, or everyone who registered). Each has a unique ID, appears in the student's Certificates page, notifications and email, and can be verified by anyone at `/verify`. Certificates can be revoked.
+- **Certificates:** organisers and admins open an event's Certificates page and generate them (to students marked present, or everyone who registered). In **Generate certificates** they can fix the **name printed on each certificate** and write a **remark on each student's performance** (or one remark for everyone, with quick suggestions); the pencil beside an issued certificate edits either later. Remarks show on the certificate and PDF but not on the public verify page. Each has a unique ID, appears in the student's Certificates page, notifications and email, and can be verified by anyone at `/verify`. Certificates can be revoked.
 - Certificate and ticket pages show a clearly marked **sample** so people see what they will get; samples never verify as real.
 
 ### Teams
@@ -215,6 +215,7 @@ Migrations are additive and run on start (`prisma migrate deploy`); existing use
 | `20261120000000_two_factor_lockout` | admin 2FA and login lockout |
 | `20261121000000_gallery_student_photos` | student photo approval (existing photos stay approved) |
 | `20261122000000_report_seals` | report IDs |
+| `20261123000000_certificate_name_remarks` | optional name and remarks on certificates (existing ones unchanged) |
 
 Points, badges, recommendations and all report figures are calculated live from these records; nothing derived is stored.
 

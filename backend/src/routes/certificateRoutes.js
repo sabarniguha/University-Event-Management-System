@@ -19,10 +19,12 @@ router.use(authenticate);
 router.get('/templates', requireRole('ORGANIZER', 'ADMIN'), c.templates);
 router.get('/my', requireRole('STUDENT'), c.mine);
 router.get('/event/:eventId', requireRole('ORGANIZER', 'ADMIN'), c.forEvent);
+router.get('/event/:eventId/eligible', requireRole('ORGANIZER', 'ADMIN'), c.eligible);
 router.post('/generate', requireRole('ORGANIZER', 'ADMIN'), c.generate);
 router.get('/', requireRole('ADMIN'), c.listAll);
 router.get('/:certificateId/pdf', c.pdf);
 router.get('/:certificateId', c.getOne);
+router.patch('/:certificateId', requireRole('ORGANIZER', 'ADMIN'), c.update);
 router.patch('/:certificateId/revoke', requireRole('ORGANIZER', 'ADMIN'), c.revoke);
 
 module.exports = router;
