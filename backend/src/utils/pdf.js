@@ -63,6 +63,11 @@ function certificatePdf(cert) {
     y -= 22;
   });
 
+  if (cert.remarks) {
+    y -= 8;
+    wrap(`Remarks: ${cert.remarks}`, 12, 520).slice(0, 4).forEach((line) => { text(line, cx, y, 12, { color: '#475569', align: 'center' }); y -= 17; });
+  }
+
   text(cert.signatoryName, 70, 96, 14, { bold: true });
   text(cert.signatoryTitle, 70, 80, 11, { color: '#475569' });
   text(`Issued ${cert.issuedText}`, 70, 62, 10, { color: '#64748b' });

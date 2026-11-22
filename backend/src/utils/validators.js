@@ -203,6 +203,9 @@ const generateCertificatesSchema = z.object({
   title: z.string().trim().min(3).max(120).default('Certificate of Participation'),
   signatoryName: optionalText(100),
   signatoryTitle: optionalText(100),
+  // Optional per-student name and remark, and a remark for everyone who has none of their own.
+  remarks: optionalText(300),
+  recipients: z.array(z.object({ registrationId: z.coerce.number().int().positive(), name: optionalText(100), remarks: optionalText(300) })).max(5000).optional(),
 });
 
 // ------------------------------------------------------------------ announcements

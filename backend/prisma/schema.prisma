@@ -325,6 +325,9 @@ model Certificate {
   title          String    @default("Certificate of Participation")
   signatoryName  String?
   signatoryTitle String?
+  // Name printed on the certificate when it differs from the account name, and a remark on the student's performance.
+  recipientName  String?
+  remarks        String?
   issuedAt       DateTime  @default(now())
   revokedAt      DateTime?
 

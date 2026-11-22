@@ -25,6 +25,7 @@ export default function CertificateSheet({ cert }) {
           <p className="mx-auto mt-4 max-w-xl text-sm text-slate-700">
             for attending <strong>{cert.eventTitle}</strong> held on {fmtDay(cert.startsAt)} at {cert.venue}.
           </p>
+          {cert.remarks && <p className="mx-auto mt-3 max-w-xl text-sm italic text-slate-600">Remarks: {cert.remarks}</p>}
         </div>
         <div className="flex w-full items-end justify-between gap-4 text-left text-xs text-slate-600">
           <div>

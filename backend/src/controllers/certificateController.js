@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { z } = require('zod');
 const prisma = require('../utils/prismaClient');
 const HttpError = require('../utils/httpError');
 const asyncHandler = require('../utils/asyncHandler');
@@ -10,6 +11,8 @@ const { readPage, pageInfo } = require('../utils/pagination');
 const { parseId, generateCertificatesSchema } = require('../utils/validators');
 const { certificatePdf } = require('../utils/pdf');
 const { appUrl } = require('../utils/mailer');
+
+const updateSchema = z.object({ name: z.string().max(100).optional(), remarks: z.string().max(300).optional() });
 
 const TEMPLATES = [
   { key: 'classic', name: 'Classic', description: 'Serif lettering with a gold border.' },
@@ -25,11 +28,18 @@ const certInclude = {
   issuedBy: { select: { name: true } },
 };
 
+// A name typed by hand: control characters removed, spaces collapsed.
+const cleanName = (s) => String(s || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+const cleanRemark = (s) => String(s || '').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+
 const present = (c) => ({
   certificateId: c.certificateId,
   title: c.title,
   templateKey: c.templateKey,
-  studentName: c.user.name,
+  studentName: c.recipientName || c.user.name,
+  accountName: c.user.name,
+  nameCustomised: Boolean(c.recipientName),
+  remarks: c.remarks || null,
   department: c.user.department,
   studentId: c.user.studentId,
   eventId: c.event.id,
@@ -61,6 +71,10 @@ const generate = asyncHandler(async (req, res) => {
   if (data.registrationIds && data.registrationIds.length) where.id = { in: data.registrationIds };
 
   const regs = await prisma.registration.findMany({ where, select: { id: true, userId: true } });
+  const custom = new Map((data.recipients || []).map((r) => [r.registrationId, r]));
+  const defaultRemark = cleanRemark(data.remarks) || null;
+  const nameFor = (id) => { const n = cleanName(custom.get(id)?.name); if (n && n.length < 2) throw new HttpError(400, 'A name on a certificate needs at least 2 characters'); return n || null; };
+  const remarkFor = (id) => cleanRemark(custom.get(id)?.remarks) || defaultRemark;
   if (regs.length === 0) return res.json({ issued: 0, message: 'No attendees are waiting for a certificate.' });
 
   await prisma.$transaction(async (tx) => {
@@ -76,6 +90,8 @@ const generate = asyncHandler(async (req, res) => {
         title: data.title,
         signatoryName: data.signatoryName || null,
         signatoryTitle: data.signatoryTitle || null,
+        recipientName: nameFor(r.id),
+        remarks: remarkFor(r.id),
       })),
       skipDuplicates: true,
     });
@@ -89,6 +105,40 @@ const generate = asyncHandler(async (req, res) => {
   emailUsers(regs.map((r) => r.userId), { subject: 'Your certificate is ready', text: `Your certificate for "${event.title}" is ready to view and download.`, link: '/student/certificates' });
   await audit(req, 'certificate.generate', 'Event', event.id, { count: regs.length });
   res.status(201).json({ issued: regs.length });
+});
+
+// GET /api/certificates/event/:eventId/eligible?includeRegistered=1  (organiser of event / admin)
+// The students who would receive a certificate now, so names and remarks can be written for each one.
+const eligible = asyncHandler(async (req, res) => {
+  const eventId = parseId(req.params.eventId, 'event id');
+  await loadManagedEvent(eventId, req.user);
+  const all = req.query.includeRegistered === '1' || req.query.includeRegistered === 'true';
+  const regs = await prisma.registration.findMany({
+    where: { eventId, status: 'REGISTERED', certificate: { is: null }, ...(all ? {} : { attendance: { is: { status: 'PRESENT' } } }) },
+    orderBy: { user: { name: 'asc' } }, take: 2000,
+    select: { id: true, user: { select: { name: true, studentId: true, department: true } }, attendance: { select: { status: true } } },
+  });
+  res.json({ students: regs.map((r) => ({ registrationId: r.id, name: r.user.name, studentId: r.user.studentId, department: r.user.department, present: r.attendance?.status === 'PRESENT' })) });
+});
+
+// PATCH /api/certificates/:certificateId  { name?, remarks? }  (organiser of event / admin)
+// Changes what is printed on an issued certificate. An empty value goes back to the account name / no remark.
+const update = asyncHandler(async (req, res) => {
+  const id = String(req.params.certificateId || '').trim().toUpperCase();
+  const body = updateSchema.parse(req.body);
+  const c = await prisma.certificate.findUnique({ where: { certificateId: id }, include: { event: true } });
+  if (!c || !canManageEvent(req.user, c.event)) throw new HttpError(404, 'Certificate not found');
+  const data = {};
+  if (body.name !== undefined) {
+    const n = cleanName(body.name);
+    if (n && n.length < 2) throw new HttpError(400, 'A name on a certificate needs at least 2 characters');
+    data.recipientName = n || null;
+  }
+  if (body.remarks !== undefined) data.remarks = cleanRemark(body.remarks) || null;
+  if (Object.keys(data).length === 0) throw new HttpError(400, 'Nothing to change');
+  await prisma.certificate.update({ where: { id: c.id }, data });
+  await audit(req, 'certificate.update', 'Certificate', id, { name: 'recipientName' in data, remarks: 'remarks' in data });
+  res.json({ ok: true });
 });
 
 // GET /api/certificates/event/:eventId  (organiser of event / admin)
@@ -144,7 +194,7 @@ const verify = asyncHandler(async (req, res) => {
     valid: !c.revokedAt,
     revoked: Boolean(c.revokedAt),
     certificateId: c.certificateId,
-    studentName: c.user.name,
+    studentName: c.recipientName || c.user.name,
     eventTitle: c.event.title,
     startsAt: c.event.startsAt,
     venue: c.event.venue,
@@ -191,4 +241,4 @@ const revoke = asyncHandler(async (req, res) => {
   res.json({ revoked: !c.revokedAt });
 });
 
-module.exports = { templates, generate, forEvent, mine, listAll, verify, getOne, pdf, revoke };
+module.exports = { templates, generate, forEvent, eligible, update, mine, listAll, verify, getOne, pdf, revoke };
