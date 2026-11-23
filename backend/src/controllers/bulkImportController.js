@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { z } = require('zod');
 const prisma = require('../utils/prismaClient');
 const HttpError = require('../utils/httpError');
+const { attendanceBlock } = require('../utils/attendanceWindow');
 const asyncHandler = require('../utils/asyncHandler');
 const { loadManagedEvent } = require('../utils/access');
 const { issueToken } = require('../utils/authTokens');
@@ -105,6 +106,8 @@ const importAttendance = asyncHandler(async (req, res) => {
   const { eventId, status, rows } = attendanceBody.parse(req.body);
   const event = await loadManagedEvent(eventId, req.user);
   if (event.status !== 'PUBLISHED') throw new HttpError(400, 'Attendance can only be recorded for published events');
+  const blocked = attendanceBlock(event);
+  if (blocked) throw new HttpError(400, blocked);
 
   const regs = await prisma.registration.findMany({
     where: { eventId, status: 'REGISTERED' },

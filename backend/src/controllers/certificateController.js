@@ -11,6 +11,7 @@ const { readPage, pageInfo } = require('../utils/pagination');
 const { parseId, generateCertificatesSchema } = require('../utils/validators');
 const { certificatePdf } = require('../utils/pdf');
 const { appUrl } = require('../utils/mailer');
+const { certificateBlock } = require('../utils/attendanceWindow');
 
 const POSITIONS = {
   WINNER: { label: 'Winner', phrase: 'the Winner position' },
@@ -73,11 +74,14 @@ const templates = (req, res) => res.json({ templates: TEMPLATES });
 const generate = asyncHandler(async (req, res) => {
   const data = generateCertificatesSchema.parse(req.body);
   const event = await loadManagedEvent(data.eventId, req.user);
+  const blocked = certificateBlock(event);
+  if (blocked) throw new HttpError(400, blocked);
 
+  // Only students marked PRESENT are ever certified, so certificates issued always match attendance.
   const where = {
     eventId: event.id,
     status: 'REGISTERED',
-    ...(data.includeRegistered ? {} : { attendance: { is: { status: 'PRESENT' } } }),
+    attendance: { is: { status: 'PRESENT' } },
     certificate: { is: null },
   };
   if (data.registrationIds && data.registrationIds.length) where.id = { in: data.registrationIds };
@@ -124,14 +128,14 @@ const generate = asyncHandler(async (req, res) => {
 // The students who would receive a certificate now, so names and remarks can be written for each one.
 const eligible = asyncHandler(async (req, res) => {
   const eventId = parseId(req.params.eventId, 'event id');
-  await loadManagedEvent(eventId, req.user);
-  const all = req.query.includeRegistered === '1' || req.query.includeRegistered === 'true';
+  const ev = await loadManagedEvent(eventId, req.user);
+  if (certificateBlock(ev)) return res.json({ students: [], ended: false });
   const regs = await prisma.registration.findMany({
-    where: { eventId, status: 'REGISTERED', certificate: { is: null }, ...(all ? {} : { attendance: { is: { status: 'PRESENT' } } }) },
+    where: { eventId, status: 'REGISTERED', certificate: { is: null }, attendance: { is: { status: 'PRESENT' } } },
     orderBy: { user: { name: 'asc' } }, take: 2000,
     select: { id: true, user: { select: { name: true, studentId: true, department: true } }, attendance: { select: { status: true } } },
   });
-  res.json({ students: regs.map((r) => ({ registrationId: r.id, name: r.user.name, studentId: r.user.studentId, department: r.user.department, present: r.attendance?.status === 'PRESENT' })) });
+  res.json({ ended: true, students: regs.map((r) => ({ registrationId: r.id, name: r.user.name, studentId: r.user.studentId, department: r.user.department, present: r.attendance?.status === 'PRESENT' })) });
 });
 
 // PATCH /api/certificates/:certificateId  { name?, remarks? }  (organiser of event / admin)
@@ -159,14 +163,51 @@ const update = asyncHandler(async (req, res) => {
 const forEvent = asyncHandler(async (req, res) => {
   const eventId = parseId(req.params.eventId, 'event id');
   const event = await loadManagedEvent(eventId, req.user);
-  const [certificates, eligible, registeredPending] = await Promise.all([
+  const [certificates, eligible, registeredPending, attended] = await Promise.all([
     prisma.certificate.findMany({ where: { eventId }, orderBy: { issuedAt: 'desc' }, include: certInclude }),
     prisma.registration.count({
       where: { eventId, status: 'REGISTERED', attendance: { is: { status: 'PRESENT' } }, certificate: { is: null } },
     }),
     prisma.registration.count({ where: { eventId, status: 'REGISTERED', certificate: { is: null } } }),
+    prisma.registration.count({ where: { eventId, status: 'REGISTERED', attendance: { is: { status: 'PRESENT' } } } }),
   ]);
-  res.json({ event: { id: event.id, title: event.title, startsAt: event.startsAt }, certificates: certificates.map(present), pendingCount: eligible, registeredPendingCount: registeredPending });
+  const ended = !certificateBlock(event);
+  res.json({
+    event: { id: event.id, title: event.title, startsAt: event.startsAt, endsAt: event.endsAt },
+    certificates: certificates.map(present),
+    // Only after the event ends; before that nothing can be issued.
+    pendingCount: ended ? eligible : 0,
+    registeredPendingCount: ended ? eligible : 0,
+    ended,
+    attendedCount: attended,
+    issuedCount: certificates.filter((c) => !c.revokedAt).length,
+  });
+});
+
+// POST /api/certificates/event/:eventId/check-names  { names: [...] }  (organiser of event / admin)
+// Tells the organiser, for each name typed, whether that person registered and was marked present.
+const checkNames = asyncHandler(async (req, res) => {
+  const eventId = parseId(req.params.eventId, 'event id');
+  await loadManagedEvent(eventId, req.user);
+  const { names } = z.object({ names: z.array(z.string().max(100)).min(1).max(200) }).parse(req.body);
+  const regs = await prisma.registration.findMany({
+    where: { eventId, status: 'REGISTERED' },
+    select: { id: true, user: { select: { name: true } }, attendance: { select: { status: true } }, certificate: { select: { id: true } } },
+    take: 5000,
+  });
+  const key = (n) => cleanName(n).toLowerCase();
+  const byName = new Map();
+  for (const r of regs) { const k = key(r.user.name); if (!byName.has(k)) byName.set(k, r); }
+  res.json({
+    results: names.map((raw) => {
+      const name = cleanName(raw);
+      const r = byName.get(key(raw));
+      if (!r) return { name, status: 'NOT_REGISTERED', message: 'This person has not registered for the event.' };
+      if (r.attendance?.status !== 'PRESENT') return { name, status: 'NOT_PRESENT', message: 'Registered, but not marked present, so no certificate can be issued.' };
+      if (r.certificate) return { name, status: 'ALREADY_ISSUED', message: 'A certificate has already been issued.' };
+      return { name, status: 'OK', registrationId: r.id, message: 'Registered and present.' };
+    }),
+  });
 });
 
 // GET /api/certificates/my  (students)
@@ -256,4 +297,4 @@ const revoke = asyncHandler(async (req, res) => {
   res.json({ revoked: !c.revokedAt });
 });
 
-module.exports = { templates, generate, forEvent, eligible, update, mine, listAll, verify, getOne, pdf, revoke };
+module.exports = { templates, generate, forEvent, eligible, checkNames, update, mine, listAll, verify, getOne, pdf, revoke };

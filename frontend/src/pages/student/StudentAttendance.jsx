@@ -62,8 +62,9 @@ export default function StudentAttendance() {
   useEffect(() => { load(); }, [load]);
 
   const statusCell = (r) => {
-    if (r.attendance) return <Badge>{r.attendance.status}</Badge>;
-    return r.hasEnded ? <Badge tone="gray">NOT MARKED</Badge> : <Badge tone="blue">UPCOMING</Badge>;
+    // Once the event is over, anyone not marked present shows as absent; before that, as upcoming / ongoing.
+    if (r.finalStatus) return <Badge>{r.finalStatus}</Badge>;
+    return <Badge tone="blue">UPCOMING</Badge>;
   };
 
   return (
