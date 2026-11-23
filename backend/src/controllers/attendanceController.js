@@ -11,6 +11,7 @@ const {
 const { normaliseTicketInput } = require('../utils/ticket');
 const { notify } = require('../utils/notify');
 const { toCsv, safeFilename } = require('../utils/csv');
+const { attendanceBlock, windowState } = require('../utils/attendanceWindow');
 
 const pct = (part, whole) => (whole > 0 ? Math.round((part / whole) * 1000) / 10 : 0);
 
@@ -41,6 +42,8 @@ const markAttendance = asyncHandler(async (req, res) => {
   if (registration.status !== 'REGISTERED') {
     throw new HttpError(400, 'Attendance can only be recorded for a confirmed registration');
   }
+  const blocked = attendanceBlock(registration.event);
+  if (blocked) throw new HttpError(400, blocked);
 
   const data = {
     status,
@@ -61,6 +64,8 @@ const checkIn = asyncHandler(async (req, res) => {
   const { eventId, ticketCode } = checkInSchema.parse(req.body);
   const event = await loadManagedEvent(eventId, req.user);
   if (event.status !== 'PUBLISHED') throw new HttpError(400, 'Check-in is only available for published events');
+  const blocked = attendanceBlock(event);
+  if (blocked) throw new HttpError(400, blocked);
 
   const registration = await prisma.registration.findUnique({
     where: { ticketCode: normaliseTicketInput(ticketCode) },
@@ -97,6 +102,8 @@ const bulkMark = asyncHandler(async (req, res) => {
   const { eventId, status } = bulkAttendanceSchema.parse(req.body);
   const event = await loadManagedEvent(eventId, req.user);
   if (event.status !== 'PUBLISHED') throw new HttpError(400, 'Attendance can only be recorded for published events');
+  const blocked = attendanceBlock(event);
+  if (blocked) throw new HttpError(400, blocked);
 
   const pending = await prisma.registration.findMany({
     where: { eventId, status: 'REGISTERED', attendance: { is: null } },
@@ -140,6 +147,7 @@ const eventAttendance = asyncHandler(async (req, res) => {
   const viaQr = rows.filter((r) => r.attendance?.status === 'PRESENT' && r.attendance.method === 'QR').length;
   res.json({
     event,
+    window: windowState(event),
     roster: rows,
     summary: { ...summarize(rows), capacity: event.capacity, viaQr },
     recent,
@@ -230,6 +238,8 @@ const myAttendance = asyncHandler(async (req, res) => {
     feedback: feedbackByEvent.get(r.eventId) || null,
     certificateId: r.certificate && !r.certificate.revokedAt ? r.certificate.certificateId : null,
     hasEnded: r.event.endsAt <= now,
+    // Once an event is over, an unmarked student is shown as absent.
+    finalStatus: r.attendance?.status === 'PRESENT' ? 'PRESENT' : r.event.endsAt <= now ? 'ABSENT' : (r.attendance?.status || null),
   }));
 
   const held = items.filter((i) => i.hasEnded).length;
@@ -240,7 +250,8 @@ const myAttendance = asyncHandler(async (req, res) => {
       total: items.length,
       held,
       attended: items.filter(isPresent).length,
-      missed: items.filter((i) => i.attendance?.status === 'ABSENT').length,
+      // A finished event the student was not marked present at counts as missed (marked absent or never marked).
+      missed: items.filter((i) => i.hasEnded && !isPresent(i)).length,
       upcoming: items.length - held,
       // Rate is measured over events that have finished.
       rate: held > 0 ? pct(items.filter((i) => i.hasEnded && isPresent(i)).length, held) : null,

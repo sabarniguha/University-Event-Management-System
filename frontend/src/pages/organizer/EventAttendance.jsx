@@ -171,6 +171,12 @@ export default function EventAttendance() {
   }
 
   const { event, roster, summary, recent } = data;
+  const windowOpen = data.window === 'open';
+  const windowNote = data.window === 'before'
+    ? 'This event has not started yet. Present and absent can be marked only while it is running.'
+    : data.window === 'closed'
+      ? 'This event has ended. Attendance is now locked: it can no longer be marked or changed. Certificates can be issued to students marked present.'
+      : 'The event is running now. Present and absent can be marked until it ends, after which attendance is locked.';
   const needle = q.trim().toLowerCase();
   const rows = roster.filter(
     (r) =>
@@ -196,6 +202,7 @@ export default function EventAttendance() {
         help="Upload the list of people who attended (for example from a sign-in sheet). Each row needs an email or a studentId that matches a confirmed registration; matched students are marked present."
         summary={(r) => `${r.marked} marked present, ${r.notFound} not matched.`} onDone={() => load()} />
       <ErrorBox message={error} />
+      <div className={`rounded-lg border px-4 py-3 text-sm ${windowOpen ? 'border-green-200 bg-green-50 text-green-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>{windowNote}</div>
 
       <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard label="Registered" value={`${summary.registered} / ${summary.capacity}`} />
@@ -230,9 +237,9 @@ export default function EventAttendance() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
-          <button className="btn-primary" disabled={busy || !code.trim()}>{busy ? 'Checking...' : 'Check in'}</button>
+          <button className="btn-primary" disabled={busy || !code.trim() || !windowOpen}>{busy ? 'Checking...' : 'Check in'}</button>
           {canScan ? (
-            <button type="button" className="btn-outline" onClick={() => setScanning((s) => !s)}>
+            <button type="button" className="btn-outline" disabled={!windowOpen} onClick={() => setScanning((s) => !s)}>
               {scanning ? 'Stop camera' : 'Scan with camera'}
             </button>
           ) : (
@@ -295,10 +302,10 @@ export default function EventAttendance() {
             ))}
           </div>
           <div className="ml-auto flex gap-2">
-            <button className="btn-outline btn-sm" onClick={() => bulk('PRESENT')} disabled={summary.unmarked === 0}>
+            <button className="btn-outline btn-sm" onClick={() => bulk('PRESENT')} disabled={summary.unmarked === 0 || !windowOpen}>
               Mark remaining present
             </button>
-            <button className="btn-outline btn-sm" onClick={() => bulk('ABSENT')} disabled={summary.unmarked === 0}>
+            <button className="btn-outline btn-sm" onClick={() => bulk('ABSENT')} disabled={summary.unmarked === 0 || !windowOpen}>
               Mark remaining absent
             </button>
           </div>
@@ -339,8 +346,8 @@ export default function EventAttendance() {
                     </td>
                     <td className="td">
                       <div className="flex gap-2">
-                        <button className="btn-outline btn-sm" onClick={() => mark(r.id, 'PRESENT')}>Present</button>
-                        <button className="btn-outline btn-sm" onClick={() => mark(r.id, 'ABSENT')}>Absent</button>
+                        <button className="btn-outline btn-sm" disabled={!windowOpen} onClick={() => mark(r.id, 'PRESENT')}>Present</button>
+                        <button className="btn-outline btn-sm" disabled={!windowOpen} onClick={() => mark(r.id, 'ABSENT')}>Absent</button>
                       </div>
                     </td>
                   </tr>

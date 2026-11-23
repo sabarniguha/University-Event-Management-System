@@ -22,7 +22,9 @@ function EventCertificates({ id }) {
   const { data: ev } = useFetch(`/events/${id}`);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [includeRegistered, setIncludeRegistered] = useState(false);
+  const includeRegistered = false; // only students marked present are ever certified
+  const [nameText, setNameText] = useState('');
+  const [checked, setChecked] = useState(null);
   const [form, setForm] = useState({ templateKey: 'classic', title: 'Certificate of Participation', signatoryName: '', signatoryTitle: '' });
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   // Name and remark for each student (optional). Anything left alone behaves as before: account name, no remark.
@@ -56,6 +58,12 @@ function EventCertificates({ id }) {
     }
   };
 
+  const checkNames = async () => {
+    const list = nameText.split(/\n|,/).map((n) => n.trim()).filter(Boolean);
+    if (!list.length) return;
+    try { const { data: r } = await api.post(`/certificates/event/${id}/check-names`, { names: list }); setChecked(r.results); } catch (e) { toast.error(errMsg(e)); }
+  };
+
   const saveEdit = async () => {
     try {
       await api.patch(`/certificates/${edit.certificateId}`, { name: edit.name, remarks: edit.remarks, position: edit.position });
@@ -83,10 +91,33 @@ function EventCertificates({ id }) {
   return (
     <DashboardShell
       title={data ? `Certificates: ${data.event.title}` : 'Certificates'}
-      subtitle="By default certificates go to students who were marked present. You can also certify everyone who registered."
-      actions={<button className="btn-primary" onClick={() => setOpen(true)} disabled={!data || (data.pendingCount === 0 && data.registeredPendingCount === 0)}><Award className="h-4 w-4" /> Generate certificates</button>}
+      subtitle="Certificates can be issued only after the event has ended, and only to students marked present."
+      actions={<button className="btn-primary" onClick={() => setOpen(true)} disabled={!data || !data.ended || data.pendingCount === 0}><Award className="h-4 w-4" /> Generate certificates</button>}
     >
       <ErrorBox message={error} />
+      {data && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="card"><p className="text-xs text-slate-500">Marked present</p><p className="text-2xl font-semibold">{data.attendedCount}</p></div>
+          <div className="card"><p className="text-xs text-slate-500">Certificates issued</p><p className="text-2xl font-semibold">{data.issuedCount}</p></div>
+          <div className="card"><p className="text-xs text-slate-500">Waiting for a certificate</p><p className="text-2xl font-semibold">{data.pendingCount}</p></div>
+        </div>
+      )}
+      {data && !data.ended && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">This event has not ended yet. Certificates can be issued once it is over{data.event.endsAt ? ` (${new Date(data.event.endsAt).toLocaleString()})` : ''}, and only to students marked present.</div>}
+      <div className="card space-y-2">
+        <p className="text-sm font-semibold text-slate-900">Check a name before issuing</p>
+        <p className="text-xs text-slate-500">Type one or more names (one per line). You will see whether each person registered and was marked present. Only registered, present students can receive a certificate.</p>
+        <textarea className="input" rows={3} aria-label="Names to check" value={nameText} onChange={(e) => setNameText(e.target.value)} />
+        <button className="btn-outline btn-sm" onClick={checkNames} disabled={!nameText.trim()}>Check names</button>
+        {checked && (
+          <ul className="space-y-1 text-sm">
+            {checked.map((r, i) => (
+              <li key={i} className="flex flex-wrap items-center gap-2"><span className="font-medium">{r.name}</span>
+                <Badge tone={r.status === 'OK' ? 'green' : r.status === 'ALREADY_ISSUED' ? 'blue' : 'red'}>{r.status === 'NOT_REGISTERED' ? 'Not registered' : r.status === 'NOT_PRESENT' ? 'Not marked present' : r.status === 'ALREADY_ISSUED' ? 'Already issued' : 'Eligible'}</Badge>
+                <span className="text-xs text-slate-500">{r.message}</span></li>
+            ))}
+          </ul>
+        )}
+      </div>
       <DataTable columns={['Student', 'Certificate ID', 'Issued', 'Status', '']} loading={loading}
         empty={list.length === 0 && <div className="p-6"><EmptyState icon={Award} title="No certificates issued yet">Mark attendance first, then generate certificates for everyone who attended.</EmptyState></div>}>
         {list.map((c) => (
@@ -105,17 +136,14 @@ function EventCertificates({ id }) {
       </DataTable>
 
       <Modal open={open} onClose={() => setOpen(false)} wide title="Generate certificates"
-        footer={<><button className="btn-outline" onClick={() => setOpen(false)}>Cancel</button><button className="btn-primary" disabled={busy} onClick={generate}>{busy ? 'Generating...' : `Issue ${elig ? chosen.length : includeRegistered ? data?.registeredPendingCount || 0 : data?.pendingCount || 0}`}</button></>}>
+        footer={<><button className="btn-outline" onClick={() => setOpen(false)}>Cancel</button><button className="btn-primary" disabled={busy} onClick={generate}>{busy ? 'Generating...' : `Issue ${elig ? chosen.length : data?.pendingCount || 0}`}</button></>}>
         <div className="grid gap-3 sm:grid-cols-2">
           <div><label className="label" htmlFor="tpl">Template</label><select id="tpl" className="input" value={form.templateKey} onChange={set('templateKey')}>{TEMPLATES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
           <div><label className="label" htmlFor="ttl">Certificate title</label><input id="ttl" className="input" value={form.title} onChange={set('title')} /></div>
           <div><label className="label" htmlFor="sn">Signatory name</label><input id="sn" className="input" value={form.signatoryName} onChange={set('signatoryName')} /></div>
           <div><label className="label" htmlFor="st">Signatory title</label><input id="st" className="input" value={form.signatoryTitle} onChange={set('signatoryTitle')} /></div>
         </div>
-        <label className="mt-4 flex items-start gap-2 text-sm">
-          <input type="checkbox" className="mt-1" checked={includeRegistered} onChange={(e) => setIncludeRegistered(e.target.checked)} />
-          <span>Also certify registered students who were not scanned at the door.<br /><span className="text-xs text-slate-500">{data?.pendingCount ?? 0} marked present, {data?.registeredPendingCount ?? 0} registered in total are waiting for a certificate.</span></span>
-        </label>
+        <p className="mt-4 text-xs text-slate-500">{data?.pendingCount ?? 0} student(s) marked present are waiting for a certificate.</p>
         <div className="mt-4 rounded-xl border border-slate-200 p-3">
           <p className="text-sm font-semibold text-slate-900">Names and remarks (optional)</p>
           <p className="mb-2 text-xs text-slate-500">Choose a <b>Result</b> (Winner, First Runner-Up, Second Runner-Up) to give that student an achievement certificate with a medal badge; a suitable remark is filled in for you to edit. The name is what is printed on the certificate (it starts as the student's account name, so fix spellings here). A remark is a short note on how the student did.</p>
@@ -129,7 +157,7 @@ function EventCertificates({ id }) {
                 <tbody>{students.map((s) => (
                   <tr key={s.registrationId} className="border-t border-slate-100">
                     <td className="p-2 align-top"><input type="checkbox" aria-label={`Include ${s.name}`} checked={sel[s.registrationId] !== false} onChange={(e) => setSel({ ...sel, [s.registrationId]: e.target.checked })} /></td>
-                    <td className="p-2 align-top"><input className="input !py-1" aria-label={`Name for ${s.name}`} maxLength={100} value={names[s.registrationId] ?? s.name} onChange={(e) => setNames({ ...names, [s.registrationId]: e.target.value })} /><span className="text-[11px] text-slate-400">{s.studentId || ''}{s.present ? '' : ' - not scanned'}</span></td>
+                    <td className="p-2 align-top"><input className="input !py-1" aria-label={`Name for ${s.name}`} maxLength={100} value={names[s.registrationId] ?? s.name} onChange={(e) => setNames({ ...names, [s.registrationId]: e.target.value })} /><span className="text-[11px] text-slate-400">{s.studentId || ''}</span></td>
                     <td className="p-2 align-top"><select className="input !py-1" aria-label={`Result for ${s.name}`} value={pos[s.registrationId] || ''} onChange={(e) => { const v = e.target.value; setPos({ ...pos, [s.registrationId]: v }); if (v && !(rem[s.registrationId] || '').trim()) setRem({ ...rem, [s.registrationId]: positionOf(v).remark }); }}>{POSITIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></td>
                     <td className="p-2 align-top"><input className="input !py-1" aria-label={`Remark for ${s.name}`} maxLength={300} placeholder={defaultRemark || 'Optional'} value={rem[s.registrationId] || ''} onChange={(e) => setRem({ ...rem, [s.registrationId]: e.target.value })} /></td>
                   </tr>))}</tbody>
