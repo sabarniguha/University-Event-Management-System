@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { Calendar, Clock, Copy, ExternalLink, Info, MapPin, MessageCircle, Settings2, Ticket, Users, Video, Wallet } from 'lucide-react';
 import api, { API_URL, mediaUrl } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import FollowButton from '../../components/events/FollowButton.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import useFetch from '../../hooks/useFetch.js';
 import QrCode from '../../components/tickets/QrCode.jsx';
@@ -239,6 +240,7 @@ export default function EventDetail() {
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{event.title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
               <span>Organised by {event.organizer.name}</span>
+              <FollowButton organizerId={event.organizer.id} />
               {rating.count > 0 && <span className="flex items-center gap-1"><StarRating value={rating.average} size="text-base" /> {rating.average} ({rating.count})</span>}
             </div>
           </div>
@@ -343,6 +345,7 @@ export default function EventDetail() {
               <Link to={`/organizer/events/${event.id}/attendance`} className="btn-outline w-full">Attendance and QR check-in</Link>
               <Link to={`/organizer/events/${event.id}/feedback`} className="btn-outline w-full">Feedback</Link>
               <Link to={`/organizer/events/${event.id}/survey`} className="btn-outline w-full">Survey questions</Link>
+              <Link to={`/organizer/events/${event.id}/messages`} className="btn-outline w-full">Message attendees</Link>
               <Link to={`/organizer/events/${event.id}/gallery`} className="btn-outline w-full">Photos and sponsors</Link>
               <Link to={`${user?.role === 'ADMIN' ? '/admin' : '/organizer'}/reports/event/${event.id}`} className="btn-outline w-full">Event report (PDF)</Link>
             </div>

@@ -1,5 +1,6 @@
 const prisma = require('../utils/prismaClient');
 const HttpError = require('../utils/httpError');
+const { notifyFollowers } = require('../utils/followers');
 const asyncHandler = require('../utils/asyncHandler');
 const { canManageEvent } = require('../utils/access');
 const { notify, notifyAdmins } = require('../utils/notify');
@@ -217,6 +218,7 @@ const createEvent = asyncHandler(async (req, res) => {
       type: 'APPROVAL',
     });
   }
+  if (status === 'PUBLISHED') notifyFollowers(event);
   await audit(req, 'event.create', 'Event', event.id, { title: event.title, status });
   res.status(201).json({ event: shape(event) });
 });
@@ -297,6 +299,7 @@ const updateEvent = asyncHandler(async (req, res) => {
     // More capacity (or a reopened event) may free seats for the waitlist.
     if (updated.status === 'PUBLISHED') await promoteWaitlist(tx, id);
   });
+  if (status === 'PUBLISHED' && existing.status !== 'PUBLISHED') notifyFollowers({ ...existing, ...update, id });
 
   if (submitted) {
     await notifyAdmins(prisma, {
@@ -331,6 +334,7 @@ const approveEvent = asyncHandler(async (req, res) => {
     type: 'APPROVAL',
   });
   emailUsers(event.organizerId, { subject: 'Your event was approved', text: `"${event.title}" was approved and is now live.`, link: `/events/${id}` });
+  notifyFollowers(event);
   await audit(req, 'event.approve', 'Event', id, { title: event.title });
   res.json({ event: shape(event) });
 });

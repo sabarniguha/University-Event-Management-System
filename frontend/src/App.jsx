@@ -33,6 +33,7 @@ const ReportsPage = page(() => import('./pages/reports/ReportsPage.jsx'));
 const EventReportPage = page(() => import('./pages/reports/EventReportPage.jsx'));
 const EventGallery = page(() => import('./pages/organizer/EventGallery.jsx'));
 const EventSurvey = page(() => import('./pages/organizer/EventSurvey.jsx'));
+const Following = page(() => import('./pages/student/Following.jsx'));
 const EventMessages = page(() => import('./pages/organizer/EventMessages.jsx'));
 const EventTeams = page(() => import('./pages/organizer/EventTeams.jsx'));
 const NotFound = page(() => import('./pages/public/NotFound.jsx'));
@@ -119,6 +120,7 @@ export default function App() {
               <Route path="/student/payments" element={<StudentPayments />} />
               <Route path="/student/certificates" element={<StudentCertificates />} />
               <Route path="/student/rewards" element={<Rewards />} />
+              <Route path="/student/following" element={<Following />} />
               <Route path="/student/reports" element={<StudentReportPage />} />
               <Route path="/student/transcript" element={<StudentTranscriptPage />} />
               <Route path="/student/certificates/:certificateId" element={<CertificateView />} />
