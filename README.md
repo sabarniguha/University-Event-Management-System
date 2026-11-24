@@ -59,6 +59,9 @@ Live demo: https://university-event-management-system-3.onrender.com/
 ### Message attendees
 Organisers and admins open **Registrations -> Message attendees** on an event, write a subject and message (quick buttons: venue changed, delayed, bring your ID, reminder) and send it to confirmed students, or to everyone not cancelled. It appears in their notifications, and by email if SMTP is set and they have not switched email off. Limited to 20 sends an hour per person.
 
+### Follow organisers
+Students press **Follow** next to the organiser's name on an event page (and manage the list under **Following**). When that organiser's event is published (directly, or after admin approval) every follower gets a notification and an email if SMTP is on, once per event. Adds the `OrganizerFollow` table (migration `20261125000000_organizer_follows`).
+
 ### Tickets, attendance and certificates
 - **QR tickets** for every confirmed registration. Anyone can verify a ticket code at `/verify-ticket` (shows the event, status and an abbreviated holder name only).
 - **Attendance:** QR scanner (camera, USB scanner or paste), per-event attendance pages, bulk marking. One attendance record per registration (database unique constraint), so duplicate scans are rejected. Camera scanning is at `/organizer/scan` and `/admin/scan` and needs HTTPS and camera permission (built-in detector where available, `jsqr` elsewhere).
@@ -220,6 +223,7 @@ Migrations are additive and run on start (`prisma migrate deploy`); existing use
 | `20261120000000_two_factor_lockout` | admin 2FA and login lockout |
 | `20261121000000_gallery_student_photos` | student photo approval (existing photos stay approved) |
 | `20261122000000_report_seals` | report IDs |
+| `20261125000000_organizer_follows` | following organisers |
 | `20261123000000_certificate_name_remarks` | optional name and remarks on certificates (existing ones unchanged) |
 | `20261124000000_certificate_positions` | optional Winner / runner-up result on certificates |
 

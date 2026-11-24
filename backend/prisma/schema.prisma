@@ -118,6 +118,8 @@ model User {
   attendanceMarked      Attendance[]       @relation("MarkedBy")
   feedback              Feedback[]
   notifications         Notification[]
+  following             OrganizerFollow[]  @relation("FollowerOf")
+  followers             OrganizerFollow[]  @relation("FollowedOrganizer")
   organizerProfile      OrganizerProfile?  @relation("OrganizerApplicant")
   organizerReviews      OrganizerProfile[] @relation("OrganizerReviewer")
   auditLogs             AuditLog[]         @relation("AuditActor")
@@ -530,4 +532,18 @@ model ReportSeal {
   figures     Json
   userId      Int?
   issuedAt    DateTime @default(now())
+}
+
+// A student following an organiser; they are notified when that organiser publishes a new event.
+model OrganizerFollow {
+  id          Int      @id @default(autoincrement())
+  followerId  Int
+  organizerId Int
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("FollowerOf", fields: [followerId], references: [id], onDelete: Cascade)
+  organizer User @relation("FollowedOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, organizerId])
+  @@index([organizerId])
 }
