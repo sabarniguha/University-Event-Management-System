@@ -33,6 +33,7 @@ const ReportsPage = page(() => import('./pages/reports/ReportsPage.jsx'));
 const EventReportPage = page(() => import('./pages/reports/EventReportPage.jsx'));
 const EventGallery = page(() => import('./pages/organizer/EventGallery.jsx'));
 const EventSurvey = page(() => import('./pages/organizer/EventSurvey.jsx'));
+const EventMessages = page(() => import('./pages/organizer/EventMessages.jsx'));
 const EventTeams = page(() => import('./pages/organizer/EventTeams.jsx'));
 const NotFound = page(() => import('./pages/public/NotFound.jsx'));
 
@@ -141,6 +142,7 @@ export default function App() {
               <Route path="/organizer/scan" element={<ScanTickets />} />
               <Route path="/organizer/events/:id/teams" element={<EventTeams />} />
               <Route path="/organizer/events/:id/survey" element={<EventSurvey />} />
+              <Route path="/organizer/events/:id/messages" element={<EventMessages />} />
               <Route path="/organizer/events/:id/gallery" element={<EventGallery />} />
               <Route path="/organizer/certificates" element={<OrganizerCertificates />} />
               <Route path="/organizer/certificates/view/:certificateId" element={<CertificateView />} />
