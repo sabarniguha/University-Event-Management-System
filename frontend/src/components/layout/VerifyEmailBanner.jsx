@@ -15,7 +15,7 @@ export default function VerifyEmailBanner() {
   const { data } = useFetch('/public/config');
   const [busy, setBusy] = useState(false);
   // The student dashboard already shows its own notice.
-  if (!data?.emailVerification || user.emailVerifiedAt || (user.role === 'STUDENT' && location.pathname === '/student')) return null;
+  if (user.role === 'ADMIN' || !data?.emailVerification || user.emailVerifiedAt || (user.role === 'STUDENT' && location.pathname === '/student')) return null;
 
   const resend = async () => {
     setBusy(true);

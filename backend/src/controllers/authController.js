@@ -25,6 +25,8 @@ const {
 const HOUR = 60 * 60 * 1000;
 
 async function sendVerificationEmail(user) {
+  // Admins never need to verify their email.
+  if (user.role === 'ADMIN') return;
   const token = await issueToken(user.id, 'VERIFY_EMAIL', 48 * HOUR);
   const link = `${appUrl()}/verify-email?token=${token}`;
   await sendMail({
@@ -155,6 +157,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
 });
 
 const resendVerification = asyncHandler(async (req, res) => {
+  if (req.user.role === 'ADMIN') return res.json({ message: 'Admin accounts do not need email verification' });
   if (req.user.emailVerifiedAt) return res.json({ message: 'Your email is already verified' });
   await sendVerificationEmail(req.user);
   return res.json({ message: 'Verification email sent (if email delivery is configured on this server).' });
