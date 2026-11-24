@@ -56,6 +56,9 @@ Live demo: https://university-event-management-system-3.onrender.com/
 - **Approval plus payment:** for a paid event with manual approval, the student requests (PENDING), the organiser approves (AWAITING_PAYMENT, student notified), the student pays and becomes REGISTERED with a QR ticket. A late approval can still be paid after the deadline; if the event filled meanwhile the payment is refunded automatically.
 - **Add to calendar:** every published event has an `.ics` download (Google, Apple, Outlook).
 
+### Message attendees
+Organisers and admins open **Registrations -> Message attendees** on an event, write a subject and message (quick buttons: venue changed, delayed, bring your ID, reminder) and send it to confirmed students, or to everyone not cancelled. It appears in their notifications, and by email if SMTP is set and they have not switched email off. Limited to 20 sends an hour per person.
+
 ### Tickets, attendance and certificates
 - **QR tickets** for every confirmed registration. Anyone can verify a ticket code at `/verify-ticket` (shows the event, status and an abbreviated holder name only).
 - **Attendance:** QR scanner (camera, USB scanner or paste), per-event attendance pages, bulk marking. One attendance record per registration (database unique constraint), so duplicate scans are rejected. Camera scanning is at `/organizer/scan` and `/admin/scan` and needs HTTPS and camera permission (built-in detector where available, `jsqr` elsewhere).
