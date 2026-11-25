@@ -11,6 +11,7 @@ const { readPage, pageInfo } = require('../utils/pagination');
 const { parseId, generateCertificatesSchema } = require('../utils/validators');
 const { certificatePdf } = require('../utils/pdf');
 const { appUrl } = require('../utils/mailer');
+const { createZip } = require('../utils/zip');
 const { certificateBlock } = require('../utils/attendanceWindow');
 
 const POSITIONS = {
@@ -287,6 +288,28 @@ const pdf = asyncHandler(async (req, res) => {
   res.send(file);
 });
 
+// GET /api/certificates/event/:eventId/zip  (organiser of event / admin) - every valid certificate PDF in one file
+const zipForEvent = asyncHandler(async (req, res) => {
+  const eventId = parseId(req.params.eventId, 'event id');
+  const event = await loadManagedEvent(eventId, req.user);
+  const rows = await prisma.certificate.findMany({
+    where: { eventId, revokedAt: null }, orderBy: { issuedAt: 'asc' }, take: 300,
+    include: { ...certInclude, event: { include: { organizer: { select: { name: true } } } } },
+  });
+  if (rows.length === 0) throw new HttpError(404, 'No certificates have been issued for this event yet');
+  const day = (x) => new Date(x).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const safe = (t) => String(t || 'certificate').replace(/[^A-Za-z0-9 _-]+/g, '').trim().replace(/\s+/g, '_').slice(0, 40) || 'certificate';
+  const files = rows.map((c) => {
+    const d = present(c);
+    const data = certificatePdf({ ...d, dateText: day(d.startsAt), issuedText: day(d.issuedAt), verifyUrl: `${appUrl()}/verify/${d.certificateId}` });
+    return { name: `${safe(d.studentName)}-${d.certificateId}.pdf`, data };
+  });
+  await audit(req, 'certificate.zip', 'Event', eventId, { count: files.length });
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="certificates-${safe(event.title)}.zip"`);
+  res.send(createZip(files));
+});
+
 // PATCH /api/certificates/:certificateId/revoke  (organiser of event / admin)
 const revoke = asyncHandler(async (req, res) => {
   const id = String(req.params.certificateId || '').trim().toUpperCase();
@@ -297,4 +320,4 @@ const revoke = asyncHandler(async (req, res) => {
   res.json({ revoked: !c.revokedAt });
 });
 
-module.exports = { templates, generate, forEvent, eligible, checkNames, update, mine, listAll, verify, getOne, pdf, revoke };
+module.exports = { templates, generate, forEvent, eligible, checkNames, zipForEvent, update, mine, listAll, verify, getOne, pdf, revoke };
