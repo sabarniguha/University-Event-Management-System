@@ -65,6 +65,9 @@ Students press **Follow** next to the organiser's name on an event page (and man
 ### Screen check-in (self check-in)
 For large events, open **Attendance -> Screen check-in QR** and show it on a projector. Registered students scan it with their phone camera, sign in if asked, and are marked present. The code changes every 30 seconds (valid for about a minute), is checked on the server, works only while the event is running, and a student can only check themselves in. Ticket scanning and manual marking still work. No database change.
 
+### Calendar view
+**Explore events** has a List / Calendar switch, and the student dashboard has a **Show campus calendar** button. Pick a month, see how many events start each day, and tap a day to list them. Uses the existing events list; no database change.
+
 ### Tickets, attendance and certificates
 - **QR tickets** for every confirmed registration. Anyone can verify a ticket code at `/verify-ticket` (shows the event, status and an abbreviated holder name only).
 - **Attendance:** QR scanner (camera, USB scanner or paste), per-event attendance pages, bulk marking. One attendance record per registration (database unique constraint), so duplicate scans are rejected. Camera scanning is at `/organizer/scan` and `/admin/scan` and needs HTTPS and camera permission (built-in detector where available, `jsqr` elsewhere).
