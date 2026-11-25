@@ -34,6 +34,8 @@ const EventReportPage = page(() => import('./pages/reports/EventReportPage.jsx')
 const EventGallery = page(() => import('./pages/organizer/EventGallery.jsx'));
 const EventSurvey = page(() => import('./pages/organizer/EventSurvey.jsx'));
 const Following = page(() => import('./pages/student/Following.jsx'));
+const ScreenCheckin = page(() => import('./pages/organizer/ScreenCheckin.jsx'));
+const SelfCheckin = page(() => import('./pages/student/SelfCheckin.jsx'));
 const EventMessages = page(() => import('./pages/organizer/EventMessages.jsx'));
 const EventTeams = page(() => import('./pages/organizer/EventTeams.jsx'));
 const NotFound = page(() => import('./pages/public/NotFound.jsx'));
@@ -121,6 +123,7 @@ export default function App() {
               <Route path="/student/certificates" element={<StudentCertificates />} />
               <Route path="/student/rewards" element={<Rewards />} />
               <Route path="/student/following" element={<Following />} />
+              <Route path="/student/checkin" element={<SelfCheckin />} />
               <Route path="/student/reports" element={<StudentReportPage />} />
               <Route path="/student/transcript" element={<StudentTranscriptPage />} />
               <Route path="/student/certificates/:certificateId" element={<CertificateView />} />
@@ -145,6 +148,7 @@ export default function App() {
               <Route path="/organizer/events/:id/teams" element={<EventTeams />} />
               <Route path="/organizer/events/:id/survey" element={<EventSurvey />} />
               <Route path="/organizer/events/:id/messages" element={<EventMessages />} />
+              <Route path="/organizer/events/:id/screen" element={<ScreenCheckin />} />
               <Route path="/organizer/events/:id/gallery" element={<EventGallery />} />
               <Route path="/organizer/certificates" element={<OrganizerCertificates />} />
               <Route path="/organizer/certificates/view/:certificateId" element={<CertificateView />} />
