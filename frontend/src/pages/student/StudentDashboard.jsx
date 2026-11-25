@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Award, CheckCircle2, ClipboardList, Percent, ShieldCheck } from 'lucide-react';
 import api from '../../services/api.js';
@@ -8,6 +9,7 @@ import DashboardShell from '../../components/DashboardShell.jsx';
 import { Skeleton, StatCard, ErrorBox } from '../../components/common/Ui.jsx';
 import { TrendChart, BarsChart } from '../../components/charts/Charts.jsx';
 import PendingPayments from '../../components/dashboard/PendingPayments.jsx';
+import MonthCalendar from '../../components/events/MonthCalendar.jsx';
 import FeaturedStrip from '../../components/events/FeaturedStrip.jsx';
 import RewardsCard from '../../components/dashboard/RewardsCard.jsx';
 import RecommendedStrip from '../../components/events/RecommendedStrip.jsx';
@@ -17,6 +19,7 @@ import { pctLabel } from '../../utils/format.js';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const [showCalendar, setShowCalendar] = useState(false);
   const toast = useToast();
   const { data: a, loading, error } = useFetch('/analytics/student');
   const { data: regs } = useFetch('/registrations/me');
@@ -64,6 +67,10 @@ export default function StudentDashboard() {
       <RewardsCard />
       <RecommendedStrip />
       <FeaturedStrip />
+      <div className="mt-6">
+        <button className="btn-outline" onClick={() => setShowCalendar((v) => !v)} aria-expanded={showCalendar}>{showCalendar ? 'Hide campus calendar' : 'Show campus calendar'}</button>
+        {showCalendar && <div className="mt-3"><MonthCalendar /></div>}
+      </div>
       <OrganizerRequestCard />
     </DashboardShell>
   );

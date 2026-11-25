@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, X, CalendarX } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
 import useDebounce from '../../hooks/useDebounce.js';
+import MonthCalendar from '../../components/events/MonthCalendar.jsx';
 import EventCard from '../../components/events/EventCard.jsx';
 import { CardSkeletons, EmptyState, ErrorBox, Pagination, SearchInput } from '../../components/common/Ui.jsx';
 import { DEPARTMENTS, EVENT_TYPES } from '../../utils/format.js';
@@ -22,6 +23,7 @@ function Select({ label, value, onChange, children }) {
 export default function Explore() {
   const [params, setParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
+  const [view, setView] = useState('list');
   const [q, setQ] = useState(params.get('q') || '');
   const dq = useDebounce(q);
   const { data: cats } = useFetch('/categories');
@@ -60,6 +62,13 @@ export default function Explore() {
         <p className="mt-1 text-slate-500">Search and filter everything happening on campus.</p>
       </div>
 
+      <div className="mb-4 inline-flex rounded-lg border border-slate-200 p-0.5 text-sm" role="tablist" aria-label="View">
+        {[['list', 'List'], ['calendar', 'Calendar']].map(([v, l]) => (
+          <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)} className={`rounded-md px-3 py-1 font-medium ${view === v ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{l}</button>
+        ))}
+      </div>
+      {view === 'calendar' && <MonthCalendar />}
+      <div className={view === 'calendar' ? 'hidden' : ''}>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
         <SearchInput className="flex-1" value={q} onChange={setQ} placeholder="Search by title, venue or topic" />
         <select className="input sm:w-48" value={get('sort', 'upcoming')} onChange={(e) => set({ sort: e.target.value })} aria-label="Sort events">
@@ -128,6 +137,7 @@ export default function Explore() {
             </>
           )}
         </section>
+      </div>
       </div>
     </div>
   );
