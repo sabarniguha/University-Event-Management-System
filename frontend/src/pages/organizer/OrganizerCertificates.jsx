@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Award, Eye, Pencil, Undo2, XCircle } from 'lucide-react';
-import api from '../../services/api.js';
+import { Archive, Award, Eye, Pencil, Undo2, XCircle } from 'lucide-react';
+import api, { downloadFile } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import useFetch from '../../hooks/useFetch.js';
@@ -92,7 +92,10 @@ function EventCertificates({ id }) {
     <DashboardShell
       title={data ? `Certificates: ${data.event.title}` : 'Certificates'}
       subtitle="Certificates can be issued only after the event has ended, and only to students marked present."
-      actions={<button className="btn-primary" onClick={() => setOpen(true)} disabled={!data || !data.ended || data.pendingCount === 0}><Award className="h-4 w-4" /> Generate certificates</button>}
+      actions={<div className="flex flex-wrap gap-2">
+        <button className="btn-outline" disabled={!data || data.issuedCount === 0} onClick={() => downloadFile(`/certificates/event/${id}/zip`, `certificates-event-${id}.zip`).catch((e) => toast.error(errMsg(e)))}><Archive className="h-4 w-4" /> Download all (ZIP)</button>
+        <button className="btn-primary" onClick={() => setOpen(true)} disabled={!data || !data.ended || data.pendingCount === 0}><Award className="h-4 w-4" /> Generate certificates</button>
+      </div>}
     >
       <ErrorBox message={error} />
       {data && (

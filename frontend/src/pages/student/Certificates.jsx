@@ -10,6 +10,17 @@ import { EmptyState, ErrorBox, Skeleton } from '../../components/common/Ui.jsx';
 import { fmtDay } from '../../utils/format.js';
 import { SampleCertificate, SampleTicket, VerifyLinks } from '../../components/verify/Samples.jsx';
 
+// Opens LinkedIn's "add certification" form with the details filled in; the student confirms it there.
+const linkedInUrl = (c) => {
+  const d = new Date(c.issuedAt);
+  const q = new URLSearchParams({
+    startTask: 'CERTIFICATION_NAME', name: `${c.title} - ${c.eventTitle}`.slice(0, 100), organizationName: 'UniEvents',
+    issueYear: String(d.getFullYear()), issueMonth: String(d.getMonth() + 1), certId: c.certificateId,
+    certUrl: `${window.location.origin}/verify/${c.certificateId}`,
+  });
+  return `https://www.linkedin.com/profile/add?${q.toString()}`;
+};
+
 export default function Certificates() {
   const toast = useToast();
   const { data, loading, error } = useFetch('/certificates/my');
@@ -33,6 +44,7 @@ export default function Certificates() {
                 <Link to={`/student/certificates/${c.certificateId}`} className="btn-outline btn-sm">View</Link>
                 <button className="btn-primary btn-sm" onClick={() => downloadFile(`/certificates/${c.certificateId}/pdf`, `certificate-${c.certificateId}.pdf`).catch((e) => toast.error(errMsg(e)))}><Download className="h-3.5 w-3.5" /> PDF</button>
                 <Link to={`/verify/${c.certificateId}`} className="btn-outline btn-sm">Verify</Link>
+                <a className="btn-outline btn-sm" target="_blank" rel="noopener noreferrer" href={linkedInUrl(c)}>Add to LinkedIn</a>
               </div>
             </div>
           ))}
