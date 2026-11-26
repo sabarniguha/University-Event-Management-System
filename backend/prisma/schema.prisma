@@ -120,6 +120,7 @@ model User {
   notifications         Notification[]
   following             OrganizerFollow[]  @relation("FollowerOf")
   staffDuties           EventStaff[]
+  pushSubscriptions     PushSubscription[]
   followers             OrganizerFollow[]  @relation("FollowedOrganizer")
   organizerProfile      OrganizerProfile?  @relation("OrganizerApplicant")
   organizerReviews      OrganizerProfile[] @relation("OrganizerReviewer")
@@ -587,4 +588,18 @@ model DiscountCode {
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, code])
+}
+
+// One device that turned on browser notifications.
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
