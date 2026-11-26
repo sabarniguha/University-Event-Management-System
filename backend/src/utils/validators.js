@@ -127,6 +127,8 @@ const eventBase = z.object({
     z.string().trim().max(500).regex(/^https:\/\/\S+$/i, 'Enter a valid https:// registration link').nullable().optional()
   ),
   fee: z.coerce.number().int().min(0).max(1000000).default(0),
+  // Hours before the start up to which a cancelling student is refunded automatically; empty = no automatic refund.
+  refundCutoffHours: z.preprocess(emptyToNull, z.coerce.number().int().min(0).max(720).nullable().optional()),
   eventType: nullableText(60),
   department: nullableText(100),
   eligibility: nullableText(1000),

@@ -311,6 +311,9 @@ export default function EventDetail() {
               <li className="flex gap-3"><Wallet className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" /><span className="font-medium text-slate-900">{money(event.fee)}</span></li>
             </ul>
             {published && !ended && <DeadlineBox deadline={event.registrationDeadline} />}
+            {published && !ended && event.fee > 0 && event.refundCutoffHours !== null && event.refundCutoffHours !== undefined && (
+              <p className="text-xs text-slate-500">Refund policy: cancel {event.refundCutoffHours === 0 ? 'before the event starts' : `at least ${event.refundCutoffHours} hour${event.refundCutoffHours === 1 ? '' : 's'} before it starts`} for an automatic refund of an online payment.</p>
+            )}
             {published && !ended && event.registrationUrl && (
               deadlinePassed ? (
                 <p className="text-center text-sm font-medium text-slate-500">The registration form is closed.</p>

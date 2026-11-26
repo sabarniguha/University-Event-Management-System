@@ -12,7 +12,7 @@ import { DEPARTMENTS, EVENT_TYPES, errMsg, toLocalInput } from '../../utils/form
 
 const EMPTY = {
   title: '', description: '', category: 'General', eventType: '', bannerUrl: '', startsAt: '', endsAt: '', registrationDeadline: '',
-  mode: 'OFFLINE', venue: '', onlineUrl: '', registrationUrl: '', capacity: 100, waitlistEnabled: true, fee: 0, requiresRegistrationApproval: false, teamMin: 1, teamMax: 1,
+  mode: 'OFFLINE', venue: '', onlineUrl: '', registrationUrl: '', capacity: 100, waitlistEnabled: true, fee: 0, refundCutoffHours: '', requiresRegistrationApproval: false, teamMin: 1, teamMax: 1,
   department: '', eligibility: '', requirements: '', contactEmail: '', contactPhone: '', terms: '', featured: false,
 };
 
@@ -149,6 +149,11 @@ export default function EventForm() {
                 : 'Shown to students. Online payment is not switched on for this site, so you collect the fee in person.'}
             </p></div>
           </div>
+          {Number(form.fee) > 0 && (
+            <div><label className="label" htmlFor="refundCutoff">Refund if a student cancels at least this many hours before the start</label>
+              <input id="refundCutoff" type="number" min={0} max={720} className="input" placeholder="Leave empty for no refunds" value={form.refundCutoffHours} onChange={set('refundCutoffHours')} />
+              <p className="mt-1 text-xs text-slate-500">For example 24: a student who cancels a day or more ahead is refunded automatically through Razorpay. 0 means any time before the event starts. Empty means no automatic refunds. Applies to students who paid online.</p></div>
+          )}
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.waitlistEnabled} onChange={set('waitlistEnabled')} /> Enable waitlist when the event is full</label>
           <div className="rounded-xl border border-slate-200 p-4">
             <p className="text-sm font-medium text-slate-900">Team event</p>

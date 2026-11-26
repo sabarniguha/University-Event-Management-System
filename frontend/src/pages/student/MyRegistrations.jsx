@@ -10,6 +10,14 @@ import { errMsg, fmtDate } from '../../utils/format.js';
 
 const TABS = [['all', 'All'], ['upcoming', 'Upcoming'], ['past', 'Past'], ['waiting', 'Pending / waitlist'], ['cancelled', 'Cancelled']];
 
+// Tells the student up front whether cancelling now brings a refund.
+const refundNote = (r) => {
+  const e = r.event;
+  if (r.status !== 'REGISTERED' || !(e.fee > 0) || e.refundCutoffHours === null || e.refundCutoffHours === undefined) return '';
+  const ok = new Date(e.startsAt).getTime() - e.refundCutoffHours * 3600e3 >= Date.now();
+  return ok ? ' Your online payment will be refunded.' : ' The refund window has closed, so you will not be refunded.';
+};
+
 export default function MyRegistrations() {
   const toast = useToast();
   const { data, loading, error, reload } = useFetch('/registrations/my');
@@ -30,8 +38,8 @@ export default function MyRegistrations() {
   const cancel = async () => {
     setBusy(true);
     try {
-      await api.delete(`/registrations/${target.event.id}`);
-      toast.success('Registration cancelled.');
+      const { data: res } = await api.delete(`/registrations/${target.event.id}`);
+      toast.success(res.refund === 'REFUNDED' ? 'Registration cancelled. Your refund has started.' : res.refund === 'PENDING' ? 'Registration cancelled. Your refund will be completed by an admin.' : 'Registration cancelled.');
       setTarget(null);
       reload();
     } catch (e) {
@@ -64,7 +72,7 @@ export default function MyRegistrations() {
           );
         })}
       </DataTable>
-      <ConfirmDialog open={Boolean(target)} onClose={() => setTarget(null)} danger busy={busy} title="Cancel registration?" message={target ? `You will lose your place in "${target.event.title}".` : ''} confirmLabel="Cancel registration" onConfirm={cancel} />
+      <ConfirmDialog open={Boolean(target)} onClose={() => setTarget(null)} danger busy={busy} title="Cancel registration?" message={target ? `You will lose your place in "${target.event.title}".${refundNote(target)}` : ''} confirmLabel="Cancel registration" onConfirm={cancel} />
     </DashboardShell>
   );
 }
