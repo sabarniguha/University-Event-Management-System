@@ -128,6 +128,8 @@ const eventBase = z.object({
   ),
   fee: z.coerce.number().int().min(0).max(1000000).default(0),
   // Hours before the start up to which a cancelling student is refunded automatically; empty = no automatic refund.
+  earlyBirdFee: z.preprocess(emptyToNull, z.coerce.number().int().min(1).max(1000000).nullable().optional()),
+  earlyBirdUntil: z.preprocess(emptyToNull, z.coerce.date().nullable().optional()),
   refundCutoffHours: z.preprocess(emptyToNull, z.coerce.number().int().min(0).max(720).nullable().optional()),
   eventType: nullableText(60),
   department: nullableText(100),

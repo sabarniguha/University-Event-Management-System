@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { Calendar, Clock, Copy, ExternalLink, Info, MapPin, MessageCircle, Settings2, Ticket, Users, Video, Wallet } from 'lucide-react';
 import api, { API_URL, mediaUrl } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import PromoBox from '../../components/events/PromoBox.jsx';
 import FollowButton from '../../components/events/FollowButton.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import useFetch from '../../hooks/useFetch.js';
@@ -41,6 +42,7 @@ export default function EventDetail() {
   const location = useLocation();
   const { data, loading, error, reload } = useFetch(`/events/${id}`, { u: user?.id || 0 });
   const [busy, setBusy] = useState(false);
+  const [promo, setPromo] = useState('');
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [payEnabled, setPayEnabled] = useState(false);
   useEffect(() => {
@@ -92,7 +94,7 @@ export default function EventDetail() {
   const pay = async () => {
     setBusy(true);
     try {
-      const { data: order } = await api.post(`/payments/${event.id}/order`);
+      const { data: order } = await api.post(`/payments/${event.id}/order`, { code: promo.trim() || undefined });
       await loadCheckout();
       await new Promise((resolve, reject) => {
         const rz = new window.Razorpay({
@@ -175,6 +177,7 @@ export default function EventDetail() {
         <div className="space-y-3 text-center">
           <Badge>APPROVED: PAYMENT DUE</Badge>
           <p className="text-sm text-slate-600">The organiser approved your request. Pay {money(event.fee)} to confirm your seat and get your QR ticket.</p>
+          <PromoBox eventId={event.id} code={promo} onCode={setPromo} />
           <button className="btn-primary w-full" disabled={busy} onClick={pay}>Pay now ({money(event.fee)})</button>
           <p className="text-xs text-slate-500">UPI (scan the QR code, Google Pay, PhonePe, Paytm), card or netbanking.</p>
           <button className="btn-ghost w-full text-red-600" onClick={() => setConfirmCancel(true)}>Withdraw request</button>
@@ -198,6 +201,7 @@ export default function EventDetail() {
     const online = payEnabled && event.fee > 0 && !event.requiresRegistrationApproval;
     return (
       <div className="space-y-2">
+        {online && !full && <PromoBox eventId={event.id} code={promo} onCode={setPromo} />}
         <button className="btn-primary w-full" disabled={busy} onClick={online ? pay : register}>
           {event.requiresRegistrationApproval ? 'Request to join' : full ? 'Join waitlist' : event.fee > 0 ? `${online ? 'Pay' : 'Register'} (${money(event.fee)})` : 'Register for free'}
         </button>

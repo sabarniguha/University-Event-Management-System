@@ -152,6 +152,9 @@ model Event {
   waitlistEnabled              Boolean     @default(true)
   refundCutoffHours            Int?
   staff                        EventStaff[]
+  earlyBirdFee                 Int?
+  earlyBirdUntil               DateTime?
+  discountCodes                DiscountCode[]
   mode                         EventMode   @default(OFFLINE)
   onlineUrl                    String?
   registrationUrl              String?
@@ -428,6 +431,8 @@ model Payment {
   paymentId      String?       @unique
   status         PaymentStatus @default(CREATED)
   registrationId Int?
+  discountCodeId Int?
+  listAmount     Int?
   paidAt         DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -564,4 +569,22 @@ model EventStaff {
 
   @@unique([eventId, userId])
   @@index([userId])
+}
+
+// A promo code for one paid event. kind is PERCENT (value 1-90) or FLAT (value in rupees).
+model DiscountCode {
+  id        Int       @id @default(autoincrement())
+  eventId   Int
+  code      String
+  kind      String    @default("PERCENT")
+  value     Int
+  maxUses   Int?
+  usedCount Int       @default(0)
+  expiresAt DateTime?
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, code])
 }

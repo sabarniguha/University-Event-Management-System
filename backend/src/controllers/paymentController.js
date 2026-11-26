@@ -8,6 +8,7 @@ const { registerUser, paymentRequired, payAfterApproval } = require('./registrat
 const { notifyAdmins } = require('../utils/notify');
 const { emailUsers } = require('../utils/emailUsers');
 const { audit } = require('../utils/audit');
+const { priceFor, codeProblem } = require('../utils/pricing');
 
 const sameDept = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
 
@@ -29,6 +30,7 @@ async function finalizePayment(orderId, paymentId) {
     data: { status: 'PAID', paymentId, paidAt: new Date() },
   });
   if (claimed.count === 0) return prisma.payment.findUnique({ where: { id: payment.id } });
+  if (payment.discountCodeId) await prisma.discountCode.update({ where: { id: payment.discountCodeId }, data: { usedCount: { increment: 1 } } }).catch(() => {});
 
   try {
     const registration = await registerUser(payment.user, payment.eventId, { skipPaymentCheck: true, noWaitlist: true });
@@ -90,7 +92,16 @@ const createOrder = asyncHandler(async (req, res) => {
   const taken = await prisma.registration.count({ where: { eventId, status: 'REGISTERED' } });
   if (taken >= event.capacity) throw new HttpError(409, 'This event is full');
 
-  const amount = event.fee * 100; // rupees -> paise
+  // Early-bird price and an optional promo code, worked out here and never trusted from the browser.
+  let codeRow = null;
+  const typed = String(req.body?.code || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (typed) {
+    codeRow = await prisma.discountCode.findUnique({ where: { eventId_code: { eventId, code: typed } } });
+    const problem = codeProblem(codeRow);
+    if (problem) throw new HttpError(400, problem);
+  }
+  const price = priceFor(event, codeRow);
+  const amount = price.final * 100; // rupees -> paise
   let order;
   try {
     order = await razorpay.createOrder({ amount, receipt: `ev${eventId}-u${req.user.id}-${Date.now()}`.slice(0, 40), notes: { eventId: String(eventId), userId: String(req.user.id) } });
@@ -98,7 +109,7 @@ const createOrder = asyncHandler(async (req, res) => {
     console.error('[payments] could not create order:', e.message);
     throw new HttpError(502, 'The payment service is not responding. Please try again.');
   }
-  await prisma.payment.create({ data: { userId: req.user.id, eventId, amount, orderId: order.id } });
+  await prisma.payment.create({ data: { userId: req.user.id, eventId, amount, orderId: order.id, discountCodeId: codeRow?.id ?? null, listAmount: event.fee * 100 } });
   res.status(201).json({ orderId: order.id, amount, currency: 'INR', keyId: process.env.RAZORPAY_KEY_ID, eventTitle: event.title });
 });
 
