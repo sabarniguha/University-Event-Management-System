@@ -135,6 +135,9 @@ On a paid event, **Edit event** has an optional **early-bird fee and end time**,
 ### Browser push notifications (optional)
 When the server has VAPID keys, **Settings -> Notifications on this device -> Turn on** lets each person get every in-app notification (reminders, attendee messages, approvals, refunds) as a pop-up, even with UniEvents closed. Generate the keys once with `cd backend && npm run push:keys` (needs `npm install` first), then set `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` on Render (optionally `VAPID_SUBJECT`, e.g. `mailto:you@gmail.com`). Without the keys the card is hidden and nothing changes. On iPhone, the app must be added to the Home Screen first. Devices that remove the subscription are forgotten automatically. Adds the `PushSubscription` table (migration `20261129000000_push_subscriptions`) and the `web-push` package.
 
+### Privacy tools
+**Settings -> Your data** lets anyone **Download my data** (a JSON file with their profile, registrations, attendance, certificates, payments, feedback, survey answers and notifications). Students can also **Delete my account** (password and the word DELETE required): name, email, phone, student ID, photo, bio, notifications, survey answers, follows and device subscriptions are removed, upcoming seats are cancelled (waitlist moves up, eligible payments are refunded), and the account can never sign in again. Certificates and report IDs stay verifiable but no longer show the name; attendance, registrations and payment records stay (anonymised) so event statistics and accounts remain correct. Organiser and admin accounts cannot self-delete because they own events; an admin removes them. Demo accounts cannot be deleted. No database change.
+
 ### Reminders
 A 24-hour reminder job notifies registered students. On a free Render service use the `keep-awake.yml` workflow (see [Optional services](#optional-services)) so reminders go out on time.
 

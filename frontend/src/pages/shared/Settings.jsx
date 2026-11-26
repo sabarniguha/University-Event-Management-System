@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import TwoFactorCard from '../../components/security/TwoFactorCard.jsx';
+import PrivacyCard from '../../components/layout/PrivacyCard.jsx';
 import PushCard from '../../components/layout/PushCard.jsx';
 import InstallButton from '../../components/layout/InstallButton.jsx';
 import DashboardShell from '../../components/DashboardShell.jsx';
@@ -80,6 +81,7 @@ export default function Settings() {
         </div>
 
         <PushCard />
+        <PrivacyCard />
         {user?.role === 'ADMIN' && <TwoFactorCard />}
 
         <form onSubmit={changePassword} className="card space-y-4 lg:col-span-2 lg:max-w-xl">
