@@ -36,6 +36,8 @@ const EventSurvey = page(() => import('./pages/organizer/EventSurvey.jsx'));
 const Following = page(() => import('./pages/student/Following.jsx'));
 const ScreenCheckin = page(() => import('./pages/organizer/ScreenCheckin.jsx'));
 const SelfCheckin = page(() => import('./pages/student/SelfCheckin.jsx'));
+const EventStaff = page(() => import('./pages/organizer/EventStaff.jsx'));
+const StaffDuty = page(() => import('./pages/shared/StaffDuty.jsx'));
 const EventMessages = page(() => import('./pages/organizer/EventMessages.jsx'));
 const EventTeams = page(() => import('./pages/organizer/EventTeams.jsx'));
 const NotFound = page(() => import('./pages/public/NotFound.jsx'));
@@ -111,6 +113,7 @@ export default function App() {
           <Route element={<DashboardLayout />}>
             <Route path="/announcements" element={<Announcements />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/staff" element={<StaffDuty />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
 
@@ -148,6 +151,7 @@ export default function App() {
               <Route path="/organizer/events/:id/teams" element={<EventTeams />} />
               <Route path="/organizer/events/:id/survey" element={<EventSurvey />} />
               <Route path="/organizer/events/:id/messages" element={<EventMessages />} />
+              <Route path="/organizer/events/:id/staff" element={<EventStaff />} />
               <Route path="/organizer/events/:id/screen" element={<ScreenCheckin />} />
               <Route path="/organizer/events/:id/gallery" element={<EventGallery />} />
               <Route path="/organizer/certificates" element={<OrganizerCertificates />} />
