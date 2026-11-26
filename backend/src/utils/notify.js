@@ -1,4 +1,5 @@
 const prisma = require('./prismaClient');
+const { pushToUsers } = require('./push');
 
 // Creates one in-app notification per user.
 // Usage: notify(prisma, [userId, ...], { title, message, link, type, refKey })
@@ -19,6 +20,8 @@ async function notify(db, userIds, { title, message, link, type, refKey }) {
     })),
     skipDuplicates: true,
   });
+  // Also pop up on devices that turned browser notifications on (no-op unless push is configured).
+  pushToUsers(ids, { title, message, link });
 }
 
 // Notifies every admin (e.g. a new event is waiting for approval).

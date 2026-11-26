@@ -132,6 +132,9 @@ On a paid event, organisers can set **Refund if a student cancels at least N hou
 ### Promo codes and early-bird pricing
 On a paid event, **Edit event** has an optional **early-bird fee and end time**, and **Registrations -> Promo codes** creates codes (percent off up to 90%, or rupees off), with an optional use limit and expiry. Students type a code on the event page; the price shown comes from the server, which works the price out again when the order is created, so it cannot be edited in the browser. The price never goes below Rs 1 (Razorpay's minimum). A code counts as used only once the payment succeeds. Adds `Event.earlyBirdFee/earlyBirdUntil`, `Payment.discountCodeId/listAmount` and the `DiscountCode` table (migration `20261128000000_discount_codes`).
 
+### Browser push notifications (optional)
+When the server has VAPID keys, **Settings -> Notifications on this device -> Turn on** lets each person get every in-app notification (reminders, attendee messages, approvals, refunds) as a pop-up, even with UniEvents closed. Generate the keys once with `cd backend && npm run push:keys` (needs `npm install` first), then set `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` on Render (optionally `VAPID_SUBJECT`, e.g. `mailto:you@gmail.com`). Without the keys the card is hidden and nothing changes. On iPhone, the app must be added to the Home Screen first. Devices that remove the subscription are forgotten automatically. Adds the `PushSubscription` table (migration `20261129000000_push_subscriptions`) and the `web-push` package.
+
 ### Reminders
 A 24-hour reminder job notifies registered students. On a free Render service use the `keep-awake.yml` workflow (see [Optional services](#optional-services)) so reminders go out on time.
 
@@ -243,6 +246,7 @@ Migrations are additive and run on start (`prisma migrate deploy`); existing use
 | `20261126000000_refund_cutoff` | refund window per event |
 | `20261127000000_event_staff` | event helpers |
 | `20261128000000_discount_codes` | promo codes, early-bird price |
+| `20261129000000_push_subscriptions` | browser push devices |
 | `20261123000000_certificate_name_remarks` | optional name and remarks on certificates (existing ones unchanged) |
 | `20261124000000_certificate_positions` | optional Winner / runner-up result on certificates |
 
@@ -292,6 +296,7 @@ Never commit `.env` files. On Render set these in the dashboard under **Environm
 | `RAZORPAY_KEY_ID` `RAZORPAY_KEY_SECRET` `RAZORPAY_WEBHOOK_SECRET` | optional | Online fee payments (use `rzp_test_...` first). Webhook: `https://<app>/api/payments/webhook` for `payment.captured` |
 | `CLOUDINARY_CLOUD_NAME` `CLOUDINARY_API_KEY` `CLOUDINARY_API_SECRET` `CLOUDINARY_FOLDER` | optional | Image hosting (falls back to the database) |
 | `GROQ_API_KEY` | optional | Turns on the AI assistant |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | optional | Browser push notifications (generate with `npm run push:keys`) |
 | `GROQ_MODEL`, `ASSISTANT_DAILY_LIMIT` | optional | Override the model; cap questions per day (default 1000) |
 | `TWO_FACTOR_KEY` | optional | Encrypts 2FA secrets; set before rotating `JWT_SECRET` |
 | `REPORT_SEAL_KEY` | optional | Key for report IDs (falls back to `JWT_SECRET`) |
