@@ -1,5 +1,6 @@
 const prisma = require('../utils/prismaClient');
 const HttpError = require('../utils/httpError');
+const { refundOnCancel } = require('../utils/cancelRefund');
 const asyncHandler = require('../utils/asyncHandler');
 const { loadManagedEvent, canManageEvent } = require('../utils/access');
 const { parseId, registrationDecisionSchema } = require('../utils/validators');
@@ -142,7 +143,8 @@ const cancel = asyncHandler(async (req, res) => {
     },
     { isolationLevel: 'Serializable' }
   );
-  res.json({ registration });
+  const refund = await refundOnCancel(existing, existing.event);
+  res.json({ registration, refund });
 });
 
 // PATCH /api/registrations/:id/decision  (organiser of event / admin) - approve or reject a pending request
@@ -208,7 +210,7 @@ const myRegistrations = asyncHandler(async (req, res) => {
       event: {
         select: {
           id: true, title: true, venue: true, startsAt: true, endsAt: true, status: true, category: true,
-          bannerUrl: true, mode: true, onlineUrl: true, fee: true,
+          bannerUrl: true, mode: true, onlineUrl: true, fee: true, refundCutoffHours: true,
         },
       },
       attendance: { select: { status: true, checkedInAt: true, method: true } },

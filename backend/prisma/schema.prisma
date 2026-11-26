@@ -149,6 +149,7 @@ model Event {
   status                       EventStatus @default(DRAFT)
   registrationDeadline         DateTime?
   waitlistEnabled              Boolean     @default(true)
+  refundCutoffHours            Int?
   mode                         EventMode   @default(OFFLINE)
   onlineUrl                    String?
   registrationUrl              String?

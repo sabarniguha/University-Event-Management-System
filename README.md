@@ -123,6 +123,9 @@ UniEvents is an installable PWA (Android Chrome / Edge: **Install the app**; iPh
 ### Payments
 Razorpay checkout shows UPI first (QR, Google Pay, PhonePe, Paytm), then cards, netbanking and wallets. Students see receipts under My Payments; organisers see who paid for their events; admins see all payments, mark refunds, and get a Razorpay setup guide while keys are missing. A webhook (`payment.captured`) registers students who pay but close the tab. Without keys, fees are collected in person.
 
+### Refund rules
+On a paid event, organisers can set **Refund if a student cancels at least N hours before the start** (0 = any time before the start; empty = no automatic refunds, the default for every existing event). A student who cancels a confirmed seat inside that window, and paid online, is refunded automatically through Razorpay, told by notification and email, and the payment shows as Refunded. If Razorpay refuses, the payment is left as "needs refund" and admins are notified to retry it on the Payments page. The policy is shown on the event page and in the cancel prompt. Adds the nullable `Event.refundCutoffHours` column (migration `20261126000000_refund_cutoff`).
+
 ### Reminders
 A 24-hour reminder job notifies registered students. On a free Render service use the `keep-awake.yml` workflow (see [Optional services](#optional-services)) so reminders go out on time.
 
@@ -231,6 +234,7 @@ Migrations are additive and run on start (`prisma migrate deploy`); existing use
 | `20261121000000_gallery_student_photos` | student photo approval (existing photos stay approved) |
 | `20261122000000_report_seals` | report IDs |
 | `20261125000000_organizer_follows` | following organisers |
+| `20261126000000_refund_cutoff` | refund window per event |
 | `20261123000000_certificate_name_remarks` | optional name and remarks on certificates (existing ones unchanged) |
 | `20261124000000_certificate_positions` | optional Winner / runner-up result on certificates |
 
