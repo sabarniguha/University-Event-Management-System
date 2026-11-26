@@ -119,6 +119,7 @@ model User {
   feedback              Feedback[]
   notifications         Notification[]
   following             OrganizerFollow[]  @relation("FollowerOf")
+  staffDuties           EventStaff[]
   followers             OrganizerFollow[]  @relation("FollowedOrganizer")
   organizerProfile      OrganizerProfile?  @relation("OrganizerApplicant")
   organizerReviews      OrganizerProfile[] @relation("OrganizerReviewer")
@@ -150,6 +151,7 @@ model Event {
   registrationDeadline         DateTime?
   waitlistEnabled              Boolean     @default(true)
   refundCutoffHours            Int?
+  staff                        EventStaff[]
   mode                         EventMode   @default(OFFLINE)
   onlineUrl                    String?
   registrationUrl              String?
@@ -547,4 +549,19 @@ model OrganizerFollow {
 
   @@unique([followerId, organizerId])
   @@index([organizerId])
+}
+
+// A helper (usually a student volunteer) who may scan tickets and mark attendance for one event only.
+model EventStaff {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  userId    Int
+  addedById Int?
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId])
 }

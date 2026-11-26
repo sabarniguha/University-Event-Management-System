@@ -44,6 +44,7 @@ function EventRegistrations({ id }) {
           <Link to={`/organizer/events/${id}/teams`} className="btn-outline">Teams</Link>
           <Link to={`/organizer/events/${id}/survey`} className="btn-outline">Survey</Link>
           <Link to={`/organizer/events/${id}/messages`} className="btn-outline">Message attendees</Link>
+          <Link to={`/organizer/events/${id}/staff`} className="btn-outline">Event staff</Link>
           <Link to={`/organizer/reports/event/${id}`} className="btn-outline">Report</Link>
           <Link to={`/organizer/events/${id}/attendance`} className="btn-primary">Attendance and check-in</Link>
         </>

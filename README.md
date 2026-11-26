@@ -68,6 +68,9 @@ For large events, open **Attendance -> Screen check-in QR** and show it on a pro
 ### Calendar view
 **Explore events** has a List / Calendar switch, and the student dashboard has a **Show campus calendar** button. Pick a month, see how many events start each day, and tap a day to list them. Uses the existing events list; no database change.
 
+### Event staff (helpers)
+On an event's Registrations page, **Event staff** lets the organiser (or an admin) add helpers by account email (up to 25). A helper, usually a student volunteer, sees the event under **Event staff duty** and can scan tickets or mark present / absent for that event only, and only while it is running. They cannot edit the event, see payments, issue certificates or touch other events. Their check-ins are recorded under their own name. Adds the `EventStaff` table (migration `20261127000000_event_staff`).
+
 ### Tickets, attendance and certificates
 - **QR tickets** for every confirmed registration. Anyone can verify a ticket code at `/verify-ticket` (shows the event, status and an abbreviated holder name only).
 - **Attendance:** QR scanner (camera, USB scanner or paste), per-event attendance pages, bulk marking. One attendance record per registration (database unique constraint), so duplicate scans are rejected. Camera scanning is at `/organizer/scan` and `/admin/scan` and needs HTTPS and camera permission (built-in detector where available, `jsqr` elsewhere).
@@ -235,6 +238,7 @@ Migrations are additive and run on start (`prisma migrate deploy`); existing use
 | `20261122000000_report_seals` | report IDs |
 | `20261125000000_organizer_follows` | following organisers |
 | `20261126000000_refund_cutoff` | refund window per event |
+| `20261127000000_event_staff` | event helpers |
 | `20261123000000_certificate_name_remarks` | optional name and remarks on certificates (existing ones unchanged) |
 | `20261124000000_certificate_positions` | optional Winner / runner-up result on certificates |
 
