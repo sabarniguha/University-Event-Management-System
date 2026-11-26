@@ -27,13 +27,13 @@ async function refundOnCancel(registration, event, now = new Date()) {
     try {
       await razorpay.refund(payment.paymentId);
       await prisma.payment.update({ where: { id: payment.id }, data: { status: 'REFUNDED' } });
-      await notify(prisma, registration.userId, { title: 'Refund started', message: `Your payment of ₹${payment.amount} for "${event.title}" is being refunded. It reaches your account in a few working days.`, link: '/student/payments', type: 'PAYMENT' });
-      emailUsers(registration.userId, { subject: 'Your refund has started', text: `You cancelled "${event.title}" in time, so ₹${payment.amount} is being refunded. It reaches your account in a few working days.` });
+      await notify(prisma, registration.userId, { title: 'Refund started', message: `Your payment of ₹${payment.amount / 100} for "${event.title}" is being refunded. It reaches your account in a few working days.`, link: '/student/payments', type: 'PAYMENT' });
+      emailUsers(registration.userId, { subject: 'Your refund has started', text: `You cancelled "${event.title}" in time, so ₹${payment.amount / 100} is being refunded. It reaches your account in a few working days.` });
       return 'REFUNDED';
     } catch (e) {
       console.error('[refund] cancellation refund failed:', e.message);
       await notifyAdmins(prisma, { title: 'Refund needed after a cancellation', message: `A student cancelled "${event.title}" inside the refund window, but the automatic refund of payment ${payment.paymentId} failed. Retry it on the Payments page.`, link: '/admin/payments', type: 'PAYMENT' });
-      await notify(prisma, registration.userId, { title: 'Refund pending', message: `Your cancellation of "${event.title}" is recorded. Your refund of ₹${payment.amount} will be completed by an admin.`, link: '/student/payments', type: 'PAYMENT' });
+      await notify(prisma, registration.userId, { title: 'Refund pending', message: `Your cancellation of "${event.title}" is recorded. Your refund of ₹${payment.amount / 100} will be completed by an admin.`, link: '/student/payments', type: 'PAYMENT' });
       return 'PENDING';
     }
   } catch (e) {

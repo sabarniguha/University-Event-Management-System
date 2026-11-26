@@ -129,6 +129,9 @@ Razorpay checkout shows UPI first (QR, Google Pay, PhonePe, Paytm), then cards, 
 ### Refund rules
 On a paid event, organisers can set **Refund if a student cancels at least N hours before the start** (0 = any time before the start; empty = no automatic refunds, the default for every existing event). A student who cancels a confirmed seat inside that window, and paid online, is refunded automatically through Razorpay, told by notification and email, and the payment shows as Refunded. If Razorpay refuses, the payment is left as "needs refund" and admins are notified to retry it on the Payments page. The policy is shown on the event page and in the cancel prompt. Adds the nullable `Event.refundCutoffHours` column (migration `20261126000000_refund_cutoff`).
 
+### Promo codes and early-bird pricing
+On a paid event, **Edit event** has an optional **early-bird fee and end time**, and **Registrations -> Promo codes** creates codes (percent off up to 90%, or rupees off), with an optional use limit and expiry. Students type a code on the event page; the price shown comes from the server, which works the price out again when the order is created, so it cannot be edited in the browser. The price never goes below Rs 1 (Razorpay's minimum). A code counts as used only once the payment succeeds. Adds `Event.earlyBirdFee/earlyBirdUntil`, `Payment.discountCodeId/listAmount` and the `DiscountCode` table (migration `20261128000000_discount_codes`).
+
 ### Reminders
 A 24-hour reminder job notifies registered students. On a free Render service use the `keep-awake.yml` workflow (see [Optional services](#optional-services)) so reminders go out on time.
 
@@ -239,6 +242,7 @@ Migrations are additive and run on start (`prisma migrate deploy`); existing use
 | `20261125000000_organizer_follows` | following organisers |
 | `20261126000000_refund_cutoff` | refund window per event |
 | `20261127000000_event_staff` | event helpers |
+| `20261128000000_discount_codes` | promo codes, early-bird price |
 | `20261123000000_certificate_name_remarks` | optional name and remarks on certificates (existing ones unchanged) |
 | `20261124000000_certificate_positions` | optional Winner / runner-up result on certificates |
 

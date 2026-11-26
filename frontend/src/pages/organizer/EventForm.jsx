@@ -12,7 +12,7 @@ import { DEPARTMENTS, EVENT_TYPES, errMsg, toLocalInput } from '../../utils/form
 
 const EMPTY = {
   title: '', description: '', category: 'General', eventType: '', bannerUrl: '', startsAt: '', endsAt: '', registrationDeadline: '',
-  mode: 'OFFLINE', venue: '', onlineUrl: '', registrationUrl: '', capacity: 100, waitlistEnabled: true, fee: 0, refundCutoffHours: '', requiresRegistrationApproval: false, teamMin: 1, teamMax: 1,
+  mode: 'OFFLINE', venue: '', onlineUrl: '', registrationUrl: '', capacity: 100, waitlistEnabled: true, fee: 0, earlyBirdFee: '', earlyBirdUntil: '', refundCutoffHours: '', requiresRegistrationApproval: false, teamMin: 1, teamMax: 1,
   department: '', eligibility: '', requirements: '', contactEmail: '', contactPhone: '', terms: '', featured: false,
 };
 
@@ -50,6 +50,7 @@ export default function EventForm() {
         registrationUrl: e.registrationUrl || '',
         startsAt: toLocalInput(e.startsAt), endsAt: toLocalInput(e.endsAt),
         registrationDeadline: e.registrationDeadline ? toLocalInput(e.registrationDeadline) : '',
+        earlyBirdUntil: e.earlyBirdUntil ? toLocalInput(e.earlyBirdUntil) : '',
       });
       setLists({ agenda: e.agenda, speakers: e.speakers, team: e.team, faqs: e.faqs });
       setStatus(e.status);
@@ -71,6 +72,8 @@ export default function EventForm() {
         startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : '',
         endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : '',
         registrationDeadline: form.registrationDeadline ? new Date(form.registrationDeadline).toISOString() : null,
+        earlyBirdUntil: form.earlyBirdUntil ? new Date(form.earlyBirdUntil).toISOString() : '',
+        earlyBirdFee: form.earlyBirdFee === '' ? '' : Number(form.earlyBirdFee),
         ...lists,
         status: targetStatus,
       };
@@ -149,6 +152,13 @@ export default function EventForm() {
                 : 'Shown to students. Online payment is not switched on for this site, so you collect the fee in person.'}
             </p></div>
           </div>
+          {Number(form.fee) > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div><label className="label" htmlFor="ebFee">Early-bird fee in rupees (optional)</label><input id="ebFee" type="number" min={1} className="input" placeholder="Lower than the fee" value={form.earlyBirdFee} onChange={set('earlyBirdFee')} /></div>
+              <div><label className="label" htmlFor="ebUntil">Early-bird price ends</label><input id="ebUntil" type="datetime-local" className="input" value={form.earlyBirdUntil} onChange={set('earlyBirdUntil')} /></div>
+              <p className="text-xs text-slate-500 sm:col-span-2">Until that date and time students pay the early-bird fee, then the normal fee. Promo codes are added from Registrations → Promo codes.</p>
+            </div>
+          )}
           {Number(form.fee) > 0 && (
             <div><label className="label" htmlFor="refundCutoff">Refund if a student cancels at least this many hours before the start</label>
               <input id="refundCutoff" type="number" min={0} max={720} className="input" placeholder="Leave empty for no refunds" value={form.refundCutoffHours} onChange={set('refundCutoffHours')} />
