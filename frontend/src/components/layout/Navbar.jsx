@@ -5,6 +5,8 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { dashboardPath } from '../../utils/format.js';
 import NotificationBell from '../notifications/NotificationBell.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
+import LanguageSwitcher from '../common/LanguageSwitcher.jsx';
+import { useLanguage } from '../../i18n/LanguageContext.jsx';
 import { Avatar } from '../common/Ui.jsx';
 
 const linkClass = ({ isActive }) =>
@@ -12,17 +14,18 @@ const linkClass = ({ isActive }) =>
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
   const links = (
     <>
-      <NavLink to="/" end className={linkClass} onClick={close}>Home</NavLink>
-      <NavLink to="/events" className={linkClass} onClick={close}>Explore Events</NavLink>
-      <NavLink to="/categories" className={linkClass} onClick={close}>Categories</NavLink>
-      <NavLink to="/about" className={linkClass} onClick={close}>About</NavLink>
-      <NavLink to="/contact" className={linkClass} onClick={close}>Contact</NavLink>
+      <NavLink to="/" end className={linkClass} onClick={close}>{t('Home')}</NavLink>
+      <NavLink to="/events" className={linkClass} onClick={close}>{t('Explore Events')}</NavLink>
+      <NavLink to="/categories" className={linkClass} onClick={close}>{t('Categories')}</NavLink>
+      <NavLink to="/about" className={linkClass} onClick={close}>{t('About')}</NavLink>
+      <NavLink to="/contact" className={linkClass} onClick={close}>{t('Contact')}</NavLink>
     </>
   );
 
@@ -37,6 +40,7 @@ export default function Navbar() {
         <nav className="hidden items-center gap-1 md:flex" aria-label="Main">{links}</nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <LanguageSwitcher />
           <ThemeToggle />
           {user ? (
             <>
@@ -49,13 +53,14 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link to="/login" className="btn-ghost btn-sm">Login</Link>
-              <Link to="/register" className="btn-primary btn-sm">Register</Link>
+              <Link to="/login" className="btn-ghost btn-sm">{t('Login')}</Link>
+              <Link to="/register" className="btn-primary btn-sm">{t('Register')}</Link>
             </>
           )}
         </div>
 
         <div className="flex items-center gap-1 md:hidden">
+          <LanguageSwitcher />
           <ThemeToggle />
           {user && <NotificationBell />}
           <button className="rounded-xl p-2 text-slate-600" onClick={() => setOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={open}>
@@ -75,8 +80,8 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link to="/login" className="btn-outline btn-sm" onClick={close}>Login</Link>
-                <Link to="/register" className="btn-primary btn-sm" onClick={close}>Register</Link>
+                <Link to="/login" className="btn-outline btn-sm" onClick={close}>{t('Login')}</Link>
+                <Link to="/register" className="btn-primary btn-sm" onClick={close}>{t('Register')}</Link>
               </>
             )}
           </div>

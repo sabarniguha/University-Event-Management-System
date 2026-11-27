@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Inbox, Loader2, Search, X } from 'lucide-react';
 import { mediaUrl } from '../../services/api.js';
 import { initials } from '../../utils/format.js';
+import { useLanguage } from '../../i18n/LanguageContext.jsx';
 
 export function Loader({ label = 'Loading...' }) {
   return (
@@ -105,11 +106,12 @@ export function EmptyState({ children, icon: Icon = Inbox, title, action }) {
 }
 
 export function PageHeader({ title, subtitle, actions }) {
+  const { t } = useLanguage();
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t(title)}</h1>
+        {subtitle && <p className="mt-1 text-sm text-slate-500">{t(subtitle)}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
