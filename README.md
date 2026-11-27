@@ -377,6 +377,9 @@ All routes are under `/api` with a Bearer JWT in `Authorization`.
 ### Languages (English, Hindi, Bengali)
 A language picker sits in the top bar of the public site and every dashboard. English stays the default and the fallback, and the choice is remembered on the device. Menus, page headings, the home page and the main student pages are translated. To translate more text, add a line for it in `frontend/src/i18n/dictionary.js` (English text on the left, translation on the right); anything not listed simply shows in English.
 
+### Ratings nudge and admin ranking
+Students could already rate events they attended. Now, once an event has ended, every student who was marked present (and has not rated yet) gets a "How was the event?" notification (in-app, plus browser push if enabled) that opens their attendance history where the stars are. It is sent once per student and event, for events that ended in the last 7 days, and skipped for anyone who turned reminders off. Admins get **Event Ratings** in the menu: events ranked by average rating (ties broken by number of reviews) and organisers ranked by their overall average. Organisers still see their own ratings and comments under each event's Feedback page. No database change.
+
 ## Security and privacy
 
 - Public sign-up creates **students only**. Organiser access is requested and approved by an admin.

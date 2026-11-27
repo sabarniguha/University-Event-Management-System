@@ -4,6 +4,7 @@ const prisma = require('./utils/prismaClient');
 const { ensureDefaults } = require('./utils/settings');
 const { startReminderJob } = require('./utils/reminders');
 const { startHourReminderJob } = require('./utils/reminders1h');
+const { startRatePromptJob } = require('./utils/ratePrompts');
 const { ensureDemoAccounts } = require('./utils/demo');
 
 const PORT = Number(process.env.PORT) || 5000;
@@ -23,6 +24,7 @@ const server = app.listen(PORT, () => {
   ensureDemoAccounts().catch((e) => console.error('[startup] could not create demo accounts:', e.message));
   startReminderJob();
   startHourReminderJob();
+  startRatePromptJob();
 });
 
 const shutdown = async () => {
