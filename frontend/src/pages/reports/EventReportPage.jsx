@@ -1,3 +1,4 @@
+import AiInsights from '../../components/reports/AiInsights.jsx';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Download, Printer } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
@@ -165,6 +166,8 @@ function Document({ d }) {
           </Table>
         )}
       </Section>
+
+      <AiInsights kind="event" d={d} />
 
       <p className="mt-6 border-t border-slate-200 pt-2 text-[11px] text-slate-500">Figures come from the live UniEvents database at {fmtDate(meta.generatedAt)}. Feedback comments are shown without names.</p>
     </article>

@@ -1,3 +1,4 @@
+import AiInsights from '../../components/reports/AiInsights.jsx';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Download, FileCheck2, Printer } from 'lucide-react';
@@ -204,6 +205,8 @@ function Document({ d }) {
           <li>A dash means there is nothing to calculate yet. Nothing is estimated.</li>
         </ul>
       </Section>
+
+      <AiInsights kind="student" d={d} />
     </article>
   );
 }
