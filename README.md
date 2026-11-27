@@ -142,7 +142,7 @@ When the server has VAPID keys, **Settings -> Notifications on this device -> Tu
 Every published event page has a **Questions and answers** section. Signed-in students ask (up to 5 per event, 300 characters); the organiser is notified. The organiser or an admin answers, hides or deletes questions right on the page, and the asker is notified of the answer. The public sees visible questions with the asker's shortened name only. Hidden questions stay visible to managers. Adds the `EventQA` table (migration `20261130000000_event_qa`).
 
 ### Reminders
-A 24-hour reminder job notifies registered students. On a free Render service use the `keep-awake.yml` workflow (see [Optional services](#optional-services)) so reminders go out on time.
+A 24-hour reminder job notifies registered students, and a second job sends a "starting in about an hour" reminder (in-app, browser push if enabled, and email if SMTP is set; each student gets it once, and anyone who turned reminders off in Settings is skipped). On a free Render service use the `keep-awake.yml` workflow (see [Optional services](#optional-services)) so reminders go out on time.
 
 ---
 
