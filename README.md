@@ -394,6 +394,9 @@ On an event's **Attendance** page, **Live check-in** opens the door view for org
 ### Volunteer hours and service record
 After an event ends, the organiser (or an admin) opens **Event staff** for it and finds a **Volunteer hours** card. Each helper is pre-filled with the event length; change it for anyone who helped less, then **Confirm**. The helper is notified, and the hours show in their **Volunteer hours** page (menu), which adds up their total and offers a printable **Certificate of Volunteer Service** (Print or save as PDF). Confirmed hours also appear as a **Volunteer service** section at the end of the Activity Transcript. Hours cannot be confirmed before the event ends, only for people added as staff, in quarter-hour steps up to 48. Adds the `VolunteerHours` table (migration `20261202000000_volunteer_hours`).
 
+### Home-page AI assistant
+Visitors (no sign-in needed) see an **Ask AI** button on the home page. It answers questions about upcoming public events, categories and how to register, log in or become an organiser. It only knows what the public site shows (published upcoming events and a how-it-works guide), never any person's account data, and it can explain but not act. It uses the same `GROQ_API_KEY` as the signed-in assistant and stays hidden when the key is missing. Limits: 12 questions per visitor per 10 minutes, and a site-wide daily budget of 300 (change with `PUBLIC_ASSISTANT_DAILY_LIMIT`). Endpoints: `GET /api/public-assistant/status`, `POST /api/public-assistant/chat`. No database change.
+
 ## Security and privacy
 
 - Public sign-up creates **students only**. Organiser access is requested and approved by an admin.
