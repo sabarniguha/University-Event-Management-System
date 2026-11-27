@@ -7,12 +7,15 @@ import api from '../../services/api.js';
 import Sidebar from '../navigation/Sidebar.jsx';
 import NotificationBell from '../notifications/NotificationBell.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
+import LanguageSwitcher from '../common/LanguageSwitcher.jsx';
+import { useLanguage } from '../../i18n/LanguageContext.jsx';
 import VerifyEmailBanner from './VerifyEmailBanner.jsx';
 import AssistantWidget from '../assistant/AssistantWidget.jsx';
 
 // Sidebar + top bar + animated page area for every signed-in role.
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -56,9 +59,10 @@ export default function DashboardLayout() {
           <Menu className="h-5 w-5" />
         </button>
         <Link to="/" className="hidden items-center gap-2 text-sm text-slate-500 hover:text-slate-800 lg:flex">
-          <Globe className="h-4 w-4" /> Back to website
+          <Globe className="h-4 w-4" /> {t('Back to website')}
         </Link>
         <div className="flex items-center gap-1">
+          <LanguageSwitcher />
           <ThemeToggle />
           <NotificationBell />
           <button

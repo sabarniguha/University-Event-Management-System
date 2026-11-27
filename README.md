@@ -374,6 +374,9 @@ All routes are under `/api` with a Bearer JWT in `Authorization`.
 
 ---
 
+### Languages (English, Hindi, Bengali)
+A language picker sits in the top bar of the public site and every dashboard. English stays the default and the fallback, and the choice is remembered on the device. Menus, page headings, the home page and the main student pages are translated. To translate more text, add a line for it in `frontend/src/i18n/dictionary.js` (English text on the left, translation on the right); anything not listed simply shows in English.
+
 ## Security and privacy
 
 - Public sign-up creates **students only**. Organiser access is requested and approved by an admin.

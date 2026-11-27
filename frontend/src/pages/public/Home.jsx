@@ -10,6 +10,7 @@ import EventCard from '../../components/events/EventCard.jsx';
 import CategoryIcon from '../../components/events/CategoryIcon.jsx';
 import { CardSkeletons, EmptyState } from '../../components/common/Ui.jsx';
 import { errMsg } from '../../utils/format.js';
+import { useLanguage } from '../../i18n/LanguageContext.jsx';
 
 const fade = { initial: { opacity: 0, y: 18 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: '-60px' }, transition: { duration: 0.4 } };
 
@@ -89,6 +90,7 @@ const FAQ = [
 ];
 
 export default function Home() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const toast = useToast();
   const [q, setQ] = useState('');
@@ -122,17 +124,17 @@ export default function Home() {
         <div className="pointer-events-none absolute -left-16 top-40 h-72 w-72 rounded-full bg-brand-300/30 blur-3xl" />
         <div className="relative mx-auto max-w-4xl px-4 pb-16 pt-16 text-center sm:px-6 sm:pt-24">
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-3 py-1 text-xs font-medium text-brand-700">
-            <Sparkles className="h-3.5 w-3.5" /> The campus event platform
+            <Sparkles className="h-3.5 w-3.5" /> {t('The campus event platform')}
           </motion.p>
           <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-6xl">
-            Discover. Connect. <span className="gradient-text">Experience Campus Life.</span>
+            {t('Discover. Connect.')} <span className="gradient-text">{t('Experience Campus Life.')}</span>
           </motion.h1>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="mx-auto mt-5 max-w-2xl text-lg text-slate-600">
-            Find hackathons, workshops, fests and talks happening around you. Register in a click, check in with a QR ticket and collect verified certificates.
+            {t('Find hackathons, workshops, fests and talks happening around you. Register in a click, check in with a QR ticket and collect verified certificates.')}
           </motion.p>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link to="/events" className="btn-primary btn-lg">Explore Events <ArrowRight className="h-4 w-4" /></Link>
-            <Link to="/register" className="btn-outline btn-lg">Join UniEvents</Link>
+            <Link to="/events" className="btn-primary btn-lg">{t('Explore Events')} <ArrowRight className="h-4 w-4" /></Link>
+            <Link to="/register" className="btn-outline btn-lg">{t('Join UniEvents')}</Link>
           </motion.div>
           <form onSubmit={search} className="mx-auto mt-8 flex max-w-xl gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-soft">
             <div className="relative flex-1">

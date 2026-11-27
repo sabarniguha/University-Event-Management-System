@@ -3,10 +3,12 @@ import { CalendarHeart, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { Avatar } from '../common/Ui.jsx';
 import { NAV, ROLE_TITLE } from './navConfig.js';
+import { useLanguage } from '../../i18n/LanguageContext.jsx';
 
 // Role-aware navigation. `badges` maps a navConfig badgeKey to a number (e.g. pending approvals).
 export default function Sidebar({ onNavigate, badges = {} }) {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const items = NAV[user.role] || [];
 
   return (
@@ -32,7 +34,7 @@ export default function Sidebar({ onNavigate, badges = {} }) {
             }
           >
             <Icon className="h-[18px] w-[18px] shrink-0" />
-            <span className="flex-1 truncate">{label}</span>
+            <span className="flex-1 truncate">{t(label)}</span>
             {badgeKey && badges[badgeKey] > 0 && (
               <span className="rounded-full bg-red-600 px-1.5 text-[10px] font-bold leading-4 text-white">{badges[badgeKey]}</span>
             )}
@@ -47,7 +49,7 @@ export default function Sidebar({ onNavigate, badges = {} }) {
             <p className="truncate text-sm font-semibold text-slate-900">{user.name}</p>
             <p className="text-xs text-slate-500">{ROLE_TITLE[user.role]}</p>
           </div>
-          <button onClick={logout} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600" aria-label="Log out" title="Log out">
+          <button onClick={logout} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600" aria-label={t('Log out')} title={t('Log out')}>
             <LogOut className="h-4 w-4" />
           </button>
         </div>
