@@ -15,6 +15,7 @@ export const NAV = {
     { to: '/student/rewards', label: 'Points and Badges', icon: Trophy },
     { to: '/student/following', label: 'Following', icon: Users },
     { to: '/staff', label: 'Event staff duty', icon: Users },
+    { to: '/student/volunteer', label: 'Volunteer hours', icon: Award },
     { to: '/student/reports', label: 'My Report (PDF)', icon: FileText },
     { to: '/student/transcript', label: 'Activity Transcript', icon: FileText },
     { to: '/notifications', label: 'Notifications', icon: Bell },
