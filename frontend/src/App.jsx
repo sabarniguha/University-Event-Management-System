@@ -40,6 +40,7 @@ const EventStaff = page(() => import('./pages/organizer/EventStaff.jsx'));
 const StaffDuty = page(() => import('./pages/shared/StaffDuty.jsx'));
 const EventDiscounts = page(() => import('./pages/organizer/EventDiscounts.jsx'));
 const EventMessages = page(() => import('./pages/organizer/EventMessages.jsx'));
+const LiveCheckin = page(() => import('./pages/organizer/LiveCheckin.jsx'));
 const EventTeams = page(() => import('./pages/organizer/EventTeams.jsx'));
 const NotFound = page(() => import('./pages/public/NotFound.jsx'));
 
@@ -156,6 +157,7 @@ export default function App() {
               <Route path="/organizer/events/:id/staff" element={<EventStaff />} />
               <Route path="/organizer/events/:id/discounts" element={<EventDiscounts />} />
               <Route path="/organizer/events/:id/screen" element={<ScreenCheckin />} />
+              <Route path="/organizer/events/:id/live" element={<LiveCheckin />} />
               <Route path="/organizer/events/:id/gallery" element={<EventGallery />} />
               <Route path="/organizer/certificates" element={<OrganizerCertificates />} />
               <Route path="/organizer/certificates/view/:certificateId" element={<CertificateView />} />
