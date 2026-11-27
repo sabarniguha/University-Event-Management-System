@@ -7,6 +7,7 @@ import { useToast } from '../../context/ToastContext.jsx';
 import DashboardShell from '../../components/DashboardShell.jsx';
 import { EmptyState, ErrorBox, Loader } from '../../components/common/Ui.jsx';
 import { errMsg } from '../../utils/format.js';
+import VolunteerHoursCard from '../../components/events/VolunteerHoursCard.jsx';
 
 // Organiser / admin: choose helpers who can scan tickets and mark attendance for this one event.
 export default function EventStaff() {
@@ -45,6 +46,7 @@ export default function EventStaff() {
           ))}
         </ul>
       )}
+      <VolunteerHoursCard eventId={id} refreshKey={staff.length} />
     </DashboardShell>
   );
 }

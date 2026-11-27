@@ -134,6 +134,7 @@ model User {
   teamMemberships       EventTeamMember[]
   teamsLed              EventTeam[]       @relation("TeamLeader")
   surveyAnswers         EventAnswer[]
+  volunteerHours VolunteerHours[]
 
   @@index([role])
   @@index([isActive])
@@ -196,6 +197,7 @@ model Event {
   teams         EventTeam[]
   questions     EventQuestion[]
   assets        EventAsset[]
+  volunteerHours VolunteerHours[]
 
   @@index([status, startsAt])
   @@index([organizerId])
@@ -638,4 +640,21 @@ model WaitlistClaim {
   registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
   @@index([deadline])
+}
+
+// Hours an event helper served, confirmed by the organiser after the event. Shown in the student's service record.
+model VolunteerHours {
+  id            Int      @id @default(autoincrement())
+  eventId       Int
+  userId        Int
+  hours         Float
+  confirmedById Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId])
 }

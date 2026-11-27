@@ -1,3 +1,4 @@
+import VolunteerSection from '../../components/reports/VolunteerSection.jsx';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Download, Printer } from 'lucide-react';
@@ -58,6 +59,7 @@ export default function StudentTranscriptPage() {
               </Table>
             )}
           </div>
+          <VolunteerSection />
           <p className="report-block mt-6 text-[11px] leading-relaxed text-slate-500">
             This transcript lists only events at which the student was marked present by the organiser, as recorded in UniEvents. Hours are the scheduled length of each event.
             Its authenticity can be checked at <b>/verify-report</b> using the Report ID above; the ID changes if any figure changes. Times are in {d.meta.timezone}.

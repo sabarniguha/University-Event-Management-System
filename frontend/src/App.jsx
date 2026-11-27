@@ -41,6 +41,8 @@ const StaffDuty = page(() => import('./pages/shared/StaffDuty.jsx'));
 const EventDiscounts = page(() => import('./pages/organizer/EventDiscounts.jsx'));
 const EventMessages = page(() => import('./pages/organizer/EventMessages.jsx'));
 const LiveCheckin = page(() => import('./pages/organizer/LiveCheckin.jsx'));
+const Volunteer = page(() => import('./pages/student/Volunteer.jsx'));
+const VolunteerCertificate = page(() => import('./pages/student/VolunteerCertificate.jsx'));
 const EventTeams = page(() => import('./pages/organizer/EventTeams.jsx'));
 const NotFound = page(() => import('./pages/public/NotFound.jsx'));
 
@@ -132,6 +134,8 @@ export default function App() {
               <Route path="/student/checkin" element={<SelfCheckin />} />
               <Route path="/student/reports" element={<StudentReportPage />} />
               <Route path="/student/transcript" element={<StudentTranscriptPage />} />
+              <Route path="/student/volunteer" element={<Volunteer />} />
+              <Route path="/student/volunteer/certificate" element={<VolunteerCertificate />} />
               <Route path="/student/certificates/:certificateId" element={<CertificateView />} />
             </Route>
 

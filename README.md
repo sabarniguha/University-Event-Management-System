@@ -255,6 +255,7 @@ Migrations are additive and run on start (`prisma migrate deploy`); existing use
 | `20261129000000_push_subscriptions` | browser push devices |
 | `20261130000000_event_qa` | event questions and answers |
 | `20261201000000_waitlist_claim` | optional waitlist claim window per event |
+| `20261202000000_volunteer_hours` | confirmed volunteer hours |
 | `20261123000000_certificate_name_remarks` | optional name and remarks on certificates (existing ones unchanged) |
 | `20261124000000_certificate_positions` | optional Winner / runner-up result on certificates |
 
@@ -389,6 +390,9 @@ When creating or editing an event with the waitlist on, an optional field **Hour
 
 ### Live check-in dashboard
 On an event's **Attendance** page, **Live check-in** opens the door view for organisers and admins: checked in against registered with a percentage, how many are still missing (searchable list, with anyone marked absent flagged), check-ins in the last 10 minutes, a chart of check-ins per 10-minute slot, and the latest arrivals with QR or manual. It refreshes by itself every 10 seconds. Read only, no database change. Endpoint: `GET /api/live/event/:eventId`.
+
+### Volunteer hours and service record
+After an event ends, the organiser (or an admin) opens **Event staff** for it and finds a **Volunteer hours** card. Each helper is pre-filled with the event length; change it for anyone who helped less, then **Confirm**. The helper is notified, and the hours show in their **Volunteer hours** page (menu), which adds up their total and offers a printable **Certificate of Volunteer Service** (Print or save as PDF). Confirmed hours also appear as a **Volunteer service** section at the end of the Activity Transcript. Hours cannot be confirmed before the event ends, only for people added as staff, in quarter-hour steps up to 48. Adds the `VolunteerHours` table (migration `20261202000000_volunteer_hours`).
 
 ## Security and privacy
 
