@@ -57,6 +57,7 @@ async function deleteStudent(userId) {
     prisma.organizerFollow.deleteMany({ where: { OR: [{ followerId: userId }, { organizerId: userId }] } }),
     prisma.eventStaff.deleteMany({ where: { userId } }),
     prisma.eventAnswer.deleteMany({ where: { userId } }),
+    prisma.eventQA.deleteMany({ where: { askerId: userId } }),
     prisma.organizerProfile.deleteMany({ where: { userId } }),
     prisma.feedback.updateMany({ where: { userId }, data: { comment: null } }),
     prisma.certificate.updateMany({ where: { userId }, data: { recipientName: null } }),

@@ -16,7 +16,7 @@ const model = (name) => ({ deleteMany: rec(`${name}.deleteMany`), updateMany: re
 const prisma = {
   registration: { ...model('registration'), findMany: async () => upcoming },
   notification: model('notification'), pushSubscription: model('push'), authToken: model('token'), organizerFollow: model('follow'),
-  eventStaff: model('staff'), eventAnswer: model('answer'), organizerProfile: model('profile'), feedback: model('feedback'),
+  eventStaff: model('staff'), eventAnswer: model('answer'), eventQA: model('qa'), organizerProfile: model('profile'), feedback: model('feedback'),
   certificate: model('certificate'), mediaFile: model('media'), user: { ...model('user'), findUnique: async () => ({ passwordHash: bcrypt.hashSync('secret123') }) },
   $transaction: async (x) => (typeof x === 'function' ? x(prisma) : Promise.all(x)),
 };

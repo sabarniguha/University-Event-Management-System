@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { Calendar, Clock, Copy, ExternalLink, Info, MapPin, MessageCircle, Settings2, Ticket, Users, Video, Wallet } from 'lucide-react';
 import api, { API_URL, mediaUrl } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import EventQA from '../../components/events/EventQA.jsx';
 import PromoBox from '../../components/events/PromoBox.jsx';
 import FollowButton from '../../components/events/FollowButton.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -300,6 +301,8 @@ export default function EventDetail() {
               <div className="space-y-3">{event.faqs.map((f, i) => <details key={i} className="group rounded-xl border border-slate-200 px-4 py-3"><summary className="cursor-pointer font-medium text-slate-900">{f.question}</summary><p className="mt-2 text-sm text-slate-600">{f.answer}</p></details>)}</div>
             </Block>
           )}
+
+          {published && <EventQA eventId={event.id} />}
 
           <GalleryStrip eventId={event.id} />
 
