@@ -192,6 +192,7 @@ export default function EventAttendance() {
         <>
           <Link to="/organizer/attendance" className="btn-outline">All events</Link>
           <Link to={`/organizer/events/${id}/screen`} className="btn-outline">Screen check-in QR</Link>
+          <Link to={`/organizer/events/${id}/live`} className="btn-outline">Live check-in</Link>
           <Link to={`/organizer/events/${id}/feedback`} className="btn-outline">Feedback</Link>
           <button className="btn-outline" onClick={() => setImporting(true)}>Import CSV</button>
           <button className="btn-primary" onClick={exportCsv}>Export CSV</button>

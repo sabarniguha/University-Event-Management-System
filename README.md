@@ -387,6 +387,9 @@ The last section of the admin/organiser report, the event report and the student
 ### Waitlist claim window
 When creating or editing an event with the waitlist on, an optional field **Hours a waitlisted student has to confirm an offered seat** (for example 12) can be set. Then, when a seat opens, the next student on the waitlist is notified and sees a banner on **My registrations** with **Confirm my seat** and **Give it up**. The seat is held for them meanwhile. If they do not confirm in time, the seat is released automatically (every 5 minutes, or when the keep-awake workflow runs) and goes to the next student, who is notified in the same way. Leave the field empty and nothing changes: the student simply gets the seat, as before. Adds the `WaitlistClaim` table and `Event.waitlistClaimHours` (migration `20261201000000_waitlist_claim`).
 
+### Live check-in dashboard
+On an event's **Attendance** page, **Live check-in** opens the door view for organisers and admins: checked in against registered with a percentage, how many are still missing (searchable list, with anyone marked absent flagged), check-ins in the last 10 minutes, a chart of check-ins per 10-minute slot, and the latest arrivals with QR or manual. It refreshes by itself every 10 seconds. Read only, no database change. Endpoint: `GET /api/live/event/:eventId`.
+
 ## Security and privacy
 
 - Public sign-up creates **students only**. Organiser access is requested and approved by an admin.
