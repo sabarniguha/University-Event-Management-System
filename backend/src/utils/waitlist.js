@@ -21,6 +21,18 @@ async function promoteWaitlist(tx, eventId) {
     where: { id: { in: next.map((r) => r.id) } },
     data: { status: 'REGISTERED' },
   });
+  // Events with a claim window hold the seat for the student until they confirm (see waitlistClaims.js).
+  if (event.waitlistClaimHours > 0) {
+    const deadline = new Date(Date.now() + event.waitlistClaimHours * 60 * 60 * 1000);
+    await tx.waitlistClaim.createMany({ data: next.map((r) => ({ registrationId: r.id, deadline })), skipDuplicates: true });
+    await notify(tx, next.map((r) => r.userId), {
+      title: 'Confirm your seat',
+      message: `A seat opened up in "${event.title}". Please confirm within ${event.waitlistClaimHours} hour(s), or it goes to the next student.`,
+      link: '/student/registrations',
+      type: 'WAITLIST',
+    });
+    return next;
+  }
   await notify(tx, next.map((r) => r.userId), {
     title: 'A seat opened up for you',
     message: `You moved off the waitlist for "${event.title}". Your QR ticket is ready.`,

@@ -254,6 +254,7 @@ Migrations are additive and run on start (`prisma migrate deploy`); existing use
 | `20261128000000_discount_codes` | promo codes, early-bird price |
 | `20261129000000_push_subscriptions` | browser push devices |
 | `20261130000000_event_qa` | event questions and answers |
+| `20261201000000_waitlist_claim` | optional waitlist claim window per event |
 | `20261123000000_certificate_name_remarks` | optional name and remarks on certificates (existing ones unchanged) |
 | `20261124000000_certificate_positions` | optional Winner / runner-up result on certificates |
 
@@ -382,6 +383,9 @@ Students could already rate events they attended. Now, once an event has ended, 
 
 ### AI insights in reports
 The last section of the admin/organiser report, the event report and the student report is **AI insights**: 4 to 6 short bullets on what stands out, what to watch and what to do next. It appears when the report opens, prints with the PDF, and has a Refresh button. The report is shrunk to numbers first (names, emails, IDs, photos and attendee lists are removed) and sent to Groq with the same `GROQ_API_KEY` as the assistant; the model is told to use only those figures. Without the key, or if Groq is down, the section shows a plain summary of the key numbers instead, so it is never empty. Each person can ask 30 times an hour. The platform report is admin only, event and organiser reports are organiser/admin, and the student report is students only. Endpoint: `POST /api/report-ai`. No database change.
+
+### Waitlist claim window
+When creating or editing an event with the waitlist on, an optional field **Hours a waitlisted student has to confirm an offered seat** (for example 12) can be set. Then, when a seat opens, the next student on the waitlist is notified and sees a banner on **My registrations** with **Confirm my seat** and **Give it up**. The seat is held for them meanwhile. If they do not confirm in time, the seat is released automatically (every 5 minutes, or when the keep-awake workflow runs) and goes to the next student, who is notified in the same way. Leave the field empty and nothing changes: the student simply gets the seat, as before. Adds the `WaitlistClaim` table and `Event.waitlistClaimHours` (migration `20261201000000_waitlist_claim`).
 
 ## Security and privacy
 

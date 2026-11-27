@@ -153,6 +153,7 @@ model Event {
   registrationDeadline         DateTime?
   waitlistEnabled              Boolean     @default(true)
   refundCutoffHours            Int?
+  waitlistClaimHours Int?
   staff                        EventStaff[]
   earlyBirdFee                 Int?
   earlyBirdUntil               DateTime?
@@ -218,6 +219,7 @@ model Registration {
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   attendance  Attendance?
   certificate Certificate?
+  waitlistClaim WaitlistClaim?
 
   @@unique([eventId, userId])
   @@index([userId])
@@ -623,4 +625,17 @@ model EventQA {
 
   @@index([eventId, createdAt])
   @@index([askerId])
+}
+
+// A seat offered from the waitlist that the student must confirm before `deadline` (only for events with waitlistClaimHours).
+model WaitlistClaim {
+  id             Int       @id @default(autoincrement())
+  registrationId Int       @unique
+  deadline       DateTime
+  confirmedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([deadline])
 }

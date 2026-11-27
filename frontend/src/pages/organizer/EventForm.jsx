@@ -12,7 +12,7 @@ import { DEPARTMENTS, EVENT_TYPES, errMsg, toLocalInput } from '../../utils/form
 
 const EMPTY = {
   title: '', description: '', category: 'General', eventType: '', bannerUrl: '', startsAt: '', endsAt: '', registrationDeadline: '',
-  mode: 'OFFLINE', venue: '', onlineUrl: '', registrationUrl: '', capacity: 100, waitlistEnabled: true, fee: 0, earlyBirdFee: '', earlyBirdUntil: '', refundCutoffHours: '', requiresRegistrationApproval: false, teamMin: 1, teamMax: 1,
+  mode: 'OFFLINE', venue: '', onlineUrl: '', registrationUrl: '', capacity: 100, waitlistEnabled: true, fee: 0, earlyBirdFee: '', earlyBirdUntil: '', refundCutoffHours: '', waitlistClaimHours: '', requiresRegistrationApproval: false, teamMin: 1, teamMax: 1,
   department: '', eligibility: '', requirements: '', contactEmail: '', contactPhone: '', terms: '', featured: false,
 };
 
@@ -165,6 +165,11 @@ export default function EventForm() {
               <p className="mt-1 text-xs text-slate-500">For example 24: a student who cancels a day or more ahead is refunded automatically through Razorpay. 0 means any time before the event starts. Empty means no automatic refunds. Applies to students who paid online.</p></div>
           )}
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.waitlistEnabled} onChange={set('waitlistEnabled')} /> Enable waitlist when the event is full</label>
+          {form.waitlistEnabled && (
+            <div><label className="label" htmlFor="claimHours">Hours a waitlisted student has to confirm an offered seat</label>
+              <input id="claimHours" type="number" min={1} max={168} className="input" placeholder="Leave empty: they simply get the seat" value={form.waitlistClaimHours} onChange={set('waitlistClaimHours')} />
+              <p className="mt-1 text-xs text-slate-500">For example 12: when a seat opens, the next student on the waitlist is told and has 12 hours to confirm. If they do not, the seat goes to the next student automatically.</p></div>
+          )}
           <div className="rounded-xl border border-slate-200 p-4">
             <p className="text-sm font-medium text-slate-900">Team event</p>
             <p className="mb-2 text-xs text-slate-500">For hackathons, quizzes and sports. Leave both at 1 for a normal solo event. Students register first, then create or join a team.</p>
