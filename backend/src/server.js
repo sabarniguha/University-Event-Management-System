@@ -5,6 +5,7 @@ const { ensureDefaults } = require('./utils/settings');
 const { startReminderJob } = require('./utils/reminders');
 const { startHourReminderJob } = require('./utils/reminders1h');
 const { startRatePromptJob } = require('./utils/ratePrompts');
+const { startClaimJob } = require('./utils/waitlistClaims');
 const { ensureDemoAccounts } = require('./utils/demo');
 
 const PORT = Number(process.env.PORT) || 5000;
@@ -25,6 +26,7 @@ const server = app.listen(PORT, () => {
   startReminderJob();
   startHourReminderJob();
   startRatePromptJob();
+  startClaimJob();
 });
 
 const shutdown = async () => {

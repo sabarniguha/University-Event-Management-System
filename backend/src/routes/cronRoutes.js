@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { sendDueReminders } = require('../utils/reminders');
 const { sendHourReminders } = require('../utils/reminders1h');
 const { sendRatePrompts } = require('../utils/ratePrompts');
+const { expireClaims } = require('../utils/waitlistClaims');
 
 // Lets an external scheduler (GitHub Actions, cron-job.org, ...) trigger reminders and keep a sleeping
 // free-plan service awake. Disabled unless CRON_SECRET is set. Send it as the "x-cron-secret" header.
@@ -20,6 +21,7 @@ router.post('/reminders', async (req, res) => {
     await sendDueReminders();
     await sendHourReminders();
     await sendRatePrompts();
+    await expireClaims();
     res.json({ ok: true });
   } catch (e) {
     console.error('[cron] reminders failed:', e.message);

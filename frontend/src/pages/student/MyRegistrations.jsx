@@ -7,6 +7,7 @@ import useFetch from '../../hooks/useFetch.js';
 import DashboardShell from '../../components/DashboardShell.jsx';
 import { Badge, ConfirmDialog, DataTable, EmptyState, ErrorBox, Tabs } from '../../components/common/Ui.jsx';
 import { errMsg, fmtDate } from '../../utils/format.js';
+import WaitlistClaimBanner from '../../components/events/WaitlistClaimBanner.jsx';
 
 const TABS = [['all', 'All'], ['upcoming', 'Upcoming'], ['past', 'Past'], ['waiting', 'Pending / waitlist'], ['cancelled', 'Cancelled']];
 
@@ -51,6 +52,7 @@ export default function MyRegistrations() {
 
   return (
     <DashboardShell title="My registrations" subtitle="Every event you have registered for, requested or joined the waitlist of.">
+      <WaitlistClaimBanner onChange={reload} />
       <ErrorBox message={error} />
       <Tabs tabs={TABS.map(([value, label]) => ({ value, label }))} value={tab} onChange={setTab} />
       <DataTable columns={['Event', 'When', 'Status', 'Attendance', '']} loading={loading}

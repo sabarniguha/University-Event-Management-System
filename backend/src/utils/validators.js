@@ -131,6 +131,7 @@ const eventBase = z.object({
   earlyBirdFee: z.preprocess(emptyToNull, z.coerce.number().int().min(1).max(1000000).nullable().optional()),
   earlyBirdUntil: z.preprocess(emptyToNull, z.coerce.date().nullable().optional()),
   refundCutoffHours: z.preprocess(emptyToNull, z.coerce.number().int().min(0).max(720).nullable().optional()),
+  waitlistClaimHours: z.preprocess(emptyToNull, z.coerce.number().int().min(1).max(168).nullable().optional()),
   eventType: nullableText(60),
   department: nullableText(100),
   eligibility: nullableText(1000),
