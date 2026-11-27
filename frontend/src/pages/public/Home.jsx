@@ -11,6 +11,7 @@ import CategoryIcon from '../../components/events/CategoryIcon.jsx';
 import { CardSkeletons, EmptyState } from '../../components/common/Ui.jsx';
 import { errMsg } from '../../utils/format.js';
 import { useLanguage } from '../../i18n/LanguageContext.jsx';
+import PublicAssistantWidget from '../../components/assistant/PublicAssistantWidget.jsx';
 
 const fade = { initial: { opacity: 0, y: 18 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: '-60px' }, transition: { duration: 0.4 } };
 
@@ -268,6 +269,8 @@ export default function Home() {
           ))}
         </div>
       </Section>
+
+      <PublicAssistantWidget />
     </>
   );
 }
