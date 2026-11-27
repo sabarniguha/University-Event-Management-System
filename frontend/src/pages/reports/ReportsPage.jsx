@@ -4,6 +4,7 @@ import { Download, Printer } from 'lucide-react';
 import useFetch from '../../hooks/useFetch.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ErrorBox, Loader, PageHeader } from '../../components/common/Ui.jsx';
+import AiInsights from '../../components/reports/AiInsights.jsx';
 import ReportInsights, { summaryCsvBlocks } from '../../components/reports/ReportInsights.jsx';
 import { downloadCsv } from '../../utils/csvDownload.js';
 import PhotoGrid from '../../components/reports/PhotoGrid.jsx';
@@ -226,6 +227,8 @@ function Document({ d, isAdmin }) {
           <li>All figures come from the live UniEvents database at the time of generation. Nothing is estimated.</li>
         </ul>
       </Section>
+
+      <AiInsights kind={showOrganiser ? 'platform' : 'organiser'} d={d} />
     </article>
   );
 }

@@ -380,6 +380,9 @@ A language picker sits in the top bar of the public site and every dashboard. En
 ### Ratings nudge and admin ranking
 Students could already rate events they attended. Now, once an event has ended, every student who was marked present (and has not rated yet) gets a "How was the event?" notification (in-app, plus browser push if enabled) that opens their attendance history where the stars are. It is sent once per student and event, for events that ended in the last 7 days, and skipped for anyone who turned reminders off. Admins get **Event Ratings** in the menu: events ranked by average rating (ties broken by number of reviews) and organisers ranked by their overall average. Organisers still see their own ratings and comments under each event's Feedback page. No database change.
 
+### AI insights in reports
+The last section of the admin/organiser report, the event report and the student report is **AI insights**: 4 to 6 short bullets on what stands out, what to watch and what to do next. It appears when the report opens, prints with the PDF, and has a Refresh button. The report is shrunk to numbers first (names, emails, IDs, photos and attendee lists are removed) and sent to Groq with the same `GROQ_API_KEY` as the assistant; the model is told to use only those figures. Without the key, or if Groq is down, the section shows a plain summary of the key numbers instead, so it is never empty. Each person can ask 30 times an hour. The platform report is admin only, event and organiser reports are organiser/admin, and the student report is students only. Endpoint: `POST /api/report-ai`. No database change.
+
 ## Security and privacy
 
 - Public sign-up creates **students only**. Organiser access is requested and approved by an admin.
