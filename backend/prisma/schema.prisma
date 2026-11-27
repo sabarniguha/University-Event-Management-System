@@ -121,6 +121,7 @@ model User {
   following             OrganizerFollow[]  @relation("FollowerOf")
   staffDuties           EventStaff[]
   pushSubscriptions     PushSubscription[]
+  questionsAsked        EventQA[]
   followers             OrganizerFollow[]  @relation("FollowedOrganizer")
   organizerProfile      OrganizerProfile?  @relation("OrganizerApplicant")
   organizerReviews      OrganizerProfile[] @relation("OrganizerReviewer")
@@ -156,6 +157,7 @@ model Event {
   earlyBirdFee                 Int?
   earlyBirdUntil               DateTime?
   discountCodes                DiscountCode[]
+  publicQuestions              EventQA[]
   mode                         EventMode   @default(OFFLINE)
   onlineUrl                    String?
   registrationUrl              String?
@@ -602,4 +604,23 @@ model PushSubscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// A public question on an event page; the organiser (or an admin) answers it.
+model EventQA {
+  id           Int       @id @default(autoincrement())
+  eventId      Int
+  askerId      Int
+  question     String
+  answer       String?
+  answeredById Int?
+  answeredAt   DateTime?
+  hidden       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  asker User  @relation(fields: [askerId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, createdAt])
+  @@index([askerId])
 }
