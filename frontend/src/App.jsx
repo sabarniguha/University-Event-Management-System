@@ -76,6 +76,7 @@ const Approvals = page(() => import('./pages/admin/Approvals.jsx'));
 const AdminCategories = page(() => import('./pages/admin/Categories.jsx'));
 const AdminCertificates = page(() => import('./pages/admin/AdminCertificates.jsx'));
 const AdminAnalytics = page(() => import('./pages/admin/AdminAnalytics.jsx'));
+const EventRatings = page(() => import('./pages/admin/EventRatings.jsx'));
 const SystemNotifications = page(() => import('./pages/admin/SystemNotifications.jsx'));
 const Payments = page(() => import('./pages/admin/Payments.jsx'));
 const AuditLogs = page(() => import('./pages/admin/AuditLogs.jsx'));
@@ -176,6 +177,7 @@ export default function App() {
               <Route path="/admin/certificates" element={<AdminCertificates />} />
               <Route path="/admin/certificates/view/:certificateId" element={<CertificateView />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/ratings" element={<EventRatings />} />
               <Route path="/admin/reports" element={<ReportsPage />} />
               <Route path="/admin/reports/event/:id" element={<EventReportPage />} />
               <Route path="/admin/notifications" element={<SystemNotifications />} />

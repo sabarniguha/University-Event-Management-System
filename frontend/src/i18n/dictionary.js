@@ -26,6 +26,7 @@ const hi = {
   'My registrations': 'मेरे रजिस्ट्रेशन', 'Every event you have registered for, requested or joined the waitlist of.': 'हर वह इवेंट जिसमें आपने रजिस्टर किया, अनुरोध किया या वेटलिस्ट में जुड़े।',
   'Organisers I follow': 'मैं जिन आयोजकों को फ़ॉलो करता/करती हूँ', 'My profile': 'मेरी प्रोफ़ाइल', 'Your details are used for event eligibility and on certificates.': 'आपकी जानकारी इवेंट पात्रता और सर्टिफ़िकेट में उपयोग होती है।',
   'Appearance, notifications and security.': 'रूप-रंग, सूचनाएँ और सुरक्षा।', 'Event check-in': 'इवेंट चेक-इन', 'Event staff duty': 'इवेंट स्टाफ़ ड्यूटी',
+  'Event Ratings': 'इवेंट रेटिंग', 'Event ratings': 'इवेंट रेटिंग',
   Language: 'भाषा',
 };
 
@@ -47,6 +48,7 @@ const bn = {
   'My registrations': 'আমার রেজিস্ট্রেশন', 'Every event you have registered for, requested or joined the waitlist of.': 'আপনি যে ইভেন্টে রেজিস্টার, অনুরোধ বা ওয়েটলিস্টে যোগ দিয়েছেন সবকিছু।',
   'Organisers I follow': 'আমি যাদের অনুসরণ করি', 'My profile': 'আমার প্রোফাইল', 'Your details are used for event eligibility and on certificates.': 'আপনার তথ্য ইভেন্টের যোগ্যতা ও সার্টিফিকেটে ব্যবহৃত হয়।',
   'Appearance, notifications and security.': 'চেহারা, বিজ্ঞপ্তি ও নিরাপত্তা।', 'Event check-in': 'ইভেন্ট চেক-ইন',
+  'Event Ratings': 'ইভেন্ট রেটিং', 'Event ratings': 'ইভেন্ট রেটিং',
   Language: 'ভাষা',
 };
 
